@@ -848,44 +848,29 @@
         }
 
         // Submit data to Google Sheets
-        async function submitToGoogleSheets(data) {
-            // This is a simplified approach. In a real application, you would need to:
-            // 1. Use Google Sheets API with proper authentication
-            // 2. Or use Google Apps Script as a backend service
-            
-            // For this demo, we'll simulate the submission
-            // In a real implementation, you would need to set up OAuth2 authentication
-            
-            // Simulate API call
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    console.log('Submitting data to Google Sheets:', data);
-                    resolve({ success: true });
-                }, 1500);
-            });
-            
-            // Real implementation would look something like this:
-            /*
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID_ABSEN}/values/abs:append?valueInputOption=USER_ENTERED&key=${API_KEY}`;
-            
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}` // You would need to get this through OAuth2 flow
-                },
-                body: JSON.stringify({
-                    values: data
-                })
-            });
-            
-            if (!response.ok) {
-                throw new Error('Failed to submit data');
-            }
-            
-            return response.json();
-            */
-        }
+// Ganti fungsi submitToGoogleSheets
+async function submitToGoogleSheets(data) {
+    const url = 'https://script.google.com/macros/s/AKfycbxRX8yCayi74Jc3flsWJiZ0yNxX8DK5cVbJdx4EJYHfhFrkEplwaAb7nUyuLXx2K4Atmw/exec';
+    
+    for (let record of data) {
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tanggal: record[0],
+                jam: record[1],
+                pengajar: record[2],
+                kelas: record[3],
+                mapel: record[4],
+                nis: record[5],
+                nama: record[6],
+                status: record[7]
+            })
+        });
+    }
+}
 
         // Show loading overlay
         function showLoading(show) {
@@ -907,3 +892,4 @@
 </body>
 
 </html>
+
