@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Absensi Guru SMP IT Putra Abu Hurairah Mataram</title>
+
+    <!-- Tailwind CSS untuk styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- HTML5 QRCode Scanner -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- SheetJS untuk Export Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f3f4f6; }
+        .hidden { display: none !important; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <div id="customModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
+            <h3 id="modalTitle" class="text-xl font-bold mb-2 text-gray-800">Pemberitahuan</h3>
+            <p id="modalMessage" class="text-gray-600 mb-6"></p>
+            <div id="modalButtons" class="flex justify-center gap-3">
+                <button id="modalBtnOk" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition">OK</button>
+                <button id="modalBtnCancel" class="hidden bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded-lg transition">Batal</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="min-h-screen p-4 max-w-md mx-auto relative">
+        
+        <!-- Header & Status Koneksi -->
+        <div class="glass-panel rounded-2xl shadow-sm p-4 mb-6 text-center border-b-4 border-green-600">
+            <h1 class="text-xl font-extrabold text-green-700">Absensi Guru</h1>
+            <h2 class="text-sm font-semibold text-gray-600">SMP IT Putra Abu Hurairah Mataram</h2>
+            <div id="connectionStatus" class="mt-3 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700">Online - Sinkron</div>
+        </div>
+
+        <div id="loginSection" class="glass-panel rounded-2xl shadow-lg p-6 mb-6">
+            <h3 class="font-bold text-lg mb-4 border-b pb-2">Silakan Login</h3>
+            <label class="block text-sm font-semibold mb-2">Pilih Nama Anda:</label>
+            <select id="userSelect" class="w-full p-3 border rounded-xl bg-gray-50 focus:ring-2 focus:ring-green-500 outline-none mb-4">
+                <option value="">-- Cari / Pilih Nama --</option>
+            </select>
+
+            <div id="adminPasswordDiv" class="hidden mb-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                <label class="block text-sm font-semibold mb-2 text-blue-800">Password Admin:</label>
+                <input type="password" id="adminPassword" class="w-full p-3 border rounded-lg" placeholder="Masukkan password...">
+                <p class="text-xs text-blue-600 mt-2 font-medium">*Sandi dinamis</p>
+            </div>
+
+            <button onclick="prosesLogin()" class="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-bold shadow-md transition">MASUK</button>
+        </div>
+
+        <div id="guruDashboard" class="hidden glass-panel rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-start mb-4 border-b pb-4">
+                <div>
+                    <p class="text-sm text-gray-500 font-semibold">Selamat datang,</p>
+                    <h2 class="text-lg font-bold text-gray-800" id="guruNameDisplay">Nama Guru</h2>
+                    <p id="singleMapelDisplay" class="text-sm text-blue-600 font-bold mt-1 hidden"></p>
+                </div>
+                <button onclick="gantiUser()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-full font-semibold transition">Ganti User</button>
+            </div>
+
+            <!-- Pilihan Mapel (muncul jika mapel > 1) -->
+            <div id="mapelSelectionDiv" class="mb-5 p-4 bg-yellow-50 rounded-xl border border-yellow-200 hidden">
+                <label class="block text-sm font-bold text-yellow-800 mb-2">Pilih Mapel yang diajarkan saat ini:</label>
+                <select id="activeMapelSelect" class="w-full p-2 border rounded-lg bg-white"></select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <button id="btnScanMasuk" onclick="bukaScanner('Masuk')" class="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition transform flex flex-col items-center justify-center">
+                    <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                    SCAN MASUK
+                </button>
+                <button id="btnScanKeluar" onclick="bukaScanner('Keluar')" class="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition transform flex flex-col items-center justify-center">
+                    <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    SCAN KELUAR
+                </button>
+            </div>
+            
+            <button onclick="bukaFormIzin()" class="w-full bg-orange-100 text-orange-700 border border-orange-300 py-3 rounded-xl font-bold mb-3 hover:bg-orange-200 transition">📝 Isi Keterangan Berhalangan</button>
+            <button onclick="lihatRekapPribadi()" class="w-full bg-blue-100 text-blue-700 border border-blue-300 py-3 rounded-xl font-bold hover:bg-blue-200 transition">📊 Lihat Rekap Harian Saya</button>
+        </div>
+
+        <div id="izinSection" class="hidden glass-panel rounded-2xl shadow-lg p-6 mb-6">
+            <h3 class="font-bold text-lg mb-4 border-b pb-2 text-orange-600">Form Keterangan Berhalangan</h3>
+            
+            <label class="block text-sm font-semibold mb-2">Kelas yang ditinggalkan:</label>
+            <select id="izinKelas" class="w-full p-3 border rounded-xl mb-4"></select>
+
+            <label class="block text-sm font-semibold mb-2">Alasan & Guru Pengganti:</label>
+            <textarea id="izinKeterangan" class="w-full p-3 border rounded-xl mb-4" rows="3" placeholder="Contoh: Sakit, digantikan oleh Ust. Fulan"></textarea>
+
+            <div class="flex gap-3">
+                <button onclick="kirimIzin()" class="flex-1 bg-orange-500 text-white py-3 rounded-xl font-bold">Kirim Data</button>
+                <button onclick="tutupFormIzin()" class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold">Batal</button>
+            </div>
+        </div>
+
+        <div id="adminDashboard" class="hidden glass-panel rounded-2xl shadow-lg p-6 mb-6 border-t-4 border-blue-600">
+            <h2 class="text-lg font-bold mb-4">👑 Dashboard Admin</h2>
+            <p class="text-sm text-gray-600 mb-4">Login sebagai: <span id="adminNameDisplay" class="font-bold"></span></p>
+            
+            <!-- Bagian Update untuk Admin Dashboard -->
+            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
+                <h3 class="font-bold text-blue-800 mb-3">Download Rekap Keterlambatan</h3>
+    
+                <div class="grid grid-cols-2 gap-2 mb-2">
+                    <button onclick="downloadFilteredRecap('hari')" class="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold text-xs transition">Harian</button>
+                    <button onclick="downloadFilteredRecap('pekan')" class="bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg font-bold text-xs transition">Pekanan</button>
+                    <button onclick="downloadFilteredRecap('bulan')" class="bg-indigo-600 hover:bg-indigo-700 text-white py-2 rounded-lg font-bold text-xs transition">Bulanan</button>
+                    <button onclick="downloadFilteredRecap('semester')" class="bg-indigo-700 hover:bg-indigo-800 text-white py-2 rounded-lg font-bold text-xs transition">Semester</button>
+                </div>
+                <p class="text-[10px] text-blue-600 mt-2 italic">*Data otomatis memfilter keterlambatan & ketepatan waktu berdasarkan periode yang dipilih.</p>
+            </div>
+            
+            <!-- Dashboard Khusus Super Admin -->
+            <div id="superAdminSection" class="hidden bg-purple-50 p-4 rounded-xl border border-purple-200 mb-4">
+                <h3 class="font-bold text-purple-800 mb-3">🛠️ Tools Admin Khusus</h3>
+                <button onclick="downloadRekapSemua()" class="w-full bg-green-600 text-white p-3 rounded font-bold mb-2">Download Rekap Semua Guru (Excel)</button>
+                <label class="block text-xs font-semibold mb-1 text-purple-700">URL Google Apps Script (Web App):</label>
+                <input type="text" id="scriptUrlInput" class="w-full p-2 text-sm border rounded mb-2" placeholder="Paste URL Web App...">
+                <button onclick="simpanScriptUrl()" class="w-full bg-purple-600 text-white p-2 rounded-lg font-bold mb-4 text-sm">Simpan Link Database</button>
+                <div class="flex gap-2">
+                    <button onclick="tambahKelas()" class="flex-1 bg-indigo-500 text-white p-2 rounded-lg font-bold text-sm">+ Tambah Kelas</button>
+                    <button onclick="cetakQRCode()" class="flex-1 bg-pink-500 text-white p-2 rounded-lg font-bold text-sm">🖨️ Cetak QR Kelas</button>
+                </div>
+            </div>
+
+            <button onclick="gantiUser()" class="w-full bg-gray-200 text-gray-700 py-3 rounded-xl font-bold mt-2">Keluar (Ganti User)</button>
+        </div>
+
+        <div id="scannerSection" class="hidden glass-panel rounded-2xl shadow-lg p-4 mb-6 relative">
+            <div class="absolute top-2 right-2">
+                <button onclick="batalScan()" class="bg-red-100 text-red-600 p-2 rounded-full hover:bg-red-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <h3 class="font-bold text-center text-lg mt-2" id="scanTitle">Arahkan Kamera ke QR</h3>
+            <p class="text-center text-sm font-bold text-blue-600 mb-4" id="scanMapelInfo"></p>
+            
+            <div class="rounded-xl overflow-hidden shadow-inner border-2 border-dashed border-gray-300 mb-4">
+                <div id="reader" width="100%"></div>
+            </div>
+            
+            <p class="text-xs text-center text-gray-500">*Pastikan QR code berada di tengah area pindaian.</p>
+        </div>
+
+        <div id="rekapSection" class="hidden glass-panel rounded-2xl shadow-lg p-6 mb-6">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="font-bold text-lg text-blue-800">Rekap Harian Anda</h3>
+                <button onclick="tutupRekap()" class="text-red-500 font-bold">Tutup</button>
+            </div>
+            <div id="loadingRekap" class="text-center py-4 text-gray-500 hidden">
+                <div class="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
+                <p>Mengambil data dari server...</p>
+            </div>
+            <div id="rekapContent" class="space-y-3 max-h-96 overflow-y-auto text-sm">
+                <!-- Data di-inject via JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+    // --- KONFIGURASI PENGGUNA ---
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbw4bR8aLCS94Kj-WrXh3VmwDfBLGsPY98x7bxFZ-SssaCaoWRcJw239WFIjzjZJDLxk/exec";
+
+    if (!localStorage.getItem('gas_url')) {
+        localStorage.setItem('gas_url', DEFAULT_GAS_URL);
+    }
+    
+    // Fungsi untuk memeriksa apakah guru sudah melakukan scan masuk/keluar
+    function cekStatusAbsensi(guruNama, mapelDipilih) {
+        const riwayat = JSON.parse(localStorage.getItem('riwayat_harian') || '[]');
+        const hariIni = new Date().toDateString();
+        
+        const sudahMasuk = riwayat.find(r => 
+            r.nama === guruNama && 
+            r.mapel === mapelDipilih && 
+            r.tipe === 'Masuk' &&
+            new Date(r.waktu).toDateString() === hariIni
+        );
+
+        return { sudahMasuk: !!sudahMasuk };
+    }
+
+    function renderDashboardStatus(userObj) {
+        const btnMasuk = document.getElementById('btnScanMasuk');
+        const btnKeluar = document.getElementById('btnScanKeluar');
+        const mapelSelect = document.getElementById('activeMapelSelect');
+        
+        if(!mapelSelect || !btnMasuk || !btnKeluar) return;
+        
+        const mapel = mapelSelect.value;
+        const status = cekStatusAbsensi(userObj.nama, mapel);
+
+        if (status.sudahMasuk) {
+            btnMasuk.classList.add('hidden');
+            btnKeluar.classList.remove('hidden');
+        } else {
+            btnMasuk.classList.remove('hidden');
+            btnKeluar.classList.add('hidden');
+        }
+    }
+    </script>
+
+    <script>
+        // 1. DATA GURU DAN ADMIN (Digabung dan bersih tanpa tulisan admin di tampilan)
+        const dataGuruList = [
+            { nama: "Budiman, S. Pd.", role: "admin", mapel: [] },
+            { nama: "Adi Hardiyansyah, M. Pd.", role: "admin", mapel: ["IPA Terpadu"] },
+            { nama: "Agus Sarkawi, S. T.", role: "superadmin", mapel: ["Informatika-SBDP"] },
+            { nama: "Abdul Hafizh Hizam, Lc.", role: "guru", mapel: ["Aqidah"] },
+            { nama: "Adiandri Suhaili, M. Pd.", role: "guru", mapel: ["IPA Terpadu"] },
+            { nama: "Ahmad Arroiyan, Lc.", role: "guru", mapel: ["Bahasa Arab", "Qowaidul Lughoh", "Kitabah & Khat"] },
+            { nama: "Ahmad Mahsan Haikal, Lc.", role: "guru", mapel: ["Kitabah & Khat", "Bahasa Arab", "Ta'bir"] },
+            { nama: "Andri Jaelani, Lc., M. H.", role: "guru", mapel: ["Ta'bir", "Kitabah & Khat"] },
+            { nama: "Arsyad, S. Pd.", role: "guru", mapel: ["Bahasa Indonesia"] },
+            { nama: "Firman, S. Pd.", role: "guru", mapel: ["Bahasa Indonesia"] },
+            { nama: "Hafizh Bagis, Lc.", role: "guru", mapel: ["Bahasa Arab", "Kitabah & Khat"] },
+            { nama: "Hairul Umam Insani, S. Pd.", role: "guru", mapel: ["Bahasa Inggris"] },
+            { nama: "Haqikahurrahman, S. Pd.", role: "guru", mapel: ["Matematika"] },
+            { nama: "Jamaluddin, Lc.", role: "guru", mapel: ["Fiqih"] },
+            { nama: "Jumadil Awal, SE.", role: "guru", mapel: ["IPS-Pancasila"] },
+            { nama: "Junaidi, S. Pd.", role: "guru", mapel: ["IPS-Pancasila"] },
+            { nama: "L. Muh. Baidui, M. Pd.", role: "guru", mapel: ["IPA Terpadu"] },
+            { nama: "Lalu M. Sulistiono, SP.", role: "guru", mapel: ["Fiqih"] },
+            { nama: "Ludfi Rusdiyono, S. Pd.", role: "guru", mapel: ["Bahasa Inggris"] },
+            { nama: "M. Tahir, M. Pd.", role: "guru", mapel: ["PJOK"] },
+            { nama: "Muhammad Al Huraibi, Lc.", role: "guru", mapel: ["Bahasa Arab"] },
+            { nama: "Saifuddin Hidayat, S. Pd.", role: "guru", mapel: ["Matematika", "Informatika-SBDP"] },
+            { nama: "Salman, S. Pd. I.", role: "guru", mapel: ["Adab Akhlak"] },
+            { nama: "Syahrul Hasyim, Lc.", role: "guru", mapel: ["Aqidah"] },
+            { nama: "Syamsul Bahri, Lc.", role: "guru", mapel: ["Kitabah & Khat", "Bahasa Arab", "Qowaidul Lughoh"] },
+            { nama: "Taufiqurrahman, Lc.", role: "guru", mapel: ["Bahasa Arab", "Kitabah & Khat"] },
+            { nama: "Zulfi Farid, Lc.", role: "guru", mapel: ["Bahasa Arab", "Ta'bir"] },
+            { nama: "Zulkarnaen Teguh W, S. Pd.", role: "guru", mapel: ["Hadits"] },
+            // Guru Tahfizh
+            { nama: "Ahmad Fazhlurrahman", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Abdul Hanan", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Akmaluddin", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Aminullah", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Azza Mahsari, S. Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Fauzul Kabir, S. Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Irfan Hidayat, S.Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Iswahyudi, S. T.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Maliki", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Musalim Amin, S. Pd. I.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+            { nama: "Ukasyah", role: "guru", mapel: ["Tahfizhul Qur'an"] }
+        ];
+
+        // Urutkan daftar guru secara abjad (A-Z)
+        dataGuruList.sort((a, b) => a.nama.localeCompare(b.nama));
+
+        // 2. DATA KELAS
+        let daftarKelas = JSON.parse(localStorage.getItem('daftar_kelas')) || 
+            ["7A","7B","7C","7D","7E","8A","8B","8C","8D","8E","9A","9B","9C","9D"];
+
+        // 3. PENGATURAN JADWAL WAKTU & MAPEL
+        const jadwalWaktu = {
+            normal: [
+                { jp: 1, mulai: "07:30", selesai: "08:10" },
+                { jp: 2, mulai: "08:10", selesai: "08:50" },
+                { jp: 3, mulai: "08:50", selesai: "09:30" },
+                { jp: 4, mulai: "09:30", selesai: "10:10" },
+                { jp: 5, mulai: "10:40", selesai: "11:15" },
+                { jp: 6, mulai: "11:15", selesai: "11:50" },
+                { jp: 7, mulai: "11:50", selesai: "12:25" },
+                { jp: 8, mulai: "12:25", selesai: "13:00" }
+            ],
+            jumat: [
+                { jp: 1, mulai: "07:30", selesai: "08:05" },
+                { jp: 2, mulai: "08:05", selesai: "08:40" },
+                { jp: 3, mulai: "08:40", selesai: "09:15" },
+                { jp: 4, mulai: "09:15", selesai: "09:50" },
+                { jp: 5, mulai: "10:20", selesai: "10:55" },
+                { jp: 6, mulai: "10:55", selesai: "11:30" }
+            ]
+        };
+
+        const jadwalMapel = {
+            "Tahfizhul Qur'an": {
+                isKopel: true,
+                data: [
+                    { kelas: ["7A","7B","7C"], jadwal: [{hari:"senin", jp:[3,4]}, {hari:"selasa", jp:[3,4]}, {hari:"rabu", jp:[7,8]}, {hari:"kamis", jp:[3,4]}] },
+                    { kelas: ["7D","7E","8A"], jadwal: [{hari:"selasa", jp:[1,2]}, {hari:"rabu", jp:[3,4]}, {hari:"kamis", jp:[7,8]}, {hari:"jumat", jp:[3,4]}] },
+                    { kelas: ["8B","8C","8D","8E"], jadwal: [{hari:"senin", jp:[7,8]}, {hari:"selasa", jp:[5,6]}, {hari:"kamis", jp:[1,2]}, {hari:"jumat", jp:[5,6]}] },
+                    { kelas: ["9A","9B","9C","9D"], jadwal: [{hari:"senin", jp:[5,6]}, {hari:"rabu", jp:[1,2]}, {hari:"jumat", jp:[1,2]}] }
+                ]
+            },
+            "PJOK": {
+                isKopel: true,
+                data: [
+                    { kelas: ["9A","9B"], jadwal: [{hari:"selasa", jp:[1,2]}] },
+                    { kelas: ["9C","9D"], jadwal: [{hari:"selasa", jp:[3,4]}] },
+                    { kelas: ["7D","7E"], jadwal: [{hari:"kamis", jp:[3,4]}] },
+                    { kelas: ["7A","7B"], jadwal: [{hari:"jumat", jp:[1,2]}] }
+                ]
+            },
+            "Bahasa Arab": {
+                isKopel: false,
+                data: {
+                    "7A": [ {hari: "senin", jp: [1,2]}, {hari: "rabu", jp: [3,4]} ],
+                    "7B": [ {hari: "senin", jp: [5,6]} ]
+                }
+            },
+            "IPA Terpadu": {
+                isKopel: false,
+                data: {
+                    "8A": [ {hari: "selasa", jp: [3,4]} ]
+                }
+            }
+        };
+
+        function showModal(title, message, isConfirm = false, confirmCallback = null) {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalMessage').innerText = message;
+            document.getElementById('customModal').classList.remove('hidden');
+            
+            const btnOk = document.getElementById('modalBtnOk');
+            const btnCancel = document.getElementById('modalBtnCancel');
+            
+            let newBtnOk = btnOk.cloneNode(true);
+            btnOk.parentNode.replaceChild(newBtnOk, btnOk);
+            
+            let newBtnCancel = btnCancel.cloneNode(true);
+            btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
+            
+            if(isConfirm) {
+                newBtnCancel.classList.remove('hidden');
+                newBtnOk.innerText = "Ya, Lanjutkan";
+                newBtnOk.onclick = () => {
+                    document.getElementById('customModal').classList.add('hidden');
+                    if(confirmCallback) confirmCallback();
+                };
+                newBtnCancel.onclick = () => document.getElementById('customModal').classList.add('hidden');
+            } else {
+                newBtnCancel.classList.add('hidden');
+                newBtnOk.innerText = "Tutup";
+                newBtnOk.onclick = () => document.getElementById('customModal').classList.add('hidden');
+            }
+        }
+
+        const hariIndo = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+        
+        function getHariIni() {
+            return hariIndo[new Date().getDay()];
+        }
+
+        function getDynamicPassword(namaAdmin) {
+            const todayStr = getHariIni(); // Fungsi ini menghasilkan: ahad, senin, selasa, dll.
+            
+            // Logika khusus untuk Agus Sarkawi
+            if (namaAdmin.includes("Agus Sarkawi")) {
+                return "bismillah" + todayStr;
+            }
+            
+            // Logika untuk Admin lain (Budiman, Adi Hardiyansyah) tetap menggunakan rumus lama
+            return todayStr.slice(0, -1) + "212";
+        }
+
+        let activeUserObj = null;
+        let html5QrcodeScanner = null;
+        let currentScanType = "";
+
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    console.log('Wake Lock aktif');
+                }
+            } catch (err) { console.log('Wake Lock gagal:', err); }
+        }
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
+        });
+
+        // Fungsi aman untuk menghentikan scanner tanpa memicu error "Cannot stop"
+        async function stopScanner() {
+            if (html5QrcodeScanner) {
+                try {
+                    const state = html5QrcodeScanner.getState();
+                    // State 2 = SCANNING, 1 = PAUSED
+                    if (state === 2 || state === 1) {
+                        await html5QrcodeScanner.stop();
+                    }
+                } catch (err) {
+                    console.warn("Peringatan saat menghentikan scanner:", err);
+                } finally {
+                    try {
+                        html5QrcodeScanner.clear();
+                    } catch (e) {
+                        // Abaikan jika elemen sudah bersih
+                    }
+                }
+            }
+        }
+
+        async function bukaScanner(tipe) {
+            const mapelDipilih = document.getElementById('activeMapelSelect').value;
+            if(!mapelDipilih) return showModal("Peringatan", "Pilih mata pelajaran terlebih dahulu!");
+
+            currentScanType = tipe;
+            document.getElementById('guruDashboard').classList.add('hidden');
+            document.getElementById('scannerSection').classList.remove('hidden');
+            document.getElementById('scanTitle').innerText = `Scan QR - ${tipe.toUpperCase()}`;
+            document.getElementById('scanMapelInfo').innerText = `Mapel: ${mapelDipilih}`;
+
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            try {
+                await html5QrcodeScanner.start(
+                    { facingMode: "environment" }, 
+                    { fps: 10, qrbox: {width: 250, height: 250} },
+                    (decodedText) => {
+                        stopScanner().then(() => {
+                            prosesHasilScan(decodedText.trim().toUpperCase(), mapelDipilih, tipe);
+                        });
+                    },
+                    (errorMessage) => { /* abaikan error per frame */ }
+                );
+            } catch (err) {
+                showModal("Error Kamera", "Tidak dapat mengakses kamera: " + err);
+                batalScan();
+            }
+        }
+
+        async function batalScan() {
+            await stopScanner();
+            document.getElementById('scannerSection').classList.add('hidden');
+            document.getElementById('guruDashboard').classList.remove('hidden');
+        }
+
+        window.onload = () => {
+            requestWakeLock();
+            populateDropdowns();
+            cekSessionLogin();
+            syncOfflineData();
+        };
+
+        function populateDropdowns() {
+            const userSelect = document.getElementById('userSelect');
+            userSelect.innerHTML = '<option value="">-- Cari / Pilih Nama --</option>';
+            
+            // Masukkan semua nama ke satu dropdown tunggal tanpa pengelompokan admin/guru
+            dataGuruList.forEach(g => {
+                let opt = new Option(g.nama, g.nama);
+                userSelect.appendChild(opt);
+            });
+
+            const izinKelas = document.getElementById('izinKelas');
+            daftarKelas.forEach(k => izinKelas.appendChild(new Option(k, k)));
+
+            document.getElementById('scriptUrlInput').value = localStorage.getItem('gas_url') || "";
+        }
+
+        document.getElementById('userSelect').addEventListener('change', function() {
+            const selectedObj = dataGuruList.find(g => g.nama === this.value);
+            if(selectedObj && (selectedObj.role === 'admin' || selectedObj.role === 'superadmin')) {
+                document.getElementById('adminPasswordDiv').classList.remove('hidden');
+            } else {
+                document.getElementById('adminPasswordDiv').classList.add('hidden');
+            }
+        });
+
+        function prosesLogin() {
+            const nama = document.getElementById('userSelect').value;
+            if(!nama) return showModal("Perhatian", "Pilih nama Anda terlebih dahulu.");
+
+            const userObj = dataGuruList.find(g => g.nama === nama);
+            
+            if(userObj.role === 'admin' || userObj.role === 'superadmin') {
+                const pass = document.getElementById('adminPassword').value;
+                // Mengirim nama ke fungsi password agar pengecekan dinamis
+                if(pass !== getDynamicPassword(nama)) {
+                    return showModal("Akses Ditolak", "Password salah!");
+                }
+            }
+
+            setLoginSession(userObj);
+            renderDashboard(userObj);
+        }
+
+        function setLoginSession(userObj) {
+            activeUserObj = userObj;
+            const sessionData = { user: userObj, date: new Date().toDateString() };
+            localStorage.setItem('absen_session', JSON.stringify(sessionData));
+        }
+
+        function cekSessionLogin() {
+            const session = JSON.parse(localStorage.getItem('absen_session'));
+            if(session && session.date === new Date().toDateString()) {
+                activeUserObj = session.user;
+                renderDashboard(activeUserObj);
+            }
+        }
+
+        function gantiUser() {
+            activeUserObj = null;
+            localStorage.removeItem('absen_session');
+            document.getElementById('guruDashboard').classList.add('hidden');
+            document.getElementById('adminDashboard').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('userSelect').value = '';
+            document.getElementById('adminPasswordDiv').classList.add('hidden');
+        }
+
+        function renderDashboard(userObj) {
+            document.getElementById('loginSection').classList.add('hidden');
+            
+            if(userObj.role === 'admin' || userObj.role === 'superadmin') {
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                document.getElementById('adminNameDisplay').innerText = userObj.nama;
+                
+                if(userObj.role === 'superadmin') {
+                    document.getElementById('superAdminSection').classList.remove('hidden');
+                } else {
+                    document.getElementById('superAdminSection').classList.add('hidden');
+                }
+            }
+            
+            if (userObj.role === 'guru' || (userObj.role !== 'guru' && userObj.mapel.length > 0)) {
+                document.getElementById('guruDashboard').classList.remove('hidden');
+                document.getElementById('guruNameDisplay').innerText = userObj.nama;
+                
+                const mapelDiv = document.getElementById('mapelSelectionDiv');
+                const mapelSel = document.getElementById('activeMapelSelect');
+                const singleMapelDisp = document.getElementById('singleMapelDisplay');
+                
+                mapelSel.innerHTML = "";
+                singleMapelDisp.classList.add('hidden');
+                
+                if(userObj.mapel.length > 1) {
+                    mapelDiv.classList.remove('hidden');
+                    userObj.mapel.forEach(m => mapelSel.appendChild(new Option(m, m)));
+                } else if (userObj.mapel.length === 1) {
+                    mapelDiv.classList.add('hidden');
+                    mapelSel.appendChild(new Option(userObj.mapel[0], userObj.mapel[0]));
+                    singleMapelDisp.innerText = `Mapel: ${userObj.mapel[0]}`;
+                    singleMapelDisp.classList.remove('hidden');
+                } else {
+                    mapelDiv.classList.add('hidden');
+                    mapelSel.appendChild(new Option("Tidak Ada Mapel", ""));
+                }
+
+                mapelSel.onchange = () => {
+                    renderDashboardStatus(userObj);
+                };
+                renderDashboardStatus(userObj);
+            }
+        }
+
+        function konversiKeMenit(waktuStr) {
+            const [jam, mnt] = waktuStr.split(':').map(Number);
+            return (jam * 60) + mnt;
+        }
+
+        function hitungSelisihWaktu(waktuAktual, mapelStr, kelasStr, tipeScan) {
+            const mapelConfig = jadwalMapel[mapelStr];
+            if(!mapelConfig) return { status: 'Tidak ada data jadwal', selisihMenit: 0 };
+
+            const hariIni = getHariIni();
+            const tipeHari = (hariIni === 'jumat') ? 'jumat' : 'normal';
+            const skemaWaktu = jadwalWaktu[tipeHari];
+            
+            let jadwalDitemukan = null;
+
+            if(mapelConfig.isKopel) {
+                const kopelTerkait = mapelConfig.data.find(k => k.kelas.includes(kelasStr));
+                if(kopelTerkait) {
+                    jadwalDitemukan = kopelTerkait.jadwal.find(j => j.hari === hariIni);
+                }
+            } else {
+                if(mapelConfig.data[kelasStr]) {
+                    jadwalDitemukan = mapelConfig.data[kelasStr].find(j => j.hari === hariIni);
+                }
+            }
+
+            if(!jadwalDitemukan) return { status: 'Luar Jadwal', selisihMenit: 0 };
+
+            const jpMulai = Math.min(...jadwalDitemukan.jp);
+            const jpKelar = Math.max(...jadwalDitemukan.jp);
+            
+            const waktuMulaiTeks = skemaWaktu.find(w => w.jp === jpMulai)?.mulai;
+            const waktuKelarTeks = skemaWaktu.find(w => w.jp === jpKelar)?.selesai;
+
+            if(!waktuMulaiTeks || !waktuKelarTeks) return { status: 'Error Skema Waktu', selisihMenit: 0 };
+
+            const aktualMenit = (waktuAktual.getHours() * 60) + waktuAktual.getMinutes();
+            
+            if(tipeScan === 'Masuk') {
+                const patokanMasuk = konversiKeMenit(waktuMulaiTeks);
+                if(aktualMenit > patokanMasuk) {
+                    return { status: 'Terlambat', selisihMenit: (aktualMenit - patokanMasuk) };
+                } else {
+                    return { status: 'Tepat Waktu', selisihMenit: 0 };
+                }
+            } else {
+                const patokanKeluar = konversiKeMenit(waktuKelarTeks);
+                if(aktualMenit < patokanKeluar) {
+                    return { status: 'Kecepatan Keluar', selisihMenit: (patokanKeluar - aktualMenit) };
+                } else {
+                    return { status: 'Tepat Waktu', selisihMenit: 0 };
+                }
+            }
+        }
+
+        function prosesHasilScan(kelasScanned, mapel, tipe) {
+            if(!daftarKelas.includes(kelasScanned)) {
+                showModal("QR Tidak Valid", `QR Code dibaca sebagai '${kelasScanned}'. Ini bukan QR kelas yang valid.`);
+                batalScan();
+                return;
+            }
+
+            const waktuSekarang = new Date();
+            const hasilHitung = hitungSelisihWaktu(waktuSekarang, mapel, kelasScanned, tipe);
+
+            const payload = {
+                nama: activeUserObj.nama,
+                kelas: kelasScanned,
+                mapel: mapel,
+                tipe: tipe,
+                waktu: waktuSekarang.toLocaleString('id-ID'),
+                status: hasilHitung.status,
+                menitSelisih: hasilHitung.selisihMenit,
+                keterangan: "-"
+            };
+
+            let pesanModal = `Kelas: ${kelasScanned}\nMapel: ${mapel}\nJam: ${waktuSekarang.toLocaleTimeString('id-ID')}\nStatus: ${hasilHitung.status}`;
+            if(hasilHitung.selisihMenit > 0) pesanModal += ` (${hasilHitung.selisihMenit} menit)`;
+            
+            showModal("Konfirmasi " + tipe, pesanModal + "\n\nSimpan data ini?", true, () => {
+                simpanDataAbsen(payload);
+                
+                // Simpan ke riwayat lokal untuk update UI tombol Masuk/Keluar
+                let riwayat = JSON.parse(localStorage.getItem('riwayat_harian') || '[]');
+                riwayat.push({
+                    nama: activeUserObj.nama,
+                    mapel: mapel,
+                    tipe: tipe,
+                    waktu: waktuSekarang.toISOString()
+                });
+                localStorage.setItem('riwayat_harian', JSON.stringify(riwayat));
+                
+                renderDashboardStatus(activeUserObj);
+                batalScan();
+            });
+        }
+
+        function bukaFormIzin() {
+            document.getElementById('guruDashboard').classList.add('hidden');
+            document.getElementById('izinSection').classList.remove('hidden');
+        }
+        function tutupFormIzin() {
+            document.getElementById('izinSection').classList.add('hidden');
+            document.getElementById('guruDashboard').classList.remove('hidden');
+        }
+        function kirimIzin() {
+            const kls = document.getElementById('izinKelas').value;
+            const ket = document.getElementById('izinKeterangan').value;
+            const mpl = document.getElementById('activeMapelSelect').value;
+            
+            if(!ket) return showModal("Peringatan", "Keterangan tidak boleh kosong.");
+
+            const payload = {
+                nama: activeUserObj.nama,
+                kelas: kls,
+                mapel: mpl,
+                tipe: 'Izin/Berhalangan',
+                waktu: new Date().toLocaleString('id-ID'),
+                status: 'Berhalangan',
+                menitSelisih: 0,
+                keterangan: ket
+            };
+            simpanDataAbsen(payload);
+            tutupFormIzin();
+            document.getElementById('izinKeterangan').value = "";
+        }
+
+        function simpanDataAbsen(data) {
+            if(navigator.onLine) {
+                kirimKeServer(data);
+            } else {
+                simpanKeLokal(data);
+                showModal("Mode Offline", "Koneksi terputus. Data disimpan di HP dan akan terkirim otomatis saat online.");
+            }
+        }
+
+        function simpanKeLokal(data) {
+            let offlineData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
+            offlineData.push(data);
+            localStorage.setItem('offline_scans', JSON.stringify(offlineData));
+            updateKoneksiUI();
+        }
+
+        function kirimKeServer(dataPayload) {
+            const url = localStorage.getItem('gas_url');
+            if(!url || !url.startsWith("http")) {
+                simpanKeLokal(dataPayload);
+                return showModal("Sistem Belum Siap", "Admin belum memasukkan Link Database (URL AppScript). Data Anda disimpan offline sementara.");
+            }
+
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dataPayload)
+            }).then(() => {
+                showModal("Sukses", "Data kehadiran berhasil terekam.");
+            }).catch(e => {
+                simpanKeLokal(dataPayload);
+            });
+        }
+
+        function syncOfflineData() {
+            if(!navigator.onLine) return;
+            const offlineData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
+            if(offlineData.length === 0) return;
+
+            const url = localStorage.getItem('gas_url');
+            if(!url || !url.startsWith("http")) return;
+
+            fetch(url, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(offlineData)
+            }).then(() => {
+                localStorage.removeItem('offline_scans');
+                updateKoneksiUI();
+                showModal("Sinkronisasi Berhasil", `${offlineData.length} data offline telah dikirim ke server.`);
+            }).catch(e => console.log("Gagal sync, akan mencoba lagi nanti."));
+        }
+
+        window.addEventListener('online', () => { updateKoneksiUI(); syncOfflineData(); });
+        window.addEventListener('offline', updateKoneksiUI);
+
+        function updateKoneksiUI() {
+            const statUI = document.getElementById('connectionStatus');
+            const offData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
+            if(navigator.onLine) {
+                statUI.className = "mt-3 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700";
+                statUI.innerText = "Online - Terhubung";
+            } else {
+                statUI.className = "mt-3 text-xs font-bold py-1 px-3 rounded-full inline-block bg-red-100 text-red-700 animate-pulse";
+                statUI.innerText = `Offline (${offData.length} data antri)`;
+            }
+        }
+
+        function lihatRekapPribadi() {
+            const url = localStorage.getItem('gas_url');
+            if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur admin.");
+
+            document.getElementById('guruDashboard').classList.add('hidden');
+            document.getElementById('rekapSection').classList.remove('hidden');
+            document.getElementById('loadingRekap').classList.remove('hidden');
+            document.getElementById('rekapContent').innerHTML = "";
+
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('loadingRekap').classList.add('hidden');
+                
+                if(!Array.isArray(data) || data.length === 0) {
+                    document.getElementById('rekapContent').innerHTML = "<p class='text-center text-gray-500'>Belum ada data di server.</p>";
+                    return;
+                }
+
+                // Dapatkan tanggal hari ini dalam format YYYY-MM-DD atau DD/MM/YYYY untuk pencocokan yang fleksibel
+                const now = new Date();
+                const tglHariIni = String(now.getDate()).padStart(2, '0');
+                const blnHariIni = String(now.getMonth() + 1).padStart(2, '0');
+                const thnHariIni = now.getFullYear();
+
+                // Filter berdasarkan nama guru dan pastikan tanggal hari ini cocok (mengabaikan perbedaan format jam/waktu)
+                const dataSaya = data.filter(r => {
+                    const namaGuru = r["Nama Guru"] || r.namaGuru || "";
+                    const waktuServer = r["Waktu Server"] || r.waktuServer || "";
+                    
+                    const isUserMatch = namaGuru.trim().toLowerCase() === activeUserObj.nama.trim().toLowerCase();
+                    
+                    // Cek apakah string waktu mengandung tanggal hari ini (bisa format / atau -)
+                    const isToday = waktuServer.includes(`${tglHariIni}/${blnHariIni}/${thnHariIni}`) || 
+                                    waktuServer.includes(`${thnHariIni}-${blnHariIni}-${tglHariIni}`) ||
+                                    waktuServer.includes(`${Number(blnHariIni)}/${Number(tglHariIni)}/${thnHariIni}`) ||
+                                    waktuServer.includes(now.toLocaleDateString('en-GB')); // format DD/MM/YYYY
+
+                    return isUserMatch && (isToday || waktuServer.includes(thnHariIni.toString()));
+                });
+                
+                if(dataSaya.length === 0) {
+                    document.getElementById('rekapContent').innerHTML = "<p class='text-center text-gray-500'>Belum ada riwayat absensi untuk Anda hari ini.</p>";
+                    return;
+                }
+
+                dataSaya.forEach(row => {
+                    const tipeScan = row["Tipe Scan"] || row.tipeScan || "Absen";
+                    const kelas = row["Kelas"] || row.kelas || "-";
+                    const mapel = row["Mata Pelajaran"] || row.mapel || "-";
+                    const waktuScan = row["Waktu Scan"] || row.waktuScan || "-";
+                    const status = row["Status"] || row.status || "Tepat Waktu";
+                    const selisih = row["Selisih Menit"] || row.selisihMenit || 0;
+
+                    let warnaStatus = 'text-green-600';
+                    if(status.includes('Terlambat') || status.includes('Kecepatan')) warnaStatus = 'text-red-600';
+                    
+                    document.getElementById('rekapContent').innerHTML += `
+                        <div class="border-b pb-2 mb-2">
+                            <div class="flex justify-between font-bold">
+                                <span>Kelas ${kelas} - ${tipeScan}</span>
+                                <span class="${warnaStatus}">${waktuScan}</span>
+                            </div>
+                            <div class="text-xs text-gray-600">Mapel: ${mapel}</div>
+                            <div class="text-xs text-gray-600">Status: ${status} ${selisih != 0 && selisih != '0' ? '('+selisih+' mnt)' : ''}</div>
+                        </div>
+                    `;
+                });
+            })
+            .catch(err => {
+                document.getElementById('loadingRekap').classList.add('hidden');
+                document.getElementById('rekapContent').innerHTML = "<p class='text-center text-red-500'>Gagal mengambil data. Pastikan koneksi internet aktif dan URL Apps Script benar.</p>";
+            });
+        }
+
+        function tutupRekap() {
+            document.getElementById('rekapSection').classList.add('hidden');
+            document.getElementById('guruDashboard').classList.remove('hidden');
+        }
+
+        function downloadFilteredRecap(filterType) {
+            const url = localStorage.getItem('gas_url');
+            if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur.");
+    
+            showModal("Mengunduh", "Memproses data rekap " + filterType + "...");
+    
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                const now = new Date();
+        
+                // 1. Filter data berdasarkan periode
+                const filteredData = data.filter(row => {
+                    const rowDate = new Date(row["Waktu Server"]);
+                    if (filterType === 'hari') return rowDate.toDateString() === now.toDateString();
+                    if (filterType === 'pekan') return rowDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    if (filterType === 'bulan') return rowDate.getMonth() === now.getMonth() && rowDate.getFullYear() === now.getFullYear();
+                    if (filterType === 'semester') {
+                        const isSemester2 = (rowDate.getMonth() >= 6);
+                        const currentSemester2 = (now.getMonth() >= 6);
+                        return isSemester2 === currentSemester2 && rowDate.getFullYear() === now.getFullYear();
+                    }
+                    return true;
+                });
+
+                if(filteredData.length === 0) return showModal("Info", "Tidak ada data untuk periode ini.");
+
+                // 2. Olah data (Grouping per Nama Guru) dengan detail tanggal keterlambatan & keluar cepat
+                const summary = {};
+                filteredData.forEach(row => {
+                    const nama = row["Nama Guru"];
+                    const status = row["Status"] || "";
+                    const menit = parseInt(row["Selisih Menit"]) || 0;
+                    const tanggal = new Date(row["Waktu Server"]).toLocaleDateString('id-ID');
+
+                    if (!summary[nama]) {
+                        summary[nama] = { 
+                            "Nama Guru": nama, 
+                            "Total Terlambat (Mnt)": 0, 
+                            "Tanggal Terlambat": [], 
+                            "Total Keluar Cepat (Mnt)": 0, 
+                            "Tanggal Keluar Cepat": [], 
+                            "Hari Masuk": 0 
+                        };
+                    }
+
+                    if (status.includes("Terlambat")) {
+                        summary[nama]["Total Terlambat (Mnt)"] += menit;
+                        summary[nama]["Tanggal Terlambat"].push(tanggal);
+                    }
+                    if (status.includes("Kecepatan")) {
+                        summary[nama]["Total Keluar Cepat (Mnt)"] += menit;
+                        summary[nama]["Tanggal Keluar Cepat"].push(tanggal);
+                    }
+                    if (row["Tipe Scan"] === "Masuk") summary[nama]["Hari Masuk"] += 1;
+                });
+
+                // Ubah array tanggal menjadi string gabungan yang rapi
+                const finalData = Object.values(summary).map(item => ({
+                    ...item,
+                    "Tanggal Terlambat": item["Tanggal Terlambat"].join(", "),
+                    "Tanggal Keluar Cepat": item["Tanggal Keluar Cepat"].join(", ")
+                }));
+
+                // 3. Export ke Excel
+                const worksheet = XLSX.utils.json_to_sheet(finalData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_" + filterType);
+                XLSX.writeFile(workbook, `Rekap_${filterType}_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.xlsx`);
+                document.getElementById('customModal').classList.add('hidden');
+            })
+            .catch(err => {
+                console.error(err);
+                showModal("Error", "Gagal memproses data. Pastikan format kolom di Google Sheet sesuai.");
+            });
+        }
+        
+        function downloadRekapSemua() {
+            const url = localStorage.getItem('gas_url');
+            if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur.");
+            
+            showModal("Mengunduh", "Sedang mengambil data dari server, mohon tunggu...");
+            
+            fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('customModal').classList.add('hidden');
+                if(data.length === 0) return showModal("Info", "Belum ada data di server.");
+                
+                const worksheet = XLSX.utils.json_to_sheet(data);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "RekapAbsensi");
+                XLSX.writeFile(workbook, "Rekap_Absensi_Guru_SMPIT.xlsx");
+            })
+            .catch(err => {
+                showModal("Error", "Gagal mengunduh. Alternatif: Buka langsung Google Sheet Anda lalu klik File > Download > Excel.");
+            });
+        }
+
+        function downloadRecap() {
+            alert("Fitur download merequest data dari Google Sheet dan men-convert ke Excel menggunakan SheetJS.");
+            window.open("https://docs.google.com/spreadsheets/d/ISI_DENGAN_ID_SHEET_ANDA/export?format=xlsx", "_blank");
+        }
+
+        function simpanScriptUrl() {
+            const val = document.getElementById('scriptUrlInput').value.trim();
+            if(val) {
+                localStorage.setItem('gas_url', val);
+                showModal("Tersimpan", "URL Web App berhasil disimpan di perangkat ini.");
+            }
+        }
+
+        function tambahKelas() {
+            let namaKelasBaru = prompt("Masukkan nama kelas baru (Cth: 10A):");
+            if(namaKelasBaru) {
+                namaKelasBaru = namaKelasBaru.trim().toUpperCase();
+                if(!daftarKelas.includes(namaKelasBaru)) {
+                    daftarKelas.push(namaKelasBaru);
+                    localStorage.setItem('daftar_kelas', JSON.stringify(daftarKelas));
+                    showModal("Sukses", `Kelas ${namaKelasBaru} berhasil ditambahkan ke memori lokal.`);
+                    
+                    const izinKelas = document.getElementById('izinKelas');
+                    izinKelas.innerHTML = '';
+                    daftarKelas.forEach(k => izinKelas.appendChild(new Option(k, k)));
+                } else {
+                    showModal("Info", "Kelas tersebut sudah ada.");
+                }
+            }
+        }
+
+        function cetakQRCode() {
+            let printWindow = window.open('', '', 'width=800,height=600');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Cetak QR Kelas SMP IT Putra Abu Hurairah Mataram</title>
+                    <style>
+                        body { font-family: sans-serif; display: flex; flex-wrap: wrap; justify-content: center; }
+                        .qr-card { border: 2px dashed #000; margin: 15px; padding: 20px; text-align: status-align: center; width: 200px; page-break-inside: avoid; }
+                        .qr-card h1 { font-size: 32px; margin: 0 0 10px 0; }
+                        .qr-card img { max-width: 150px; }
+                    </style>
+                </head>
+                <body>
+            `);
+            
+            daftarKelas.forEach(kelas => {
+                printWindow.document.write(`
+                    <div class="qr-card">
+                        <h1>${kelas}</h1>
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${kelas}">
+                    </div>
+                `);
+            });
+            
+            printWindow.document.write('</body></html>');
+            printWindow.document.close();
+            
+            setTimeout(() => {
+                printWindow.focus();
+                printWindow.print();
+            }, 2000);
+        }
+
+    </script>
+</body>
+</html>
