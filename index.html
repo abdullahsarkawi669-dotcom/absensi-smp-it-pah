@@ -74,12 +74,10 @@
             <div class="grid grid-cols-2 gap-4 mb-4">
                 <button id="btnScanMasuk" onclick="bukaScanner('Masuk')" class="bg-gradient-to-br from-green-500 to-green-600 text-white p-4 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition transform flex flex-col items-center justify-center">
                     <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
-                    SCAN MASUK
-                </button>
+                    SCAN MASUK</button>
                 <button id="btnScanKeluar" onclick="bukaScanner('Keluar')" class="bg-gradient-to-br from-red-500 to-red-600 text-white p-4 rounded-2xl font-bold shadow-lg hover:shadow-xl hover:scale-105 transition transform flex flex-col items-center justify-center">
                     <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-                    SCAN KELUAR
-                </button>
+                    SCAN KELUAR</button>
             </div>
             
             <button onclick="bukaFormIzin()" class="w-full bg-orange-100 text-orange-700 border border-orange-300 py-3 rounded-xl font-bold mb-3 hover:bg-orange-200 transition">📝 Isi Keterangan Berhalangan</button>
@@ -436,12 +434,59 @@
             document.getElementById('guruDashboard').classList.remove('hidden');
         }
 
+    /* ... existing code ... */
+
         window.onload = () => {
             requestWakeLock();
             populateDropdowns();
             cekSessionLogin();
             syncOfflineData();
+            
+            // Tambahkan ini untuk memastikan tombol muncul saat pertama kali load
+            if (activeUserObj) {
+                renderDashboard(activeUserObj);
+            }
         };
+
+        function renderDashboard(userObj) {
+            document.getElementById('loginSection').classList.add('hidden');
+            
+            // Tampilkan dashboard yang sesuai
+            if(userObj.role === 'admin' || userObj.role === 'superadmin') {
+                document.getElementById('adminDashboard').classList.remove('hidden');
+                document.getElementById('adminNameDisplay').innerText = userObj.nama;
+                
+                if(userObj.role === 'superadmin') {
+                    document.getElementById('superAdminSection').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('guruDashboard').classList.remove('hidden');
+                document.getElementById('guruNameDisplay').innerText = userObj.nama;
+                
+                // --- BAGIAN INI DIPERBAIKI ---
+                const mapelDiv = document.getElementById('mapelSelectionDiv');
+                const mapelSel = document.getElementById('activeMapelSelect');
+                const singleMapelDisp = document.getElementById('singleMapelDisplay');
+                
+                mapelSel.innerHTML = "";
+                singleMapelDisp.classList.add('hidden');
+                
+                if(userObj.mapel.length > 1) {
+                    mapelDiv.classList.remove('hidden');
+                    userObj.mapel.forEach(m => mapelSel.appendChild(new Option(m, m)));
+                } else if (userObj.mapel.length === 1) {
+                    mapelDiv.classList.add('hidden');
+                    mapelSel.appendChild(new Option(userObj.mapel[0], userObj.mapel[0]));
+                    singleMapelDisp.innerText = `Mapel: ${userObj.mapel[0]}`;
+                    singleMapelDisp.classList.remove('hidden');
+                }
+
+                // Pastikan status tombol di-update setelah mapel siap
+                renderDashboardStatus(userObj);
+            }
+        }
+
+/* ... existing code ... */
 
         function populateDropdowns() {
             const userSelect = document.getElementById('userSelect');
