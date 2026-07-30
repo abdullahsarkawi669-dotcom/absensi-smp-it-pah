@@ -185,7 +185,7 @@
     }
 
     // --- 2. KONFIGURASI GLOBAL ---
-    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxZkgos7BRWfX-6jlVi94HA6WK1WbzTUAkanVCsN2lTjPAngTaV9fLg9lqI-QI4jqvEOw/exec";
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyXnrS1eyDEdAcsGtERkeD1cSo2HQwlgfJwgovbdkkJ0tTzFs8_Sv--EUDiMVeS_BAeyw/exec";
     if (!localStorage.getItem('gas_url')) localStorage.setItem('gas_url', DEFAULT_GAS_URL);
 
     const hariIndo = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
@@ -669,33 +669,76 @@
 
     // --- 8. REKAP & FITUR ADMIN ---
     function lihatRekapPribadi() {
-        const url = localStorage.getItem('gas_url');
-        if(!url || !url.startsWith("http")) return showModal("Error", "URL belum diatur.");
-        
-        document.getElementById('guruDashboard').classList.add('hidden');
-        document.getElementById('rekapSection').classList.remove('hidden');
-        document.getElementById('loadingRekap').classList.remove('hidden');
-        document.getElementById('rekapContent').innerHTML = "";
+    const url = localStorage.getItem('gas_url');
+    if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur admin.");
 
-        fetch(url).then(r=>r.json()).then(data => {
-            document.getElementById('loadingRekap').classList.add('hidden');
-            const dataSaya = data.filter(r => r["Nama Guru"] === activeUserObj.nama && r["Waktu Server"].includes(new Date().getFullYear().toString()));
+    document.getElementById('guruDashboard').classList.add('hidden');
+    document.getElementById('rekapSection').classList.remove('hidden');
+    document.getElementById('loadingRekap').classList.remove('hidden');
+    document.getElementById('rekapContent').innerHTML = "";
+
+    fetch(url)
+    .then(res => res.json())
+    .then(data => {
+        document.getElementById('loadingRekap').classList.add('hidden');
+        
+        if(!Array.isArray(data) || data.length === 0) {
+            document.getElementById('rekapContent').innerHTML = "<p class='text-center text-gray-500'>Belum ada data absensi di server.</p>";
+            return;
+        }
+
+        // Kita ambil tanggal hari ini (Contoh: "30" dan "7" atau "07")
+        const now = new Date();
+        const hariIni = String(now.getDate()).padStart(2, '0');
+        const bulanIni = String(now.getMonth() + 1).padStart(2, '0');
+        const tahunIni = now.getFullYear();
+
+        const dataSaya = data.filter(r => {
+            const namaGuru = (r["Nama Guru"] || "").trim().toLowerCase();
+            const waktuScan = (r["Waktu Scan"] || "").toString(); 
             
-            if(dataSaya.length === 0) return document.getElementById('rekapContent').innerHTML = "Belum ada riwayat.";
+            const isUserMatch = namaGuru === activeUserObj.nama.trim().toLowerCase();
             
-            dataSaya.reverse().forEach(row => {
-                let w = row.Status.includes('Tepat') ? 'text-green-600' : 'text-red-600';
-                document.getElementById('rekapContent').innerHTML += `
-                    <div class="border-b pb-2 mb-2">
-                        <div class="flex justify-between font-bold"><span>Kelas ${row.Kelas} - ${row["Tipe Scan"]}</span><span class="${w}">${row["Waktu Scan"]}</span></div>
-                        <div class="text-xs text-gray-600">Mapel: ${row["Mata Pelajaran"]} | Status: ${row.Status}</div>
-                    </div>`;
-            });
-        }).catch(e => {
-            document.getElementById('loadingRekap').classList.add('hidden');
-            document.getElementById('rekapContent').innerHTML = "Gagal mengambil data.";
+            // Cek apakah tanggal scan mengandung angka hari dan bulan hari ini
+            const isToday = waktuScan.includes(hariIni) && waktuScan.includes(bulanIni) && waktuScan.includes(tahunIni.toString());
+            
+            return isUserMatch && isToday;
         });
-    }
+        
+        if(dataSaya.length === 0) {
+            document.getElementById('rekapContent').innerHTML = "<p class='text-center text-gray-500'>Belum ada riwayat absensi untuk Anda pada hari ini.</p>";
+            return;
+        }
+
+        // Balikkan urutan agar absen terbaru (jam terakhir) muncul paling atas
+        dataSaya.reverse().forEach(row => {
+            const tipeScan = row["Tipe Scan"] || "Absen";
+            const kelas = row["Kelas"] || "-";
+            const mapel = row["Mata Pelajaran"] || "-";
+            const waktuScan = row["Waktu Scan"] || "-";
+            const status = row["Status"] || "Tepat Waktu";
+            const selisih = row["Selisih Menit"] || 0;
+
+            let warnaStatus = 'text-green-600';
+            if(status.includes('Terlambat') || status.includes('Kecepatan')) warnaStatus = 'text-red-600';
+            
+            document.getElementById('rekapContent').innerHTML += `
+                <div class="border-b pb-2 mb-2">
+                    <div class="flex justify-between font-bold">
+                        <span>Kelas ${kelas} - ${tipeScan}</span>
+                        <span class="${warnaStatus}">${waktuScan.split(' ')[1] || waktuScan}</span>
+                    </div>
+                    <div class="text-xs text-gray-600">Mapel: ${mapel}</div>
+                    <div class="text-xs text-gray-600">Status: ${status} ${selisih != 0 && selisih != '0' ? '('+selisih+' mnt)' : ''}</div>
+                </div>
+            `;
+        });
+    })
+    .catch(err => {
+        document.getElementById('loadingRekap').classList.add('hidden');
+        document.getElementById('rekapContent').innerHTML = "<p class='text-center text-red-500'>Gagal mengambil data. Pastikan koneksi internet aktif dan Google Script mengizinkan CORS.</p>";
+    });
+}
 
     function tutupRekap() {
         document.getElementById('rekapSection').classList.add('hidden');
