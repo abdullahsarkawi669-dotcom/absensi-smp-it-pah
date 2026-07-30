@@ -33,10 +33,16 @@
     <div class="min-h-screen p-4 max-w-md mx-auto relative">
         
         <!-- Header & Status Koneksi -->
-        <div class="glass-panel rounded-2xl shadow-sm p-4 mb-6 text-center border-b-4 border-green-600">
+        <div class="glass-panel rounded-2xl shadow-sm p-4 mb-4 text-center border-b-4 border-green-600">
             <h1 class="text-xl font-extrabold text-green-700">Absensi Guru</h1>
             <h2 class="text-sm font-semibold text-gray-600">SMP IT Putra Abu Hurairah Mataram</h2>
-            <div id="connectionStatus" class="mt-3 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700">Online - Sinkron</div>
+            <div id="connectionStatus" class="mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700">Online - Sinkron</div>
+        </div>
+
+        <!-- Dashboard Jam & Status Kelas Aktif di Paling Atas -->
+        <div id="topStatusPanel" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-md mb-4 text-center">
+            <div id="jamDisplay" class="font-extrabold text-lg tracking-wider mb-1">Mengecek Jam...</div>
+            <div id="kelasAktifDisplay" class="text-xs bg-blue-700 py-1 px-3 rounded-full inline-block font-semibold">Belum ada kelas aktif</div>
         </div>
 
         <div id="loginSection" class="glass-panel rounded-2xl shadow-lg p-6 mb-6">
@@ -165,26 +171,127 @@
     </div>
 
     <script>
-    // --- KONFIGURASI PENGGUNA ---
+    // --- AUDIO BEEP OFFLINE (Base64) ---
+    const beepAudioUrl = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUcvT19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX1v/Ww==";
+    let lastPlayedMinute = -1;
+
+    function playTripleBeep() {
+        let count = 0;
+        function playOnce() {
+            if (count < 3) {
+                const audio = new Audio(beepAudioUrl);
+                audio.play().catch(e => console.log("Audio autoplay diblokir browser"));
+                count++;
+                setTimeout(playOnce, 400);
+            }
+        }
+        playOnce();
+    }
+
+    // --- KONFIGURASI PENGGUNA & WAKTU ---
     const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbw4bR8aLCS94Kj-WrXh3VmwDfBLGsPY98x7bxFZ-SssaCaoWRcJw239WFIjzjZJDLxk/exec";
 
     if (!localStorage.getItem('gas_url')) {
         localStorage.setItem('gas_url', DEFAULT_GAS_URL);
     }
-    
-    // Fungsi untuk memeriksa apakah guru sudah melakukan scan masuk/keluar
-    function cekStatusAbsensi(guruNama, mapelDipilih) {
-        const riwayat = JSON.parse(localStorage.getItem('riwayat_harian') || '[]');
-        const hariIni = new Date().toDateString();
-        
-        const sudahMasuk = riwayat.find(r => 
-            r.nama === guruNama && 
-            r.mapel === mapelDipilih && 
-            r.tipe === 'Masuk' &&
-            new Date(r.waktu).toDateString() === hariIni
-        );
 
-        return { sudahMasuk: !!sudahMasuk };
+    const hariIndo = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+    function getHariIni() {
+        return hariIndo[new Date().getDay()];
+    }
+
+    const jadwalWaktu = {
+        normal: [
+            { jp: 1, mulai: "07:30", selesai: "08:10" },
+            { jp: 2, mulai: "08:10", selesai: "08:50" },
+            { jp: 3, mulai: "08:50", selesai: "09:30" },
+            { jp: 4, mulai: "09:30", selesai: "10:10" },
+            { jp: 5, mulai: "10:40", selesai: "11:15" },
+            { jp: 6, mulai: "11:15", selesai: "11:50" },
+            { jp: 7, mulai: "11:50", selesai: "12:25" },
+            { jp: 8, mulai: "12:25", selesai: "13:00" }
+        ],
+        jumat: [
+            { jp: 1, mulai: "07:30", selesai: "08:05" },
+            { jp: 2, mulai: "08:05", selesai: "08:40" },
+            { jp: 3, mulai: "08:40", selesai: "09:15" },
+            { jp: 4, mulai: "09:15", selesai: "09:50" },
+            { jp: 5, mulai: "10:20", selesai: "10:55" },
+            { jp: 6, mulai: "10:55", selesai: "11:30" }
+        ]
+    };
+
+    function konversiKeMenit(waktuStr) {
+        const [jam, mnt] = waktuStr.split(':').map(Number);
+        return (jam * 60) + mnt;
+    }
+
+    // Update Status Jam & Bunyi Beep Otomatis setiap menit
+    function updateJamDanDashboard() {
+        const sekarang = new Date();
+        const menitSekarang = sekarang.getHours() * 60 + sekarang.getMinutes();
+        const hari = getHariIni();
+        
+        if(hari === 'ahad') {
+            document.getElementById('jamDisplay').innerText = "Hari Ahad - Libur";
+            return;
+        }
+
+        const skema = jadwalWaktu[hari === 'jumat' ? 'jumat' : 'normal'];
+        let statusJam = "Di Luar Jam Belajar";
+        
+        for (let i = 0; i < skema.length; i++) {
+            let item = skema[i];
+            let mulaiMnt = konversiKeMenit(item.mulai);
+            let selesaiMnt = konversiKeMenit(item.selesai);
+
+            if (menitSekarang >= mulaiMnt && menitSekarang <= selesaiMnt) {
+                statusJam = `Jam Pelajaran - ${item.jp}`;
+                break;
+            }
+            // Cek istirahat (antara JP 4 dan 5)
+            if (i < skema.length - 1) {
+                let nextItem = skema[i+1];
+                let nextMulai = konversiKeMenit(nextItem.mulai);
+                if (menitSekarang > selesaiMnt && menitSekarang < nextMulai) {
+                    statusJam = "Waktu Istirahat";
+                    break;
+                }
+            }
+        }
+
+        document.getElementById('jamDisplay').innerText = statusJam;
+
+        // Cek perubahan jam untuk bunyi Beep 3x
+        const currentMin = sekarang.getMinutes();
+        const currentHour = sekarang.getHours();
+        const fullMinKey = currentHour * 60 + currentMin;
+
+        let isPerubahanJam = skema.some(s => konversiKeMenit(s.mulai) === fullMinKey || konversiKeMenit(s.selesai) === fullMinKey);
+        if (isPerubahanJam && lastPlayedMinute !== fullMinKey) {
+            lastPlayedMinute = fullMinKey;
+            playTripleBeep();
+        }
+
+        // Tampilkan kelas aktif saat ini di dashboard atas jika ada
+        const kelasAktif = localStorage.getItem('kelas_aktif_sekarang');
+        const dispKelas = document.getElementById('kelasAktifDisplay');
+        if (kelasAktif) {
+            dispKelas.innerText = `Sedang di Kelas: ${kelasAktif}`;
+            dispKelas.classList.remove('bg-blue-700');
+            dispKelas.classList.add('bg-green-600');
+        } else {
+            dispKelas.innerText = "Belum ada kelas aktif";
+            dispKelas.classList.remove('bg-green-600');
+            dispKelas.classList.add('bg-blue-700');
+        }
+    }
+    setInterval(updateJamDanDashboard, 10000);
+
+    // Cek Status Absensi & Tombol Masuk/Keluar
+    function cekStatusAbsensi(guruNama, mapelDipilih) {
+        const kelasAktif = localStorage.getItem('kelas_aktif_sekarang');
+        return { sedangMengajar: !!kelasAktif, kelasAktif: kelasAktif };
     }
 
     function renderDashboardStatus(userObj) {
@@ -197,10 +304,12 @@
         const mapel = mapelSelect.value;
         const status = cekStatusAbsensi(userObj.nama, mapel);
 
-        if (status.sudahMasuk) {
+        if (status.sedangMengajar) {
+            // Jika sedang mengajar, tombol yang nampak adalah SCAN KELUAR
             btnMasuk.classList.add('hidden');
             btnKeluar.classList.remove('hidden');
         } else {
+            // Jika belum masuk, tombol yang nampak adalah SCAN MASUK
             btnMasuk.classList.remove('hidden');
             btnKeluar.classList.add('hidden');
         }
@@ -208,7 +317,7 @@
     </script>
 
     <script>
-        // 1. DATA GURU DAN ADMIN (Digabung dan bersih tanpa tulisan admin di tampilan)
+        // 1. DATA GURU DAN ADMIN (Digabung dan bersih tanpa tulisan admin)
         const dataGuruList = [
             { nama: "Budiman, S. Pd.", role: "admin", mapel: [] },
             { nama: "Adi Hardiyansyah, M. Pd.", role: "admin", mapel: ["IPA Terpadu"] },
@@ -252,34 +361,10 @@
             { nama: "Ukasyah", role: "guru", mapel: ["Tahfizhul Qur'an"] }
         ];
 
-        // Urutkan daftar guru secara abjad (A-Z)
         dataGuruList.sort((a, b) => a.nama.localeCompare(b.nama));
 
-        // 2. DATA KELAS
         let daftarKelas = JSON.parse(localStorage.getItem('daftar_kelas')) || 
             ["7A","7B","7C","7D","7E","8A","8B","8C","8D","8E","9A","9B","9C","9D"];
-
-        // 3. PENGATURAN JADWAL WAKTU & MAPEL
-        const jadwalWaktu = {
-            normal: [
-                { jp: 1, mulai: "07:30", selesai: "08:10" },
-                { jp: 2, mulai: "08:10", selesai: "08:50" },
-                { jp: 3, mulai: "08:50", selesai: "09:30" },
-                { jp: 4, mulai: "09:30", selesai: "10:10" },
-                { jp: 5, mulai: "10:40", selesai: "11:15" },
-                { jp: 6, mulai: "11:15", selesai: "11:50" },
-                { jp: 7, mulai: "11:50", selesai: "12:25" },
-                { jp: 8, mulai: "12:25", selesai: "13:00" }
-            ],
-            jumat: [
-                { jp: 1, mulai: "07:30", selesai: "08:05" },
-                { jp: 2, mulai: "08:05", selesai: "08:40" },
-                { jp: 3, mulai: "08:40", selesai: "09:15" },
-                { jp: 4, mulai: "09:15", selesai: "09:50" },
-                { jp: 5, mulai: "10:20", selesai: "10:55" },
-                { jp: 6, mulai: "10:55", selesai: "11:30" }
-            ]
-        };
 
         const jadwalMapel = {
             "Tahfizhul Qur'an": {
@@ -325,7 +410,6 @@
             
             let newBtnOk = btnOk.cloneNode(true);
             btnOk.parentNode.replaceChild(newBtnOk, btnOk);
-            
             let newBtnCancel = btnCancel.cloneNode(true);
             btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
             
@@ -344,21 +428,11 @@
             }
         }
 
-        const hariIndo = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
-        
-        function getHariIni() {
-            return hariIndo[new Date().getDay()];
-        }
-
         function getDynamicPassword(namaAdmin) {
-            const todayStr = getHariIni(); // Fungsi ini menghasilkan: ahad, senin, selasa, dll.
-            
-            // Logika khusus untuk Agus Sarkawi
+            const todayStr = getHariIni();
             if (namaAdmin.includes("Agus Sarkawi")) {
                 return "bismillah" + todayStr;
             }
-            
-            // Logika untuk Admin lain (Budiman, Adi Hardiyansyah) tetap menggunakan rumus lama
             return todayStr.slice(0, -1) + "212";
         }
 
@@ -371,31 +445,23 @@
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    console.log('Wake Lock aktif');
                 }
-            } catch (err) { console.log('Wake Lock gagal:', err); }
+            } catch (err) {}
         }
         document.addEventListener('visibilitychange', async () => {
             if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
         });
 
-        // Fungsi aman untuk menghentikan scanner tanpa memicu error "Cannot stop"
         async function stopScanner() {
             if (html5QrcodeScanner) {
                 try {
                     const state = html5QrcodeScanner.getState();
-                    // State 2 = SCANNING, 1 = PAUSED
                     if (state === 2 || state === 1) {
                         await html5QrcodeScanner.stop();
                     }
                 } catch (err) {
-                    console.warn("Peringatan saat menghentikan scanner:", err);
                 } finally {
-                    try {
-                        html5QrcodeScanner.clear();
-                    } catch (e) {
-                        // Abaikan jika elemen sudah bersih
-                    }
+                    try { html5QrcodeScanner.clear(); } catch (e) {}
                 }
             }
         }
@@ -420,7 +486,7 @@
                             prosesHasilScan(decodedText.trim().toUpperCase(), mapelDipilih, tipe);
                         });
                     },
-                    (errorMessage) => { /* abaikan error per frame */ }
+                    (errorMessage) => {}
                 );
             } catch (err) {
                 showModal("Error Kamera", "Tidak dapat mengakses kamera: " + err);
@@ -434,65 +500,21 @@
             document.getElementById('guruDashboard').classList.remove('hidden');
         }
 
-    /* ... existing code ... */
-
         window.onload = () => {
             requestWakeLock();
             populateDropdowns();
             cekSessionLogin();
             syncOfflineData();
-            
-            // Tambahkan ini untuk memastikan tombol muncul saat pertama kali load
+            updateJamDanDashboard();
             if (activeUserObj) {
                 renderDashboard(activeUserObj);
             }
         };
 
-        function renderDashboard(userObj) {
-            document.getElementById('loginSection').classList.add('hidden');
-            
-            // Tampilkan dashboard yang sesuai
-            if(userObj.role === 'admin' || userObj.role === 'superadmin') {
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                document.getElementById('adminNameDisplay').innerText = userObj.nama;
-                
-                if(userObj.role === 'superadmin') {
-                    document.getElementById('superAdminSection').classList.remove('hidden');
-                }
-            } else {
-                document.getElementById('guruDashboard').classList.remove('hidden');
-                document.getElementById('guruNameDisplay').innerText = userObj.nama;
-                
-                // --- BAGIAN INI DIPERBAIKI ---
-                const mapelDiv = document.getElementById('mapelSelectionDiv');
-                const mapelSel = document.getElementById('activeMapelSelect');
-                const singleMapelDisp = document.getElementById('singleMapelDisplay');
-                
-                mapelSel.innerHTML = "";
-                singleMapelDisp.classList.add('hidden');
-                
-                if(userObj.mapel.length > 1) {
-                    mapelDiv.classList.remove('hidden');
-                    userObj.mapel.forEach(m => mapelSel.appendChild(new Option(m, m)));
-                } else if (userObj.mapel.length === 1) {
-                    mapelDiv.classList.add('hidden');
-                    mapelSel.appendChild(new Option(userObj.mapel[0], userObj.mapel[0]));
-                    singleMapelDisp.innerText = `Mapel: ${userObj.mapel[0]}`;
-                    singleMapelDisp.classList.remove('hidden');
-                }
-
-                // Pastikan status tombol di-update setelah mapel siap
-                renderDashboardStatus(userObj);
-            }
-        }
-
-/* ... existing code ... */
-
         function populateDropdowns() {
             const userSelect = document.getElementById('userSelect');
             userSelect.innerHTML = '<option value="">-- Cari / Pilih Nama --</option>';
             
-            // Masukkan semua nama ke satu dropdown tunggal tanpa pengelompokan admin/guru
             dataGuruList.forEach(g => {
                 let opt = new Option(g.nama, g.nama);
                 userSelect.appendChild(opt);
@@ -521,7 +543,6 @@
             
             if(userObj.role === 'admin' || userObj.role === 'superadmin') {
                 const pass = document.getElementById('adminPassword').value;
-                // Mengirim nama ke fungsi password agar pengecekan dinamis
                 if(pass !== getDynamicPassword(nama)) {
                     return showModal("Akses Ditolak", "Password salah!");
                 }
@@ -548,6 +569,7 @@
         function gantiUser() {
             activeUserObj = null;
             localStorage.removeItem('absen_session');
+            document.getElementById('topStatusPanel').classList.add('hidden');
             document.getElementById('guruDashboard').classList.add('hidden');
             document.getElementById('adminDashboard').classList.add('hidden');
             document.getElementById('loginSection').classList.remove('hidden');
@@ -558,6 +580,7 @@
 
         function renderDashboard(userObj) {
             document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('topStatusPanel').classList.remove('hidden');
             
             if(userObj.role === 'admin' || userObj.role === 'superadmin') {
                 document.getElementById('adminDashboard').classList.remove('hidden');
@@ -601,21 +624,15 @@
             }
         }
 
-        function konversiKeMenit(waktuStr) {
-            const [jam, mnt] = waktuStr.split(':').map(Number);
-            return (jam * 60) + mnt;
-        }
-
         function hitungSelisihWaktu(waktuAktual, mapelStr, kelasStr, tipeScan) {
             const mapelConfig = jadwalMapel[mapelStr];
-            if(!mapelConfig) return { status: 'Tidak ada data jadwal', selisihMenit: 0 };
+            if(!mapelConfig) return { status: 'Tepat Waktu', selisihMenit: 0 };
 
             const hariIni = getHariIni();
             const tipeHari = (hariIni === 'jumat') ? 'jumat' : 'normal';
             const skemaWaktu = jadwalWaktu[tipeHari];
             
             let jadwalDitemukan = null;
-
             if(mapelConfig.isKopel) {
                 const kopelTerkait = mapelConfig.data.find(k => k.kelas.includes(kelasStr));
                 if(kopelTerkait) {
@@ -627,7 +644,7 @@
                 }
             }
 
-            if(!jadwalDitemukan) return { status: 'Luar Jadwal', selisihMenit: 0 };
+            if(!jadwalDitemukan) return { status: 'Tepat Waktu', selisihMenit: 0 };
 
             const jpMulai = Math.min(...jadwalDitemukan.jp);
             const jpKelar = Math.max(...jadwalDitemukan.jp);
@@ -635,7 +652,7 @@
             const waktuMulaiTeks = skemaWaktu.find(w => w.jp === jpMulai)?.mulai;
             const waktuKelarTeks = skemaWaktu.find(w => w.jp === jpKelar)?.selesai;
 
-            if(!waktuMulaiTeks || !waktuKelarTeks) return { status: 'Error Skema Waktu', selisihMenit: 0 };
+            if(!waktuMulaiTeks || !waktuKelarTeks) return { status: 'Tepat Waktu', selisihMenit: 0 };
 
             const aktualMenit = (waktuAktual.getHours() * 60) + waktuAktual.getMinutes();
             
@@ -643,59 +660,91 @@
                 const patokanMasuk = konversiKeMenit(waktuMulaiTeks);
                 if(aktualMenit > patokanMasuk) {
                     return { status: 'Terlambat', selisihMenit: (aktualMenit - patokanMasuk) };
-                } else {
-                    return { status: 'Tepat Waktu', selisihMenit: 0 };
                 }
             } else {
                 const patokanKeluar = konversiKeMenit(waktuKelarTeks);
                 if(aktualMenit < patokanKeluar) {
                     return { status: 'Kecepatan Keluar', selisihMenit: (patokanKeluar - aktualMenit) };
-                } else {
-                    return { status: 'Tepat Waktu', selisihMenit: 0 };
                 }
             }
+            return { status: 'Tepat Waktu', selisihMenit: 0 };
         }
 
+        // LOGIKA UTAMA PINDAH KELAS / SCAN KELUAR OTOMATIS
         function prosesHasilScan(kelasScanned, mapel, tipe) {
             if(!daftarKelas.includes(kelasScanned)) {
-                showModal("QR Tidak Valid", `QR Code dibaca sebagai '${kelasScanned}'. Ini bukan QR kelas yang valid.`);
+                showModal("QR Tidak Valid", `QR Code dibaca sebagai '${kelasScanned}'. Bukan kelas yang valid.`);
                 batalScan();
                 return;
             }
 
             const waktuSekarang = new Date();
-            const hasilHitung = hitungSelisihWaktu(waktuSekarang, mapel, kelasScanned, tipe);
+            const kelasAktifSebelumnya = localStorage.getItem('kelas_aktif_guru_' + activeUserObj.nama);
 
-            const payload = {
-                nama: activeUserObj.nama,
-                kelas: kelasScanned,
-                mapel: mapel,
-                tipe: tipe,
-                waktu: waktuSekarang.toLocaleString('id-ID'),
-                status: hasilHitung.status,
-                menitSelisih: hasilHitung.selisihMenit,
-                keterangan: "-"
-            };
+            // JIKA USER DALAM STATUS SCAN MASUK (artinya mau memulai kelas)
+            if (tipe === 'Masuk') {
+                // Jika ternyata sebelumnya guru belum scan keluar di kelas lain, lakukan auto-exit untuk kelas lama
+                if (kelasAktifSebelumnya && kelasAktifSebelumnya !== kelasScanned) {
+                    const waktuKeluarOtomatis = new Date(waktuSekarang.getTime() - (3 * 60 * 1000)); // Waktu scan dikurangi 3 menit
+                    const hitungKeluarLama = hitungSelisihWaktu(waktuKeluarOtomatis, mapel, kelasAktifSebelumnya, 'Keluar');
 
-            let pesanModal = `Kelas: ${kelasScanned}\nMapel: ${mapel}\nJam: ${waktuSekarang.toLocaleTimeString('id-ID')}\nStatus: ${hasilHitung.status}`;
-            if(hasilHitung.selisihMenit > 0) pesanModal += ` (${hasilHitung.selisihMenit} menit)`;
-            
-            showModal("Konfirmasi " + tipe, pesanModal + "\n\nSimpan data ini?", true, () => {
-                simpanDataAbsen(payload);
-                
-                // Simpan ke riwayat lokal untuk update UI tombol Masuk/Keluar
-                let riwayat = JSON.parse(localStorage.getItem('riwayat_harian') || '[]');
-                riwayat.push({
+                    const payloadKeluarLama = {
+                        nama: activeUserObj.nama,
+                        kelas: kelasAktifSebelumnya,
+                        mapel: mapel,
+                        tipe: 'Keluar',
+                        waktu: waktuKeluarOtomatis.toLocaleString('id-ID'),
+                        status: hitungKeluarLama.status,
+                        menitSelisih: hitungKeluarLama.selisihMenit,
+                        keterangan: "Auto-Exit (Pindah Kelas ke " + kelasScanned + ")"
+                    };
+                    simpanDataAbsen(payloadKeluarLama);
+                }
+
+                // Catat Masuk Kelas Baru
+                const hitungMasukBaru = hitungSelisihWaktu(waktuSekarang, mapel, kelasScanned, 'Masuk');
+                const payloadMasukBaru = {
                     nama: activeUserObj.nama,
+                    kelas: kelasScanned,
                     mapel: mapel,
-                    tipe: tipe,
-                    waktu: waktuSekarang.toISOString()
-                });
-                localStorage.setItem('riwayat_harian', JSON.stringify(riwayat));
-                
-                renderDashboardStatus(activeUserObj);
-                batalScan();
-            });
+                    tipe: 'Masuk',
+                    waktu: waktuSekarang.toLocaleString('id-ID'),
+                    status: hitungMasukBaru.status,
+                    menitSelisih: hitungMasukBaru.selisihMenit,
+                    keterangan: "-"
+                };
+
+                simpanDataAbsen(payloadMasukBaru);
+                localStorage.setItem('kelas_aktif_guru_' + activeUserObj.nama, kelasScanned);
+                localStorage.setItem('kelas_aktif_sekarang', kelasScanned);
+
+                showModal("Sukses Masuk", `Berhasil masuk kelas ${kelasScanned}.\nStatus: ${hitungMasukBaru.status}`);
+            } 
+            // JIKA USER DALAM STATUS SCAN KELUAR
+            else if (tipe === 'Keluar') {
+                const targetKelas = kelasAktifSebelumnya || kelasScanned;
+                const hitungKeluar = hitungSelisihWaktu(waktuSekarang, mapel, targetKelas, 'Keluar');
+
+                const payloadKeluar = {
+                    nama: activeUserObj.nama,
+                    kelas: targetKelas,
+                    mapel: mapel,
+                    tipe: 'Keluar',
+                    waktu: waktuSekarang.toLocaleString('id-ID'),
+                    status: hitungKeluar.status,
+                    menitSelisih: hitungKeluar.selisihMenit,
+                    keterangan: "-"
+                };
+
+                simpanDataAbsen(payloadKeluar);
+                localStorage.removeItem('kelas_aktif_guru_' + activeUserObj.nama);
+                localStorage.removeItem('kelas_aktif_sekarang');
+
+                showModal("Sukses Keluar", `Berhasil keluar dari kelas ${targetKelas}.`);
+            }
+
+            renderDashboardStatus(activeUserObj);
+            batalScan();
         }
 
         function bukaFormIzin() {
@@ -733,7 +782,7 @@
                 kirimKeServer(data);
             } else {
                 simpanKeLokal(data);
-                showModal("Mode Offline", "Koneksi terputus. Data disimpan di HP dan akan terkirim otomatis saat online.");
+                showModal("Mode Offline", "Koneksi terputus. Data disimpan di HP dan akan tersinkron otomatis saat online (bahkan esok hari).");
             }
         }
 
@@ -748,7 +797,7 @@
             const url = localStorage.getItem('gas_url');
             if(!url || !url.startsWith("http")) {
                 simpanKeLokal(dataPayload);
-                return showModal("Sistem Belum Siap", "Admin belum memasukkan Link Database (URL AppScript). Data Anda disimpan offline sementara.");
+                return showModal("Sistem Belum Siap", "Admin belum memasukkan Link Database. Data disimpan offline.");
             }
 
             fetch(url, {
@@ -757,12 +806,14 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(dataPayload)
             }).then(() => {
-                showModal("Sukses", "Data kehadiran berhasil terekam.");
+                // Berhasil terkirim, cek apakah ada tumpukan data offline lain untuk disinkronkan juga
+                syncOfflineData();
             }).catch(e => {
                 simpanKeLokal(dataPayload);
             });
         }
 
+        // Sinkronisasi data offline (bisa lintas hari selama tersimpan di browser)
         function syncOfflineData() {
             if(!navigator.onLine) return;
             const offlineData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
@@ -779,8 +830,7 @@
             }).then(() => {
                 localStorage.removeItem('offline_scans');
                 updateKoneksiUI();
-                showModal("Sinkronisasi Berhasil", `${offlineData.length} data offline telah dikirim ke server.`);
-            }).catch(e => console.log("Gagal sync, akan mencoba lagi nanti."));
+            }).catch(e => console.log("Gagal sync offline, mencoba lagi nanti."));
         }
 
         window.addEventListener('online', () => { updateKoneksiUI(); syncOfflineData(); });
@@ -790,11 +840,17 @@
             const statUI = document.getElementById('connectionStatus');
             const offData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
             if(navigator.onLine) {
-                statUI.className = "mt-3 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700";
-                statUI.innerText = "Online - Terhubung";
+                if(offData.length > 0) {
+                    statUI.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-yellow-100 text-yellow-700";
+                    statUI.innerText = `Sinkronisasi ${offData.length} data tertunda...`;
+                    syncOfflineData();
+                } else {
+                    statUI.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700";
+                    statUI.innerText = "Online - Terhubung";
+                }
             } else {
-                statUI.className = "mt-3 text-xs font-bold py-1 px-3 rounded-full inline-block bg-red-100 text-red-700 animate-pulse";
-                statUI.innerText = `Offline (${offData.length} data antri)`;
+                statUI.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-red-100 text-red-700 animate-pulse";
+                statUI.innerText = `Offline (${offData.length} data tersimpan di HP)`;
             }
         }
 
@@ -817,26 +873,18 @@
                     return;
                 }
 
-                // Dapatkan tanggal hari ini dalam format YYYY-MM-DD atau DD/MM/YYYY untuk pencocokan yang fleksibel
                 const now = new Date();
                 const tglHariIni = String(now.getDate()).padStart(2, '0');
                 const blnHariIni = String(now.getMonth() + 1).padStart(2, '0');
                 const thnHariIni = now.getFullYear();
 
-                // Filter berdasarkan nama guru dan pastikan tanggal hari ini cocok (mengabaikan perbedaan format jam/waktu)
                 const dataSaya = data.filter(r => {
                     const namaGuru = r["Nama Guru"] || r.namaGuru || "";
                     const waktuServer = r["Waktu Server"] || r.waktuServer || "";
-                    
                     const isUserMatch = namaGuru.trim().toLowerCase() === activeUserObj.nama.trim().toLowerCase();
-                    
-                    // Cek apakah string waktu mengandung tanggal hari ini (bisa format / atau -)
                     const isToday = waktuServer.includes(`${tglHariIni}/${blnHariIni}/${thnHariIni}`) || 
-                                    waktuServer.includes(`${thnHariIni}-${blnHariIni}-${tglHariIni}`) ||
-                                    waktuServer.includes(`${Number(blnHariIni)}/${Number(tglHariIni)}/${thnHariIni}`) ||
-                                    waktuServer.includes(now.toLocaleDateString('en-GB')); // format DD/MM/YYYY
-
-                    return isUserMatch && (isToday || waktuServer.includes(thnHariIni.toString()));
+                                    waktuServer.includes(`${thnHariIni}-${blnHariIni}-${tglHariIni}`);
+                    return isUserMatch && isToday;
                 });
                 
                 if(dataSaya.length === 0) {
@@ -869,7 +917,7 @@
             })
             .catch(err => {
                 document.getElementById('loadingRekap').classList.add('hidden');
-                document.getElementById('rekapContent').innerHTML = "<p class='text-center text-red-500'>Gagal mengambil data. Pastikan koneksi internet aktif dan URL Apps Script benar.</p>";
+                document.getElementById('rekapContent').innerHTML = "<p class='text-center text-red-500'>Gagal mengambil data dari server.</p>";
             });
         }
 
@@ -888,8 +936,6 @@
             .then(res => res.json())
             .then(data => {
                 const now = new Date();
-        
-                // 1. Filter data berdasarkan periode
                 const filteredData = data.filter(row => {
                     const rowDate = new Date(row["Waktu Server"]);
                     if (filterType === 'hari') return rowDate.toDateString() === now.toDateString();
@@ -905,7 +951,6 @@
 
                 if(filteredData.length === 0) return showModal("Info", "Tidak ada data untuk periode ini.");
 
-                // 2. Olah data (Grouping per Nama Guru) dengan detail tanggal keterlambatan & keluar cepat
                 const summary = {};
                 filteredData.forEach(row => {
                     const nama = row["Nama Guru"];
@@ -935,14 +980,12 @@
                     if (row["Tipe Scan"] === "Masuk") summary[nama]["Hari Masuk"] += 1;
                 });
 
-                // Ubah array tanggal menjadi string gabungan yang rapi
                 const finalData = Object.values(summary).map(item => ({
                     ...item,
                     "Tanggal Terlambat": item["Tanggal Terlambat"].join(", "),
                     "Tanggal Keluar Cepat": item["Tanggal Keluar Cepat"].join(", ")
                 }));
 
-                // 3. Export ke Excel
                 const worksheet = XLSX.utils.json_to_sheet(finalData);
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_" + filterType);
@@ -950,8 +993,7 @@
                 document.getElementById('customModal').classList.add('hidden');
             })
             .catch(err => {
-                console.error(err);
-                showModal("Error", "Gagal memproses data. Pastikan format kolom di Google Sheet sesuai.");
+                showModal("Error", "Gagal memproses data.");
             });
         }
         
@@ -959,13 +1001,13 @@
             const url = localStorage.getItem('gas_url');
             if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur.");
             
-            showModal("Mengunduh", "Sedang mengambil data dari server, mohon tunggu...");
+            showModal("Mengunduh", "Sedang mengambil data dari server...");
             
             fetch(url)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('customModal').classList.add('hidden');
-                if(data.length === 0) return showModal("Info", "Belum ada data di server.");
+                if(data.length === 0) return showModal("Info", "Belum ada data.");
                 
                 const worksheet = XLSX.utils.json_to_sheet(data);
                 const workbook = XLSX.utils.book_new();
@@ -973,20 +1015,15 @@
                 XLSX.writeFile(workbook, "Rekap_Absensi_Guru_SMPIT.xlsx");
             })
             .catch(err => {
-                showModal("Error", "Gagal mengunduh. Alternatif: Buka langsung Google Sheet Anda lalu klik File > Download > Excel.");
+                showModal("Error", "Gagal mengunduh.");
             });
-        }
-
-        function downloadRecap() {
-            alert("Fitur download merequest data dari Google Sheet dan men-convert ke Excel menggunakan SheetJS.");
-            window.open("https://docs.google.com/spreadsheets/d/ISI_DENGAN_ID_SHEET_ANDA/export?format=xlsx", "_blank");
         }
 
         function simpanScriptUrl() {
             const val = document.getElementById('scriptUrlInput').value.trim();
             if(val) {
                 localStorage.setItem('gas_url', val);
-                showModal("Tersimpan", "URL Web App berhasil disimpan di perangkat ini.");
+                showModal("Tersimpan", "URL Web App berhasil disimpan.");
             }
         }
 
@@ -997,13 +1034,13 @@
                 if(!daftarKelas.includes(namaKelasBaru)) {
                     daftarKelas.push(namaKelasBaru);
                     localStorage.setItem('daftar_kelas', JSON.stringify(daftarKelas));
-                    showModal("Sukses", `Kelas ${namaKelasBaru} berhasil ditambahkan ke memori lokal.`);
+                    showModal("Sukses", `Kelas ${namaKelasBaru} ditambahkan.`);
                     
                     const izinKelas = document.getElementById('izinKelas');
                     izinKelas.innerHTML = '';
                     daftarKelas.forEach(k => izinKelas.appendChild(new Option(k, k)));
                 } else {
-                    showModal("Info", "Kelas tersebut sudah ada.");
+                    showModal("Info", "Kelas sudah ada.");
                 }
             }
         }
@@ -1013,12 +1050,12 @@
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Cetak QR Kelas SMP IT Putra Abu Hurairah Mataram</title>
+                    <title>Cetak QR Kelas</title>
                     <style>
-                        body { font-family: sans-serif; display: flex; flex-wrap: wrap; justify-content: center; }
-                        .qr-card { border: 2px dashed #000; margin: 15px; padding: 20px; text-align: status-align: center; width: 200px; page-break-inside: avoid; }
-                        .qr-card h1 { font-size: 32px; margin: 0 0 10px 0; }
-                        .qr-card img { max-width: 150px; }
+                        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
+                        .qr-card { border: 2px solid #000; padding: 30px; text-align: center; page-break-inside: avoid; display: flex; flex-direction: column; align-items: center; }
+                        .qr-card h1 { font-size: 48px; margin: 0 0 20px 0; }
+                        .qr-card img { width: 300px; height: 300px; }
                     </style>
                 </head>
                 <body>
@@ -1028,7 +1065,7 @@
                 printWindow.document.write(`
                     <div class="qr-card">
                         <h1>${kelas}</h1>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${kelas}">
+                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${kelas}">
                     </div>
                 `);
             });
@@ -1039,7 +1076,7 @@
             setTimeout(() => {
                 printWindow.focus();
                 printWindow.print();
-            }, 2000);
+            }, 1000);
         }
 
     </script>
