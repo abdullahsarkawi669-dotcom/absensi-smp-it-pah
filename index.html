@@ -22,7 +22,7 @@
     <div id="customModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center p-4">
         <div class="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
             <h3 id="modalTitle" class="text-xl font-bold mb-2 text-gray-800">Pemberitahuan</h3>
-            <p id="modalMessage" class="text-gray-600 mb-6"></p>
+            <p id="modalMessage" class="text-gray-600 mb-6 whitespace-pre-line"></p>
             <div id="modalButtons" class="flex justify-center gap-3">
                 <button id="modalBtnOk" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition">OK</button>
                 <button id="modalBtnCancel" class="hidden bg-gray-300 hover:bg-gray-400 text-gray-800 font-semibold py-2 px-6 rounded-lg transition">Batal</button>
@@ -42,7 +42,7 @@
         <!-- Dashboard Jam & Status Kelas Aktif di Paling Atas -->
         <div id="topStatusPanel" class="hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4 rounded-2xl shadow-md mb-4 text-center">
             <div id="jamDisplay" class="font-extrabold text-lg tracking-wider mb-1">Mengecek Jam...</div>
-            <div id="kelasAktifDisplay" class="text-xs bg-blue-700 py-1 px-3 rounded-full inline-block font-semibold">Belum ada kelas aktif</div>
+            <div id="kelasAktifDisplay" class="text-xs bg-blue-700 py-1 px-3 rounded-full inline-block font-semibold mt-1">Belum ada kelas aktif</div>
         </div>
 
         <div id="loginSection" class="glass-panel rounded-2xl shadow-lg p-6 mb-6">
@@ -71,7 +71,7 @@
                 <button onclick="gantiUser()" class="text-xs bg-gray-200 hover:bg-gray-300 text-gray-700 px-3 py-1 rounded-full font-semibold transition">Ganti User</button>
             </div>
 
-            <!-- Pilihan Mapel (muncul jika mapel > 1) -->
+            <!-- Pilihan Mapel -->
             <div id="mapelSelectionDiv" class="mb-5 p-4 bg-yellow-50 rounded-xl border border-yellow-200 hidden">
                 <label class="block text-sm font-bold text-yellow-800 mb-2">Pilih Mapel yang diajarkan saat ini:</label>
                 <select id="activeMapelSelect" class="w-full p-2 border rounded-lg bg-white"></select>
@@ -109,7 +109,6 @@
             <h2 class="text-lg font-bold mb-4">👑 Dashboard Admin</h2>
             <p class="text-sm text-gray-600 mb-4">Login sebagai: <span id="adminNameDisplay" class="font-bold"></span></p>
             
-            <!-- Bagian Update untuk Admin Dashboard -->
             <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 mb-4">
                 <h3 class="font-bold text-blue-800 mb-3">Download Rekap Keterlambatan</h3>
     
@@ -122,7 +121,6 @@
                 <p class="text-[10px] text-blue-600 mt-2 italic">*Data otomatis memfilter keterlambatan & ketepatan waktu berdasarkan periode yang dipilih.</p>
             </div>
             
-            <!-- Dashboard Khusus Super Admin -->
             <div id="superAdminSection" class="hidden bg-purple-50 p-4 rounded-xl border border-purple-200 mb-4">
                 <h3 class="font-bold text-purple-800 mb-3">🛠️ Tools Admin Khusus</h3>
                 <button onclick="downloadRekapSemua()" class="w-full bg-green-600 text-white p-3 rounded font-bold mb-2">Download Rekap Semua Guru (Excel)</button>
@@ -163,15 +161,13 @@
                 <div class="animate-spin inline-block w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full mb-2"></div>
                 <p>Mengambil data dari server...</p>
             </div>
-            <div id="rekapContent" class="space-y-3 max-h-96 overflow-y-auto text-sm">
-                <!-- Data di-inject via JS -->
-            </div>
+            <div id="rekapContent" class="space-y-3 max-h-96 overflow-y-auto text-sm"></div>
         </div>
 
     </div>
 
     <script>
-    // --- AUDIO BEEP OFFLINE (Base64) ---
+    // --- 1. SETUP AUDIO (BEEP) ---
     const beepAudioUrl = "data:audio/wav;base64,UklGRl9vT19XQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YUcvT19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX19fX1v/Ww==";
     let lastPlayedMinute = -1;
 
@@ -180,7 +176,7 @@
         function playOnce() {
             if (count < 3) {
                 const audio = new Audio(beepAudioUrl);
-                audio.play().catch(e => console.log("Audio autoplay diblokir browser"));
+                audio.play().catch(e => console.log("Audio diblokir browser"));
                 count++;
                 setTimeout(playOnce, 400);
             }
@@ -188,17 +184,63 @@
         playOnce();
     }
 
-    // --- KONFIGURASI PENGGUNA & WAKTU ---
-    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbw4bR8aLCS94Kj-WrXh3VmwDfBLGsPY98x7bxFZ-SssaCaoWRcJw239WFIjzjZJDLxk/exec";
-
-    if (!localStorage.getItem('gas_url')) {
-        localStorage.setItem('gas_url', DEFAULT_GAS_URL);
-    }
+    // --- 2. KONFIGURASI GLOBAL ---
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbxZkgos7BRWfX-6jlVi94HA6WK1WbzTUAkanVCsN2lTjPAngTaV9fLg9lqI-QI4jqvEOw/exec";
+    if (!localStorage.getItem('gas_url')) localStorage.setItem('gas_url', DEFAULT_GAS_URL);
 
     const hariIndo = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
-    function getHariIni() {
-        return hariIndo[new Date().getDay()];
+    function getHariIni() { return hariIndo[new Date().getDay()]; }
+    function getTglHariIniFormat() {
+        const now = new Date();
+        return `${now.getFullYear()}-${now.getMonth()+1}-${now.getDate()}`;
     }
+
+    // --- 3. DATA SEKOLAH ---
+    const dataGuruList = [
+        { nama: "Budiman, S. Pd.", role: "admin", mapel: [] },
+        { nama: "Adi Hardiyansyah, M. Pd.", role: "admin", mapel: ["IPA Terpadu"] },
+        { nama: "Agus Sarkawi, S. T.", role: "superadmin", mapel: ["Informatika-SBDP"] },
+        { nama: "Abdul Hafizh Hizam, Lc.", role: "guru", mapel: ["Aqidah"] },
+        { nama: "Adiandri Suhaili, M. Pd.", role: "guru", mapel: ["IPA Terpadu"] },
+        { nama: "Ahmad Arroiyan, Lc.", role: "guru", mapel: ["Bahasa Arab", "Qowaidul Lughoh", "Kitabah & Khat"] },
+        { nama: "Ahmad Mahsan Haikal, Lc.", role: "guru", mapel: ["Kitabah & Khat", "Bahasa Arab", "Ta'bir"] },
+        { nama: "Andri Jaelani, Lc., M. H.", role: "guru", mapel: ["Ta'bir", "Kitabah & Khat"] },
+        { nama: "Arsyad, S. Pd.", role: "guru", mapel: ["Bahasa Indonesia"] },
+        { nama: "Firman, S. Pd.", role: "guru", mapel: ["Bahasa Indonesia"] },
+        { nama: "Hafizh Bagis, Lc.", role: "guru", mapel: ["Bahasa Arab", "Kitabah & Khat"] },
+        { nama: "Hairul Umam Insani, S. Pd.", role: "guru", mapel: ["Bahasa Inggris"] },
+        { nama: "Haqikahurrahman, S. Pd.", role: "guru", mapel: ["Matematika"] },
+        { nama: "Jamaluddin, Lc.", role: "guru", mapel: ["Fiqih"] },
+        { nama: "Jumadil Awal, SE.", role: "guru", mapel: ["IPS-Pancasila"] },
+        { nama: "Junaidi, S. Pd.", role: "guru", mapel: ["IPS-Pancasila"] },
+        { nama: "L. Muh. Baidui, M. Pd.", role: "guru", mapel: ["IPA Terpadu"] },
+        { nama: "Lalu M. Sulistiono, SP.", role: "guru", mapel: ["Fiqih"] },
+        { nama: "Ludfi Rusdiyono, S. Pd.", role: "guru", mapel: ["Bahasa Inggris"] },
+        { nama: "M. Tahir, M. Pd.", role: "guru", mapel: ["PJOK"] },
+        { nama: "Muhammad Al Huraibi, Lc.", role: "guru", mapel: ["Bahasa Arab"] },
+        { nama: "Saifuddin Hidayat, S. Pd.", role: "guru", mapel: ["Matematika", "Informatika-SBDP"] },
+        { nama: "Salman, S. Pd. I.", role: "guru", mapel: ["Adab Akhlak"] },
+        { nama: "Syahrul Hasyim, Lc.", role: "guru", mapel: ["Aqidah"] },
+        { nama: "Syamsul Bahri, Lc.", role: "guru", mapel: ["Kitabah & Khat", "Bahasa Arab", "Qowaidul Lughoh"] },
+        { nama: "Taufiqurrahman, Lc.", role: "guru", mapel: ["Bahasa Arab", "Kitabah & Khat"] },
+        { nama: "Zulfi Farid, Lc.", role: "guru", mapel: ["Bahasa Arab", "Ta'bir"] },
+        { nama: "Zulkarnaen Teguh W, S. Pd.", role: "guru", mapel: ["Hadits"] },
+        { nama: "Ahmad Fazhlurrahman", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Abdul Hanan", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Akmaluddin", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Aminullah", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Azza Mahsari, S. Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Fauzul Kabir, S. Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Irfan Hidayat, S.Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Iswahyudi, S. T.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Maliki", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Musalim Amin, S. Pd. I.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
+        { nama: "Ukasyah", role: "guru", mapel: ["Tahfizhul Qur'an"] }
+    ];
+    dataGuruList.sort((a, b) => a.nama.localeCompare(b.nama));
+
+    let daftarKelas = JSON.parse(localStorage.getItem('daftar_kelas')) || 
+        ["7A","7B","7C","7D","7E","8A","8B","8C","8D","8E","9A","9B","9C","9D"];
 
     const jadwalWaktu = {
         normal: [
@@ -221,12 +263,53 @@
         ]
     };
 
-    function konversiKeMenit(waktuStr) {
-        const [jam, mnt] = waktuStr.split(':').map(Number);
-        return (jam * 60) + mnt;
+    const jadwalMapel = {
+        "Tahfizhul Qur'an": {
+            isKopel: true,
+            data: [
+                { kelas: ["7A","7B","7C"], jadwal: [{hari:"senin", jp:[3,4]}, {hari:"selasa", jp:[3,4]}, {hari:"rabu", jp:[7,8]}, {hari:"kamis", jp:[3,4]}] },
+                { kelas: ["7D","7E","8A"], jadwal: [{hari:"selasa", jp:[1,2]}, {hari:"rabu", jp:[3,4]}, {hari:"kamis", jp:[7,8]}, {hari:"jumat", jp:[3,4]}] },
+                { kelas: ["8B","8C","8D","8E"], jadwal: [{hari:"senin", jp:[7,8]}, {hari:"selasa", jp:[5,6]}, {hari:"kamis", jp:[1,2]}, {hari:"jumat", jp:[5,6]}] },
+                { kelas: ["9A","9B","9C","9D"], jadwal: [{hari:"senin", jp:[5,6]}, {hari:"rabu", jp:[1,2]}, {hari:"jumat", jp:[1,2]}] }
+            ]
+        },
+        "PJOK": {
+            isKopel: true,
+            data: [
+                { kelas: ["9A","9B"], jadwal: [{hari:"selasa", jp:[1,2]}] },
+                { kelas: ["9C","9D"], jadwal: [{hari:"selasa", jp:[3,4]}] },
+                { kelas: ["7D","7E"], jadwal: [{hari:"kamis", jp:[3,4]}] },
+                { kelas: ["7A","7B"], jadwal: [{hari:"jumat", jp:[1,2]}] }
+            ]
+        },
+        "Bahasa Arab": {
+            isKopel: false,
+            data: {
+                "7A": [ {hari: "senin", jp: [1,2]}, {hari: "rabu", jp: [3,4]} ],
+                "7B": [ {hari: "senin", jp: [5,6]} ]
+            }
+        },
+        "IPA Terpadu": {
+            isKopel: false,
+            data: { "8A": [ {hari: "selasa", jp: [3,4]} ] }
+        }
+    };
+
+    // --- 4. STATE MANAGEMENT KELAS & JAM ---
+    let activeUserObj = null;
+    
+    function setKelasAktif(namaGuru, kelas) {
+        localStorage.setItem(`kelas_aktif_${namaGuru}_${getTglHariIniFormat()}`, kelas);
+    }
+    
+    function getKelasAktif(namaGuru) {
+        return localStorage.getItem(`kelas_aktif_${namaGuru}_${getTglHariIniFormat()}`);
+    }
+    
+    function hapusKelasAktif(namaGuru) {
+        localStorage.removeItem(`kelas_aktif_${namaGuru}_${getTglHariIniFormat()}`);
     }
 
-    // Update Status Jam & Bunyi Beep Otomatis setiap menit
     function updateJamDanDashboard() {
         const sekarang = new Date();
         const menitSekarang = sekarang.getHours() * 60 + sekarang.getMinutes();
@@ -242,843 +325,462 @@
         
         for (let i = 0; i < skema.length; i++) {
             let item = skema[i];
-            let mulaiMnt = konversiKeMenit(item.mulai);
-            let selesaiMnt = konversiKeMenit(item.selesai);
+            let mntMulai = konversiKeMenit(item.mulai);
+            let mntSelesai = konversiKeMenit(item.selesai);
 
-            if (menitSekarang >= mulaiMnt && menitSekarang <= selesaiMnt) {
+            if (menitSekarang >= mntMulai && menitSekarang <= mntSelesai) {
                 statusJam = `Jam Pelajaran - ${item.jp}`;
                 break;
             }
-            // Cek istirahat (antara JP 4 dan 5)
             if (i < skema.length - 1) {
-                let nextItem = skema[i+1];
-                let nextMulai = konversiKeMenit(nextItem.mulai);
-                if (menitSekarang > selesaiMnt && menitSekarang < nextMulai) {
+                let mntNext = konversiKeMenit(skema[i+1].mulai);
+                if (menitSekarang > mntSelesai && menitSekarang < mntNext) {
                     statusJam = "Waktu Istirahat";
                     break;
                 }
             }
         }
-
         document.getElementById('jamDisplay').innerText = statusJam;
 
-        // Cek perubahan jam untuk bunyi Beep 3x
         const currentMin = sekarang.getMinutes();
-        const currentHour = sekarang.getHours();
-        const fullMinKey = currentHour * 60 + currentMin;
-
+        const fullMinKey = sekarang.getHours() * 60 + currentMin;
         let isPerubahanJam = skema.some(s => konversiKeMenit(s.mulai) === fullMinKey || konversiKeMenit(s.selesai) === fullMinKey);
+        
         if (isPerubahanJam && lastPlayedMinute !== fullMinKey) {
             lastPlayedMinute = fullMinKey;
             playTripleBeep();
         }
 
-        // Tampilkan kelas aktif saat ini di dashboard atas jika ada
-        const kelasAktif = localStorage.getItem('kelas_aktif_sekarang');
+        // Tampilkan kelas aktif spesifik user
         const dispKelas = document.getElementById('kelasAktifDisplay');
-        if (kelasAktif) {
-            dispKelas.innerText = `Sedang di Kelas: ${kelasAktif}`;
-            dispKelas.classList.remove('bg-blue-700');
-            dispKelas.classList.add('bg-green-600');
-        } else {
-            dispKelas.innerText = "Belum ada kelas aktif";
-            dispKelas.classList.remove('bg-green-600');
-            dispKelas.classList.add('bg-blue-700');
+        if (activeUserObj) {
+            const kls = getKelasAktif(activeUserObj.nama);
+            if (kls) {
+                dispKelas.innerText = `Sedang mengajar di Kelas: ${kls}`;
+                dispKelas.classList.replace('bg-blue-700', 'bg-green-600');
+            } else {
+                dispKelas.innerText = "Belum ada kelas aktif";
+                dispKelas.classList.replace('bg-green-600', 'bg-blue-700');
+            }
         }
     }
-    setInterval(updateJamDanDashboard, 10000);
 
-    // Cek Status Absensi & Tombol Masuk/Keluar
-    function cekStatusAbsensi(guruNama, mapelDipilih) {
-        const kelasAktif = localStorage.getItem('kelas_aktif_sekarang');
-        return { sedangMengajar: !!kelasAktif, kelasAktif: kelasAktif };
+    // --- 5. LOGIKA UI & LOGIN ---
+    function showModal(title, message, isConfirm = false, confirmCallback = null) {
+        document.getElementById('modalTitle').innerText = title;
+        document.getElementById('modalMessage').innerText = message;
+        document.getElementById('customModal').classList.remove('hidden');
+        
+        const btnOk = document.getElementById('modalBtnOk');
+        const btnCancel = document.getElementById('modalBtnCancel');
+        
+        let newBtnOk = btnOk.cloneNode(true);
+        btnOk.parentNode.replaceChild(newBtnOk, btnOk);
+        let newBtnCancel = btnCancel.cloneNode(true);
+        btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
+        
+        if(isConfirm) {
+            newBtnCancel.classList.remove('hidden');
+            newBtnOk.innerText = "Ya, Lanjutkan";
+            newBtnOk.onclick = () => {
+                document.getElementById('customModal').classList.add('hidden');
+                if(confirmCallback) confirmCallback();
+            };
+            newBtnCancel.onclick = () => document.getElementById('customModal').classList.add('hidden');
+        } else {
+            newBtnCancel.classList.add('hidden');
+            newBtnOk.innerText = "Tutup";
+            newBtnOk.onclick = () => document.getElementById('customModal').classList.add('hidden');
+        }
     }
 
-    function renderDashboardStatus(userObj) {
+    window.onload = () => {
+        populateDropdowns();
+        cekSessionLogin();
+        syncOfflineData();
+        setInterval(updateJamDanDashboard, 10000);
+    };
+
+    function populateDropdowns() {
+        const userSelect = document.getElementById('userSelect');
+        dataGuruList.forEach(g => userSelect.appendChild(new Option(g.nama, g.nama)));
+        const izinKelas = document.getElementById('izinKelas');
+        daftarKelas.forEach(k => izinKelas.appendChild(new Option(k, k)));
+    }
+
+    document.getElementById('userSelect').addEventListener('change', function() {
+        const selectedObj = dataGuruList.find(g => g.nama === this.value);
+        if(selectedObj && (selectedObj.role === 'admin' || selectedObj.role === 'superadmin')) {
+            document.getElementById('adminPasswordDiv').classList.remove('hidden');
+        } else {
+            document.getElementById('adminPasswordDiv').classList.add('hidden');
+        }
+    });
+
+    function prosesLogin() {
+        const nama = document.getElementById('userSelect').value;
+        if(!nama) return showModal("Perhatian", "Pilih nama Anda!");
+        const userObj = dataGuruList.find(g => g.nama === nama);
+        
+        if(userObj.role === 'admin' || userObj.role === 'superadmin') {
+            const pass = document.getElementById('adminPassword').value;
+            const targetPass = nama.includes("Agus Sarkawi") ? ("bismillah" + getHariIni()) : (getHariIni().slice(0, -1) + "212");
+            if(pass !== targetPass) return showModal("Akses Ditolak", "Password salah!");
+        }
+
+        activeUserObj = userObj;
+        localStorage.setItem('absen_session', JSON.stringify({ user: userObj, date: getTglHariIniFormat() }));
+        renderDashboard(userObj);
+    }
+
+    function cekSessionLogin() {
+        const session = JSON.parse(localStorage.getItem('absen_session'));
+        if(session && session.date === getTglHariIniFormat()) {
+            activeUserObj = session.user;
+            renderDashboard(activeUserObj);
+        }
+    }
+
+    function gantiUser() {
+        activeUserObj = null;
+        localStorage.removeItem('absen_session');
+        document.getElementById('topStatusPanel').classList.add('hidden');
+        document.getElementById('guruDashboard').classList.add('hidden');
+        document.getElementById('adminDashboard').classList.add('hidden');
+        document.getElementById('loginSection').classList.remove('hidden');
+        document.getElementById('adminPassword').value = '';
+        document.getElementById('userSelect').value = '';
+        document.getElementById('adminPasswordDiv').classList.add('hidden');
+    }
+
+    function renderDashboard(userObj) {
+        document.getElementById('loginSection').classList.add('hidden');
+        document.getElementById('topStatusPanel').classList.remove('hidden');
+        
+        if(userObj.role === 'admin' || userObj.role === 'superadmin') {
+            document.getElementById('adminDashboard').classList.remove('hidden');
+            document.getElementById('adminNameDisplay').innerText = userObj.nama;
+            if(userObj.role === 'superadmin') document.getElementById('superAdminSection').classList.remove('hidden');
+        }
+        
+        if (userObj.role === 'guru' || (userObj.role !== 'guru' && userObj.mapel.length > 0)) {
+            document.getElementById('guruDashboard').classList.remove('hidden');
+            document.getElementById('guruNameDisplay').innerText = userObj.nama;
+            
+            const mapelDiv = document.getElementById('mapelSelectionDiv');
+            const mapelSel = document.getElementById('activeMapelSelect');
+            mapelSel.innerHTML = "";
+            
+            if(userObj.mapel.length > 1) {
+                mapelDiv.classList.remove('hidden');
+                userObj.mapel.forEach(m => mapelSel.appendChild(new Option(m, m)));
+            } else if (userObj.mapel.length === 1) {
+                mapelDiv.classList.add('hidden');
+                mapelSel.appendChild(new Option(userObj.mapel[0], userObj.mapel[0]));
+                document.getElementById('singleMapelDisplay').innerText = `Mapel: ${userObj.mapel[0]}`;
+                document.getElementById('singleMapelDisplay').classList.remove('hidden');
+            }
+
+            renderDashboardStatus();
+        }
+        updateJamDanDashboard();
+    }
+
+    function renderDashboardStatus() {
         const btnMasuk = document.getElementById('btnScanMasuk');
         const btnKeluar = document.getElementById('btnScanKeluar');
-        const mapelSelect = document.getElementById('activeMapelSelect');
         
-        if(!mapelSelect || !btnMasuk || !btnKeluar) return;
-        
-        const mapel = mapelSelect.value;
-        const status = cekStatusAbsensi(userObj.nama, mapel);
-
-        if (status.sedangMengajar) {
-            // Jika sedang mengajar, tombol yang nampak adalah SCAN KELUAR
+        if(getKelasAktif(activeUserObj.nama)) {
             btnMasuk.classList.add('hidden');
             btnKeluar.classList.remove('hidden');
         } else {
-            // Jika belum masuk, tombol yang nampak adalah SCAN MASUK
             btnMasuk.classList.remove('hidden');
             btnKeluar.classList.add('hidden');
         }
     }
-    </script>
 
-    <script>
-        // 1. DATA GURU DAN ADMIN (Digabung dan bersih tanpa tulisan admin)
-        const dataGuruList = [
-            { nama: "Budiman, S. Pd.", role: "admin", mapel: [] },
-            { nama: "Adi Hardiyansyah, M. Pd.", role: "admin", mapel: ["IPA Terpadu"] },
-            { nama: "Agus Sarkawi, S. T.", role: "superadmin", mapel: ["Informatika-SBDP"] },
-            { nama: "Abdul Hafizh Hizam, Lc.", role: "guru", mapel: ["Aqidah"] },
-            { nama: "Adiandri Suhaili, M. Pd.", role: "guru", mapel: ["IPA Terpadu"] },
-            { nama: "Ahmad Arroiyan, Lc.", role: "guru", mapel: ["Bahasa Arab", "Qowaidul Lughoh", "Kitabah & Khat"] },
-            { nama: "Ahmad Mahsan Haikal, Lc.", role: "guru", mapel: ["Kitabah & Khat", "Bahasa Arab", "Ta'bir"] },
-            { nama: "Andri Jaelani, Lc., M. H.", role: "guru", mapel: ["Ta'bir", "Kitabah & Khat"] },
-            { nama: "Arsyad, S. Pd.", role: "guru", mapel: ["Bahasa Indonesia"] },
-            { nama: "Firman, S. Pd.", role: "guru", mapel: ["Bahasa Indonesia"] },
-            { nama: "Hafizh Bagis, Lc.", role: "guru", mapel: ["Bahasa Arab", "Kitabah & Khat"] },
-            { nama: "Hairul Umam Insani, S. Pd.", role: "guru", mapel: ["Bahasa Inggris"] },
-            { nama: "Haqikahurrahman, S. Pd.", role: "guru", mapel: ["Matematika"] },
-            { nama: "Jamaluddin, Lc.", role: "guru", mapel: ["Fiqih"] },
-            { nama: "Jumadil Awal, SE.", role: "guru", mapel: ["IPS-Pancasila"] },
-            { nama: "Junaidi, S. Pd.", role: "guru", mapel: ["IPS-Pancasila"] },
-            { nama: "L. Muh. Baidui, M. Pd.", role: "guru", mapel: ["IPA Terpadu"] },
-            { nama: "Lalu M. Sulistiono, SP.", role: "guru", mapel: ["Fiqih"] },
-            { nama: "Ludfi Rusdiyono, S. Pd.", role: "guru", mapel: ["Bahasa Inggris"] },
-            { nama: "M. Tahir, M. Pd.", role: "guru", mapel: ["PJOK"] },
-            { nama: "Muhammad Al Huraibi, Lc.", role: "guru", mapel: ["Bahasa Arab"] },
-            { nama: "Saifuddin Hidayat, S. Pd.", role: "guru", mapel: ["Matematika", "Informatika-SBDP"] },
-            { nama: "Salman, S. Pd. I.", role: "guru", mapel: ["Adab Akhlak"] },
-            { nama: "Syahrul Hasyim, Lc.", role: "guru", mapel: ["Aqidah"] },
-            { nama: "Syamsul Bahri, Lc.", role: "guru", mapel: ["Kitabah & Khat", "Bahasa Arab", "Qowaidul Lughoh"] },
-            { nama: "Taufiqurrahman, Lc.", role: "guru", mapel: ["Bahasa Arab", "Kitabah & Khat"] },
-            { nama: "Zulfi Farid, Lc.", role: "guru", mapel: ["Bahasa Arab", "Ta'bir"] },
-            { nama: "Zulkarnaen Teguh W, S. Pd.", role: "guru", mapel: ["Hadits"] },
-            // Guru Tahfizh
-            { nama: "Ahmad Fazhlurrahman", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Abdul Hanan", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Akmaluddin", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Aminullah", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Azza Mahsari, S. Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Fauzul Kabir, S. Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Irfan Hidayat, S.Pd.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Iswahyudi, S. T.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Maliki", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Musalim Amin, S. Pd. I.", role: "guru", mapel: ["Tahfizhul Qur'an"] },
-            { nama: "Ukasyah", role: "guru", mapel: ["Tahfizhul Qur'an"] }
-        ];
+    // --- 6. SCANNER & PROSES ABSENSI ---
+    let html5QrcodeScanner = null;
+    let currentScanType = "";
 
-        dataGuruList.sort((a, b) => a.nama.localeCompare(b.nama));
-
-        let daftarKelas = JSON.parse(localStorage.getItem('daftar_kelas')) || 
-            ["7A","7B","7C","7D","7E","8A","8B","8C","8D","8E","9A","9B","9C","9D"];
-
-        const jadwalMapel = {
-            "Tahfizhul Qur'an": {
-                isKopel: true,
-                data: [
-                    { kelas: ["7A","7B","7C"], jadwal: [{hari:"senin", jp:[3,4]}, {hari:"selasa", jp:[3,4]}, {hari:"rabu", jp:[7,8]}, {hari:"kamis", jp:[3,4]}] },
-                    { kelas: ["7D","7E","8A"], jadwal: [{hari:"selasa", jp:[1,2]}, {hari:"rabu", jp:[3,4]}, {hari:"kamis", jp:[7,8]}, {hari:"jumat", jp:[3,4]}] },
-                    { kelas: ["8B","8C","8D","8E"], jadwal: [{hari:"senin", jp:[7,8]}, {hari:"selasa", jp:[5,6]}, {hari:"kamis", jp:[1,2]}, {hari:"jumat", jp:[5,6]}] },
-                    { kelas: ["9A","9B","9C","9D"], jadwal: [{hari:"senin", jp:[5,6]}, {hari:"rabu", jp:[1,2]}, {hari:"jumat", jp:[1,2]}] }
-                ]
-            },
-            "PJOK": {
-                isKopel: true,
-                data: [
-                    { kelas: ["9A","9B"], jadwal: [{hari:"selasa", jp:[1,2]}] },
-                    { kelas: ["9C","9D"], jadwal: [{hari:"selasa", jp:[3,4]}] },
-                    { kelas: ["7D","7E"], jadwal: [{hari:"kamis", jp:[3,4]}] },
-                    { kelas: ["7A","7B"], jadwal: [{hari:"jumat", jp:[1,2]}] }
-                ]
-            },
-            "Bahasa Arab": {
-                isKopel: false,
-                data: {
-                    "7A": [ {hari: "senin", jp: [1,2]}, {hari: "rabu", jp: [3,4]} ],
-                    "7B": [ {hari: "senin", jp: [5,6]} ]
-                }
-            },
-            "IPA Terpadu": {
-                isKopel: false,
-                data: {
-                    "8A": [ {hari: "selasa", jp: [3,4]} ]
-                }
-            }
-        };
-
-        function showModal(title, message, isConfirm = false, confirmCallback = null) {
-            document.getElementById('modalTitle').innerText = title;
-            document.getElementById('modalMessage').innerText = message;
-            document.getElementById('customModal').classList.remove('hidden');
-            
-            const btnOk = document.getElementById('modalBtnOk');
-            const btnCancel = document.getElementById('modalBtnCancel');
-            
-            let newBtnOk = btnOk.cloneNode(true);
-            btnOk.parentNode.replaceChild(newBtnOk, btnOk);
-            let newBtnCancel = btnCancel.cloneNode(true);
-            btnCancel.parentNode.replaceChild(newBtnCancel, btnCancel);
-            
-            if(isConfirm) {
-                newBtnCancel.classList.remove('hidden');
-                newBtnOk.innerText = "Ya, Lanjutkan";
-                newBtnOk.onclick = () => {
-                    document.getElementById('customModal').classList.add('hidden');
-                    if(confirmCallback) confirmCallback();
-                };
-                newBtnCancel.onclick = () => document.getElementById('customModal').classList.add('hidden');
-            } else {
-                newBtnCancel.classList.add('hidden');
-                newBtnOk.innerText = "Tutup";
-                newBtnOk.onclick = () => document.getElementById('customModal').classList.add('hidden');
-            }
-        }
-
-        function getDynamicPassword(namaAdmin) {
-            const todayStr = getHariIni();
-            if (namaAdmin.includes("Agus Sarkawi")) {
-                return "bismillah" + todayStr;
-            }
-            return todayStr.slice(0, -1) + "212";
-        }
-
-        let activeUserObj = null;
-        let html5QrcodeScanner = null;
-        let currentScanType = "";
-
-        let wakeLock = null;
-        async function requestWakeLock() {
+    async function stopScanner() {
+        if (html5QrcodeScanner) {
             try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                }
-            } catch (err) {}
+                if (html5QrcodeScanner.getState() === 2) await html5QrcodeScanner.stop();
+            } catch (err) {} finally { html5QrcodeScanner.clear(); }
         }
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock();
-        });
+    }
 
-        async function stopScanner() {
-            if (html5QrcodeScanner) {
-                try {
-                    const state = html5QrcodeScanner.getState();
-                    if (state === 2 || state === 1) {
-                        await html5QrcodeScanner.stop();
-                    }
-                } catch (err) {
-                } finally {
-                    try { html5QrcodeScanner.clear(); } catch (e) {}
-                }
-            }
-        }
+    async function bukaScanner(tipe) {
+        const mapelDipilih = document.getElementById('activeMapelSelect').value;
+        if(!mapelDipilih) return showModal("Peringatan", "Pilih mapel terlebih dahulu!");
 
-        async function bukaScanner(tipe) {
-            const mapelDipilih = document.getElementById('activeMapelSelect').value;
-            if(!mapelDipilih) return showModal("Peringatan", "Pilih mata pelajaran terlebih dahulu!");
+        currentScanType = tipe;
+        document.getElementById('guruDashboard').classList.add('hidden');
+        document.getElementById('scannerSection').classList.remove('hidden');
+        document.getElementById('scanTitle').innerText = `Scan QR - ${tipe.toUpperCase()}`;
+        document.getElementById('scanMapelInfo').innerText = `Mapel: ${mapelDipilih}`;
 
-            currentScanType = tipe;
-            document.getElementById('guruDashboard').classList.add('hidden');
-            document.getElementById('scannerSection').classList.remove('hidden');
-            document.getElementById('scanTitle').innerText = `Scan QR - ${tipe.toUpperCase()}`;
-            document.getElementById('scanMapelInfo').innerText = `Mapel: ${mapelDipilih}`;
-
-            html5QrcodeScanner = new Html5Qrcode("reader");
-            try {
-                await html5QrcodeScanner.start(
-                    { facingMode: "environment" }, 
-                    { fps: 10, qrbox: {width: 250, height: 250} },
-                    (decodedText) => {
-                        stopScanner().then(() => {
-                            prosesHasilScan(decodedText.trim().toUpperCase(), mapelDipilih, tipe);
-                        });
-                    },
-                    (errorMessage) => {}
-                );
-            } catch (err) {
-                showModal("Error Kamera", "Tidak dapat mengakses kamera: " + err);
-                batalScan();
-            }
-        }
-
-        async function batalScan() {
-            await stopScanner();
-            document.getElementById('scannerSection').classList.add('hidden');
-            document.getElementById('guruDashboard').classList.remove('hidden');
-        }
-
-        window.onload = () => {
-            requestWakeLock();
-            populateDropdowns();
-            cekSessionLogin();
-            syncOfflineData();
-            updateJamDanDashboard();
-            if (activeUserObj) {
-                renderDashboard(activeUserObj);
-            }
-        };
-
-        function populateDropdowns() {
-            const userSelect = document.getElementById('userSelect');
-            userSelect.innerHTML = '<option value="">-- Cari / Pilih Nama --</option>';
-            
-            dataGuruList.forEach(g => {
-                let opt = new Option(g.nama, g.nama);
-                userSelect.appendChild(opt);
-            });
-
-            const izinKelas = document.getElementById('izinKelas');
-            daftarKelas.forEach(k => izinKelas.appendChild(new Option(k, k)));
-
-            document.getElementById('scriptUrlInput').value = localStorage.getItem('gas_url') || "";
-        }
-
-        document.getElementById('userSelect').addEventListener('change', function() {
-            const selectedObj = dataGuruList.find(g => g.nama === this.value);
-            if(selectedObj && (selectedObj.role === 'admin' || selectedObj.role === 'superadmin')) {
-                document.getElementById('adminPasswordDiv').classList.remove('hidden');
-            } else {
-                document.getElementById('adminPasswordDiv').classList.add('hidden');
-            }
-        });
-
-        function prosesLogin() {
-            const nama = document.getElementById('userSelect').value;
-            if(!nama) return showModal("Perhatian", "Pilih nama Anda terlebih dahulu.");
-
-            const userObj = dataGuruList.find(g => g.nama === nama);
-            
-            if(userObj.role === 'admin' || userObj.role === 'superadmin') {
-                const pass = document.getElementById('adminPassword').value;
-                if(pass !== getDynamicPassword(nama)) {
-                    return showModal("Akses Ditolak", "Password salah!");
-                }
-            }
-
-            setLoginSession(userObj);
-            renderDashboard(userObj);
-        }
-
-        function setLoginSession(userObj) {
-            activeUserObj = userObj;
-            const sessionData = { user: userObj, date: new Date().toDateString() };
-            localStorage.setItem('absen_session', JSON.stringify(sessionData));
-        }
-
-        function cekSessionLogin() {
-            const session = JSON.parse(localStorage.getItem('absen_session'));
-            if(session && session.date === new Date().toDateString()) {
-                activeUserObj = session.user;
-                renderDashboard(activeUserObj);
-            }
-        }
-
-        function gantiUser() {
-            activeUserObj = null;
-            localStorage.removeItem('absen_session');
-            document.getElementById('topStatusPanel').classList.add('hidden');
-            document.getElementById('guruDashboard').classList.add('hidden');
-            document.getElementById('adminDashboard').classList.add('hidden');
-            document.getElementById('loginSection').classList.remove('hidden');
-            document.getElementById('adminPassword').value = '';
-            document.getElementById('userSelect').value = '';
-            document.getElementById('adminPasswordDiv').classList.add('hidden');
-        }
-
-        function renderDashboard(userObj) {
-            document.getElementById('loginSection').classList.add('hidden');
-            document.getElementById('topStatusPanel').classList.remove('hidden');
-            
-            if(userObj.role === 'admin' || userObj.role === 'superadmin') {
-                document.getElementById('adminDashboard').classList.remove('hidden');
-                document.getElementById('adminNameDisplay').innerText = userObj.nama;
-                
-                if(userObj.role === 'superadmin') {
-                    document.getElementById('superAdminSection').classList.remove('hidden');
-                } else {
-                    document.getElementById('superAdminSection').classList.add('hidden');
-                }
-            }
-            
-            if (userObj.role === 'guru' || (userObj.role !== 'guru' && userObj.mapel.length > 0)) {
-                document.getElementById('guruDashboard').classList.remove('hidden');
-                document.getElementById('guruNameDisplay').innerText = userObj.nama;
-                
-                const mapelDiv = document.getElementById('mapelSelectionDiv');
-                const mapelSel = document.getElementById('activeMapelSelect');
-                const singleMapelDisp = document.getElementById('singleMapelDisplay');
-                
-                mapelSel.innerHTML = "";
-                singleMapelDisp.classList.add('hidden');
-                
-                if(userObj.mapel.length > 1) {
-                    mapelDiv.classList.remove('hidden');
-                    userObj.mapel.forEach(m => mapelSel.appendChild(new Option(m, m)));
-                } else if (userObj.mapel.length === 1) {
-                    mapelDiv.classList.add('hidden');
-                    mapelSel.appendChild(new Option(userObj.mapel[0], userObj.mapel[0]));
-                    singleMapelDisp.innerText = `Mapel: ${userObj.mapel[0]}`;
-                    singleMapelDisp.classList.remove('hidden');
-                } else {
-                    mapelDiv.classList.add('hidden');
-                    mapelSel.appendChild(new Option("Tidak Ada Mapel", ""));
-                }
-
-                mapelSel.onchange = () => {
-                    renderDashboardStatus(userObj);
-                };
-                renderDashboardStatus(userObj);
-            }
-        }
-
-        function hitungSelisihWaktu(waktuAktual, mapelStr, kelasStr, tipeScan) {
-            const mapelConfig = jadwalMapel[mapelStr];
-            if(!mapelConfig) return { status: 'Tepat Waktu', selisihMenit: 0 };
-
-            const hariIni = getHariIni();
-            const tipeHari = (hariIni === 'jumat') ? 'jumat' : 'normal';
-            const skemaWaktu = jadwalWaktu[tipeHari];
-            
-            let jadwalDitemukan = null;
-            if(mapelConfig.isKopel) {
-                const kopelTerkait = mapelConfig.data.find(k => k.kelas.includes(kelasStr));
-                if(kopelTerkait) {
-                    jadwalDitemukan = kopelTerkait.jadwal.find(j => j.hari === hariIni);
-                }
-            } else {
-                if(mapelConfig.data[kelasStr]) {
-                    jadwalDitemukan = mapelConfig.data[kelasStr].find(j => j.hari === hariIni);
-                }
-            }
-
-            if(!jadwalDitemukan) return { status: 'Tepat Waktu', selisihMenit: 0 };
-
-            const jpMulai = Math.min(...jadwalDitemukan.jp);
-            const jpKelar = Math.max(...jadwalDitemukan.jp);
-            
-            const waktuMulaiTeks = skemaWaktu.find(w => w.jp === jpMulai)?.mulai;
-            const waktuKelarTeks = skemaWaktu.find(w => w.jp === jpKelar)?.selesai;
-
-            if(!waktuMulaiTeks || !waktuKelarTeks) return { status: 'Tepat Waktu', selisihMenit: 0 };
-
-            const aktualMenit = (waktuAktual.getHours() * 60) + waktuAktual.getMinutes();
-            
-            if(tipeScan === 'Masuk') {
-                const patokanMasuk = konversiKeMenit(waktuMulaiTeks);
-                if(aktualMenit > patokanMasuk) {
-                    return { status: 'Terlambat', selisihMenit: (aktualMenit - patokanMasuk) };
-                }
-            } else {
-                const patokanKeluar = konversiKeMenit(waktuKelarTeks);
-                if(aktualMenit < patokanKeluar) {
-                    return { status: 'Kecepatan Keluar', selisihMenit: (patokanKeluar - aktualMenit) };
-                }
-            }
-            return { status: 'Tepat Waktu', selisihMenit: 0 };
-        }
-
-        // LOGIKA UTAMA PINDAH KELAS / SCAN KELUAR OTOMATIS
-        function prosesHasilScan(kelasScanned, mapel, tipe) {
-            if(!daftarKelas.includes(kelasScanned)) {
-                showModal("QR Tidak Valid", `QR Code dibaca sebagai '${kelasScanned}'. Bukan kelas yang valid.`);
-                batalScan();
-                return;
-            }
-
-            const waktuSekarang = new Date();
-            const kelasAktifSebelumnya = localStorage.getItem('kelas_aktif_guru_' + activeUserObj.nama);
-
-            // JIKA USER DALAM STATUS SCAN MASUK (artinya mau memulai kelas)
-            if (tipe === 'Masuk') {
-                // Jika ternyata sebelumnya guru belum scan keluar di kelas lain, lakukan auto-exit untuk kelas lama
-                if (kelasAktifSebelumnya && kelasAktifSebelumnya !== kelasScanned) {
-                    const waktuKeluarOtomatis = new Date(waktuSekarang.getTime() - (3 * 60 * 1000)); // Waktu scan dikurangi 3 menit
-                    const hitungKeluarLama = hitungSelisihWaktu(waktuKeluarOtomatis, mapel, kelasAktifSebelumnya, 'Keluar');
-
-                    const payloadKeluarLama = {
-                        nama: activeUserObj.nama,
-                        kelas: kelasAktifSebelumnya,
-                        mapel: mapel,
-                        tipe: 'Keluar',
-                        waktu: waktuKeluarOtomatis.toLocaleString('id-ID'),
-                        status: hitungKeluarLama.status,
-                        menitSelisih: hitungKeluarLama.selisihMenit,
-                        keterangan: "Auto-Exit (Pindah Kelas ke " + kelasScanned + ")"
-                    };
-                    simpanDataAbsen(payloadKeluarLama);
-                }
-
-                // Catat Masuk Kelas Baru
-                const hitungMasukBaru = hitungSelisihWaktu(waktuSekarang, mapel, kelasScanned, 'Masuk');
-                const payloadMasukBaru = {
-                    nama: activeUserObj.nama,
-                    kelas: kelasScanned,
-                    mapel: mapel,
-                    tipe: 'Masuk',
-                    waktu: waktuSekarang.toLocaleString('id-ID'),
-                    status: hitungMasukBaru.status,
-                    menitSelisih: hitungMasukBaru.selisihMenit,
-                    keterangan: "-"
-                };
-
-                simpanDataAbsen(payloadMasukBaru);
-                localStorage.setItem('kelas_aktif_guru_' + activeUserObj.nama, kelasScanned);
-                localStorage.setItem('kelas_aktif_sekarang', kelasScanned);
-
-                showModal("Sukses Masuk", `Berhasil masuk kelas ${kelasScanned}.\nStatus: ${hitungMasukBaru.status}`);
-            } 
-            // JIKA USER DALAM STATUS SCAN KELUAR
-            else if (tipe === 'Keluar') {
-                const targetKelas = kelasAktifSebelumnya || kelasScanned;
-                const hitungKeluar = hitungSelisihWaktu(waktuSekarang, mapel, targetKelas, 'Keluar');
-
-                const payloadKeluar = {
-                    nama: activeUserObj.nama,
-                    kelas: targetKelas,
-                    mapel: mapel,
-                    tipe: 'Keluar',
-                    waktu: waktuSekarang.toLocaleString('id-ID'),
-                    status: hitungKeluar.status,
-                    menitSelisih: hitungKeluar.selisihMenit,
-                    keterangan: "-"
-                };
-
-                simpanDataAbsen(payloadKeluar);
-                localStorage.removeItem('kelas_aktif_guru_' + activeUserObj.nama);
-                localStorage.removeItem('kelas_aktif_sekarang');
-
-                showModal("Sukses Keluar", `Berhasil keluar dari kelas ${targetKelas}.`);
-            }
-
-            renderDashboardStatus(activeUserObj);
+        html5QrcodeScanner = new Html5Qrcode("reader");
+        try {
+            await html5QrcodeScanner.start(
+                { facingMode: "environment" }, { fps: 10, qrbox: {width: 250, height: 250} },
+                (decodedText) => {
+                    stopScanner().then(() => {
+                        prosesHasilScan(decodedText.trim().toUpperCase(), mapelDipilih, tipe);
+                    });
+                },
+                (err) => {}
+            );
+        } catch (err) {
+            showModal("Error Kamera", "Izin kamera ditolak atau tidak ada kamera.");
             batalScan();
         }
+    }
 
-        function bukaFormIzin() {
-            document.getElementById('guruDashboard').classList.add('hidden');
-            document.getElementById('izinSection').classList.remove('hidden');
-        }
-        function tutupFormIzin() {
-            document.getElementById('izinSection').classList.add('hidden');
+    function batalScan() {
+        stopScanner().then(() => {
+            document.getElementById('scannerSection').classList.add('hidden');
             document.getElementById('guruDashboard').classList.remove('hidden');
+        });
+    }
+
+    function hitungSelisih(waktuAktual, mapelStr, kelasStr, tipeScan) {
+        const cfg = jadwalMapel[mapelStr];
+        if(!cfg) return { status: 'Luar Jadwal', menit: 0 };
+        
+        const hr = getHariIni();
+        let jdwl = null;
+        if(cfg.isKopel) {
+            const kpl = cfg.data.find(k => k.kelas.includes(kelasStr));
+            if(kpl) jdwl = kpl.jadwal.find(j => j.hari === hr);
+        } else {
+            if(cfg.data[kelasStr]) jdwl = cfg.data[kelasStr].find(j => j.hari === hr);
         }
-        function kirimIzin() {
-            const kls = document.getElementById('izinKelas').value;
-            const ket = document.getElementById('izinKeterangan').value;
-            const mpl = document.getElementById('activeMapelSelect').value;
+
+        if(!jdwl) return { status: 'Luar Jadwal', menit: 0 };
+
+        const skema = jadwalWaktu[hr === 'jumat' ? 'jumat' : 'normal'];
+        const mulaiTeks = skema.find(w => w.jp === Math.min(...jdwl.jp))?.mulai;
+        const kelarTeks = skema.find(w => w.jp === Math.max(...jdwl.jp))?.selesai;
+
+        const mntAktual = (waktuAktual.getHours() * 60) + waktuAktual.getMinutes();
+        
+        if(tipeScan === 'Masuk' && mulaiTeks) {
+            let patokan = konversiKeMenit(mulaiTeks);
+            if(mntAktual > patokan) return { status: 'Terlambat', menit: mntAktual - patokan };
+        } else if (tipeScan === 'Keluar' && kelarTeks) {
+            let patokan = konversiKeMenit(kelarTeks);
+            if(mntAktual < patokan) return { status: 'Kecepatan', menit: patokan - mntAktual };
+        }
+        return { status: 'Tepat Waktu', menit: 0 };
+    }
+
+    function prosesHasilScan(kelasScanned, mapel, tipe) {
+        if(!daftarKelas.includes(kelasScanned)) {
+            showModal("QR Tidak Valid", `Bukan QR kelas yang valid.`);
+            return batalScan();
+        }
+
+        const waktuSekarang = new Date();
+        const kelasSblm = getKelasAktif(activeUserObj.nama);
+        let pesanModal = "";
+
+        // Skenario 1: Lupa Keluar, langsung scan Masuk/Keluar di kelas beda
+        if (kelasSblm && kelasSblm !== kelasScanned) {
+            const wktKeluarOto = new Date(waktuSekarang.getTime() - (3 * 60000));
+            const htngLama = hitungSelisih(wktKeluarOto, mapel, kelasSblm, 'Keluar');
             
-            if(!ket) return showModal("Peringatan", "Keterangan tidak boleh kosong.");
-
-            const payload = {
-                nama: activeUserObj.nama,
-                kelas: kls,
-                mapel: mpl,
-                tipe: 'Izin/Berhalangan',
-                waktu: new Date().toLocaleString('id-ID'),
-                status: 'Berhalangan',
-                menitSelisih: 0,
-                keterangan: ket
-            };
-            simpanDataAbsen(payload);
-            tutupFormIzin();
-            document.getElementById('izinKeterangan').value = "";
-        }
-
-        function simpanDataAbsen(data) {
-            if(navigator.onLine) {
-                kirimKeServer(data);
-            } else {
-                simpanKeLokal(data);
-                showModal("Mode Offline", "Koneksi terputus. Data disimpan di HP dan akan tersinkron otomatis saat online (bahkan esok hari).");
-            }
-        }
-
-        function simpanKeLokal(data) {
-            let offlineData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
-            offlineData.push(data);
-            localStorage.setItem('offline_scans', JSON.stringify(offlineData));
-            updateKoneksiUI();
-        }
-
-        function kirimKeServer(dataPayload) {
-            const url = localStorage.getItem('gas_url');
-            if(!url || !url.startsWith("http")) {
-                simpanKeLokal(dataPayload);
-                return showModal("Sistem Belum Siap", "Admin belum memasukkan Link Database. Data disimpan offline.");
-            }
-
-            fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(dataPayload)
-            }).then(() => {
-                // Berhasil terkirim, cek apakah ada tumpukan data offline lain untuk disinkronkan juga
-                syncOfflineData();
-            }).catch(e => {
-                simpanKeLokal(dataPayload);
+            simpanDataAbsen({
+                nama: activeUserObj.nama, kelas: kelasSblm, mapel: mapel, tipe: 'Keluar',
+                waktu: wktKeluarOto.toLocaleString('id-ID'), status: htngLama.status, 
+                menitSelisih: htngLama.menit, keterangan: "Auto-Exit (Pindah ke "+kelasScanned+")"
             });
+            pesanModal += `Data keluar kelas ${kelasSblm} otomatis tersimpan.\n\n`;
+            hapusKelasAktif(activeUserObj.nama);
+            tipe = 'Masuk'; // Maksa masuk ke kelas baru
         }
 
-        // Sinkronisasi data offline (bisa lintas hari selama tersimpan di browser)
-        function syncOfflineData() {
-            if(!navigator.onLine) return;
-            const offlineData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
-            if(offlineData.length === 0) return;
+        // Proses Normal
+        const htng = hitungSelisih(waktuSekarang, mapel, kelasScanned, tipe);
+        const pyld = {
+            nama: activeUserObj.nama, kelas: kelasScanned, mapel: mapel, tipe: tipe,
+            waktu: waktuSekarang.toLocaleString('id-ID'), status: htng.status, 
+            menitSelisih: htng.menit, keterangan: "-"
+        };
 
-            const url = localStorage.getItem('gas_url');
-            if(!url || !url.startsWith("http")) return;
+        pesanModal += `Berhasil scan ${tipe} kelas ${kelasScanned}.\nStatus: ${htng.status} ${htng.menit > 0 ? '('+htng.menit+' mnt)' : ''}`;
+        
+        showModal("Konfirmasi", pesanModal + "\n\nSimpan data?", true, () => {
+            simpanDataAbsen(pyld);
+            if(tipe === 'Masuk') setKelasAktif(activeUserObj.nama, kelasScanned);
+            else hapusKelasAktif(activeUserObj.nama);
+            
+            renderDashboardStatus();
+            updateJamDanDashboard();
+            batalScan();
+        });
+    }
 
-            fetch(url, {
-                method: 'POST',
-                mode: 'no-cors',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(offlineData)
-            }).then(() => {
+    // --- 7. OFFLINE & SERVER SYNC ---
+    function simpanDataAbsen(data) {
+        let offlineData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
+        offlineData.push(data);
+        localStorage.setItem('offline_scans', JSON.stringify(offlineData));
+        updateKoneksiUI();
+        if(navigator.onLine) syncOfflineData();
+    }
+
+    function syncOfflineData() {
+        const offData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
+        if(offData.length === 0) return updateKoneksiUI();
+        
+        const url = localStorage.getItem('gas_url');
+        if(!url || !url.startsWith("http")) return;
+
+        // Gunakan text/plain untuk bypass CORS preflight error di browser
+        fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+            body: JSON.stringify(offData)
+        }).then(res => res.json()).then(res => {
+            if(res.status === 'success') {
                 localStorage.removeItem('offline_scans');
                 updateKoneksiUI();
-            }).catch(e => console.log("Gagal sync offline, mencoba lagi nanti."));
-        }
-
-        window.addEventListener('online', () => { updateKoneksiUI(); syncOfflineData(); });
-        window.addEventListener('offline', updateKoneksiUI);
-
-        function updateKoneksiUI() {
-            const statUI = document.getElementById('connectionStatus');
-            const offData = JSON.parse(localStorage.getItem('offline_scans') || '[]');
-            if(navigator.onLine) {
-                if(offData.length > 0) {
-                    statUI.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-yellow-100 text-yellow-700";
-                    statUI.innerText = `Sinkronisasi ${offData.length} data tertunda...`;
-                    syncOfflineData();
-                } else {
-                    statUI.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700";
-                    statUI.innerText = "Online - Terhubung";
-                }
-            } else {
-                statUI.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-red-100 text-red-700 animate-pulse";
-                statUI.innerText = `Offline (${offData.length} data tersimpan di HP)`;
             }
+        }).catch(e => console.log("Menunggu koneksi stabil untuk sync."));
+    }
+
+    window.addEventListener('online', syncOfflineData);
+    window.addEventListener('offline', updateKoneksiUI);
+
+    function updateKoneksiUI() {
+        const stat = document.getElementById('connectionStatus');
+        const count = JSON.parse(localStorage.getItem('offline_scans') || '[]').length;
+        if(navigator.onLine) {
+            stat.className = count > 0 ? "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-yellow-100 text-yellow-700" : "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-green-100 text-green-700";
+            stat.innerText = count > 0 ? `Menyinkronkan ${count} data...` : "Online - Sinkron";
+            if(count>0) syncOfflineData();
+        } else {
+            stat.className = "mt-2 text-xs font-bold py-1 px-3 rounded-full inline-block bg-red-100 text-red-700 animate-pulse";
+            stat.innerText = `Offline (${count} antri)`;
         }
+    }
 
-        function lihatRekapPribadi() {
-            const url = localStorage.getItem('gas_url');
-            if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur admin.");
-
-            document.getElementById('guruDashboard').classList.add('hidden');
-            document.getElementById('rekapSection').classList.remove('hidden');
-            document.getElementById('loadingRekap').classList.remove('hidden');
-            document.getElementById('rekapContent').innerHTML = "";
-
-            fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('loadingRekap').classList.add('hidden');
-                
-                if(!Array.isArray(data) || data.length === 0) {
-                    document.getElementById('rekapContent').innerHTML = "<p class='text-center text-gray-500'>Belum ada data di server.</p>";
-                    return;
-                }
-
-                const now = new Date();
-                const tglHariIni = String(now.getDate()).padStart(2, '0');
-                const blnHariIni = String(now.getMonth() + 1).padStart(2, '0');
-                const thnHariIni = now.getFullYear();
-
-                const dataSaya = data.filter(r => {
-                    const namaGuru = r["Nama Guru"] || r.namaGuru || "";
-                    const waktuServer = r["Waktu Server"] || r.waktuServer || "";
-                    const isUserMatch = namaGuru.trim().toLowerCase() === activeUserObj.nama.trim().toLowerCase();
-                    const isToday = waktuServer.includes(`${tglHariIni}/${blnHariIni}/${thnHariIni}`) || 
-                                    waktuServer.includes(`${thnHariIni}-${blnHariIni}-${tglHariIni}`);
-                    return isUserMatch && isToday;
-                });
-                
-                if(dataSaya.length === 0) {
-                    document.getElementById('rekapContent').innerHTML = "<p class='text-center text-gray-500'>Belum ada riwayat absensi untuk Anda hari ini.</p>";
-                    return;
-                }
-
-                dataSaya.forEach(row => {
-                    const tipeScan = row["Tipe Scan"] || row.tipeScan || "Absen";
-                    const kelas = row["Kelas"] || row.kelas || "-";
-                    const mapel = row["Mata Pelajaran"] || row.mapel || "-";
-                    const waktuScan = row["Waktu Scan"] || row.waktuScan || "-";
-                    const status = row["Status"] || row.status || "Tepat Waktu";
-                    const selisih = row["Selisih Menit"] || row.selisihMenit || 0;
-
-                    let warnaStatus = 'text-green-600';
-                    if(status.includes('Terlambat') || status.includes('Kecepatan')) warnaStatus = 'text-red-600';
-                    
-                    document.getElementById('rekapContent').innerHTML += `
-                        <div class="border-b pb-2 mb-2">
-                            <div class="flex justify-between font-bold">
-                                <span>Kelas ${kelas} - ${tipeScan}</span>
-                                <span class="${warnaStatus}">${waktuScan}</span>
-                            </div>
-                            <div class="text-xs text-gray-600">Mapel: ${mapel}</div>
-                            <div class="text-xs text-gray-600">Status: ${status} ${selisih != 0 && selisih != '0' ? '('+selisih+' mnt)' : ''}</div>
-                        </div>
-                    `;
-                });
-            })
-            .catch(err => {
-                document.getElementById('loadingRekap').classList.add('hidden');
-                document.getElementById('rekapContent').innerHTML = "<p class='text-center text-red-500'>Gagal mengambil data dari server.</p>";
-            });
-        }
-
-        function tutupRekap() {
-            document.getElementById('rekapSection').classList.add('hidden');
-            document.getElementById('guruDashboard').classList.remove('hidden');
-        }
-
-        function downloadFilteredRecap(filterType) {
-            const url = localStorage.getItem('gas_url');
-            if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur.");
-    
-            showModal("Mengunduh", "Memproses data rekap " + filterType + "...");
-    
-            fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                const now = new Date();
-                const filteredData = data.filter(row => {
-                    const rowDate = new Date(row["Waktu Server"]);
-                    if (filterType === 'hari') return rowDate.toDateString() === now.toDateString();
-                    if (filterType === 'pekan') return rowDate >= new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-                    if (filterType === 'bulan') return rowDate.getMonth() === now.getMonth() && rowDate.getFullYear() === now.getFullYear();
-                    if (filterType === 'semester') {
-                        const isSemester2 = (rowDate.getMonth() >= 6);
-                        const currentSemester2 = (now.getMonth() >= 6);
-                        return isSemester2 === currentSemester2 && rowDate.getFullYear() === now.getFullYear();
-                    }
-                    return true;
-                });
-
-                if(filteredData.length === 0) return showModal("Info", "Tidak ada data untuk periode ini.");
-
-                const summary = {};
-                filteredData.forEach(row => {
-                    const nama = row["Nama Guru"];
-                    const status = row["Status"] || "";
-                    const menit = parseInt(row["Selisih Menit"]) || 0;
-                    const tanggal = new Date(row["Waktu Server"]).toLocaleDateString('id-ID');
-
-                    if (!summary[nama]) {
-                        summary[nama] = { 
-                            "Nama Guru": nama, 
-                            "Total Terlambat (Mnt)": 0, 
-                            "Tanggal Terlambat": [], 
-                            "Total Keluar Cepat (Mnt)": 0, 
-                            "Tanggal Keluar Cepat": [], 
-                            "Hari Masuk": 0 
-                        };
-                    }
-
-                    if (status.includes("Terlambat")) {
-                        summary[nama]["Total Terlambat (Mnt)"] += menit;
-                        summary[nama]["Tanggal Terlambat"].push(tanggal);
-                    }
-                    if (status.includes("Kecepatan")) {
-                        summary[nama]["Total Keluar Cepat (Mnt)"] += menit;
-                        summary[nama]["Tanggal Keluar Cepat"].push(tanggal);
-                    }
-                    if (row["Tipe Scan"] === "Masuk") summary[nama]["Hari Masuk"] += 1;
-                });
-
-                const finalData = Object.values(summary).map(item => ({
-                    ...item,
-                    "Tanggal Terlambat": item["Tanggal Terlambat"].join(", "),
-                    "Tanggal Keluar Cepat": item["Tanggal Keluar Cepat"].join(", ")
-                }));
-
-                const worksheet = XLSX.utils.json_to_sheet(finalData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap_" + filterType);
-                XLSX.writeFile(workbook, `Rekap_${filterType}_${new Date().toLocaleDateString('id-ID').replace(/\//g, '-')}.xlsx`);
-                document.getElementById('customModal').classList.add('hidden');
-            })
-            .catch(err => {
-                showModal("Error", "Gagal memproses data.");
-            });
-        }
+    // --- 8. REKAP & FITUR ADMIN ---
+    function lihatRekapPribadi() {
+        const url = localStorage.getItem('gas_url');
+        if(!url || !url.startsWith("http")) return showModal("Error", "URL belum diatur.");
         
-        function downloadRekapSemua() {
-            const url = localStorage.getItem('gas_url');
-            if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur.");
+        document.getElementById('guruDashboard').classList.add('hidden');
+        document.getElementById('rekapSection').classList.remove('hidden');
+        document.getElementById('loadingRekap').classList.remove('hidden');
+        document.getElementById('rekapContent').innerHTML = "";
+
+        fetch(url).then(r=>r.json()).then(data => {
+            document.getElementById('loadingRekap').classList.add('hidden');
+            const dataSaya = data.filter(r => r["Nama Guru"] === activeUserObj.nama && r["Waktu Server"].includes(new Date().getFullYear().toString()));
             
-            showModal("Mengunduh", "Sedang mengambil data dari server...");
+            if(dataSaya.length === 0) return document.getElementById('rekapContent').innerHTML = "Belum ada riwayat.";
             
-            fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                document.getElementById('customModal').classList.add('hidden');
-                if(data.length === 0) return showModal("Info", "Belum ada data.");
+            dataSaya.reverse().forEach(row => {
+                let w = row.Status.includes('Tepat') ? 'text-green-600' : 'text-red-600';
+                document.getElementById('rekapContent').innerHTML += `
+                    <div class="border-b pb-2 mb-2">
+                        <div class="flex justify-between font-bold"><span>Kelas ${row.Kelas} - ${row["Tipe Scan"]}</span><span class="${w}">${row["Waktu Scan"]}</span></div>
+                        <div class="text-xs text-gray-600">Mapel: ${row["Mata Pelajaran"]} | Status: ${row.Status}</div>
+                    </div>`;
+            });
+        }).catch(e => {
+            document.getElementById('loadingRekap').classList.add('hidden');
+            document.getElementById('rekapContent').innerHTML = "Gagal mengambil data.";
+        });
+    }
+
+    function tutupRekap() {
+        document.getElementById('rekapSection').classList.add('hidden');
+        document.getElementById('guruDashboard').classList.remove('hidden');
+    }
+
+    function downloadFilteredRecap(filterType) {
+        const url = localStorage.getItem('gas_url');
+        if(!url || !url.startsWith("http")) return showModal("Error", "URL Server belum diatur.");
+        showModal("Mengunduh", "Memproses data " + filterType + "...");
+        
+        fetch(url).then(res => res.json()).then(data => {
+            const now = new Date();
+            const filteredData = data.filter(row => {
+                const rowDate = new Date(row["Waktu Server"]);
+                if (filterType === 'hari') return rowDate.toDateString() === now.toDateString();
+                if (filterType === 'pekan') return rowDate >= new Date(now.getTime() - 7 * 86400000);
+                if (filterType === 'bulan') return rowDate.getMonth() === now.getMonth() && rowDate.getFullYear() === now.getFullYear();
+                if (filterType === 'semester') return (rowDate.getMonth() >= 6) === (now.getMonth() >= 6) && rowDate.getFullYear() === now.getFullYear();
+                return true;
+            });
+            
+            if(filteredData.length === 0) return showModal("Info", "Tidak ada data.");
+            
+            const summary = {};
+            filteredData.forEach(row => {
+                const nama = row["Nama Guru"];
+                if (!summary[nama]) summary[nama] = { "Nama Guru": nama, "Terlambat(mnt)": 0, "Tgl Terlambat": [], "Cepat(mnt)": 0, "Tgl Cepat": [], "Jml Masuk": 0 };
                 
-                const worksheet = XLSX.utils.json_to_sheet(data);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "RekapAbsensi");
-                XLSX.writeFile(workbook, "Rekap_Absensi_Guru_SMPIT.xlsx");
-            })
-            .catch(err => {
-                showModal("Error", "Gagal mengunduh.");
+                let mnt = parseInt(row["Selisih Menit"]) || 0;
+                let tgl = new Date(row["Waktu Server"]).toLocaleDateString('id-ID');
+                
+                if (row.Status.includes("Terlambat")) { summary[nama]["Terlambat(mnt)"] += mnt; summary[nama]["Tgl Terlambat"].push(tgl); }
+                if (row.Status.includes("Kecepatan")) { summary[nama]["Cepat(mnt)"] += mnt; summary[nama]["Tgl Cepat"].push(tgl); }
+                if (row["Tipe Scan"] === "Masuk") summary[nama]["Jml Masuk"] += 1;
             });
-        }
 
-        function simpanScriptUrl() {
-            const val = document.getElementById('scriptUrlInput').value.trim();
-            if(val) {
-                localStorage.setItem('gas_url', val);
-                showModal("Tersimpan", "URL Web App berhasil disimpan.");
-            }
-        }
-
-        function tambahKelas() {
-            let namaKelasBaru = prompt("Masukkan nama kelas baru (Cth: 10A):");
-            if(namaKelasBaru) {
-                namaKelasBaru = namaKelasBaru.trim().toUpperCase();
-                if(!daftarKelas.includes(namaKelasBaru)) {
-                    daftarKelas.push(namaKelasBaru);
-                    localStorage.setItem('daftar_kelas', JSON.stringify(daftarKelas));
-                    showModal("Sukses", `Kelas ${namaKelasBaru} ditambahkan.`);
-                    
-                    const izinKelas = document.getElementById('izinKelas');
-                    izinKelas.innerHTML = '';
-                    daftarKelas.forEach(k => izinKelas.appendChild(new Option(k, k)));
-                } else {
-                    showModal("Info", "Kelas sudah ada.");
-                }
-            }
-        }
-
-        function cetakQRCode() {
-            let printWindow = window.open('', '', 'width=800,height=600');
-            printWindow.document.write(`
-                <html>
-                <head>
-                    <title>Cetak QR Kelas</title>
-                    <style>
-                        body { font-family: sans-serif; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; }
-                        .qr-card { border: 2px solid #000; padding: 30px; text-align: center; page-break-inside: avoid; display: flex; flex-direction: column; align-items: center; }
-                        .qr-card h1 { font-size: 48px; margin: 0 0 20px 0; }
-                        .qr-card img { width: 300px; height: 300px; }
-                    </style>
-                </head>
-                <body>
-            `);
+            const finalData = Object.values(summary).map(i => ({...i, "Tgl Terlambat": i["Tgl Terlambat"].join(", "), "Tgl Cepat": i["Tgl Cepat"].join(", ")}));
             
-            daftarKelas.forEach(kelas => {
-                printWindow.document.write(`
-                    <div class="qr-card">
-                        <h1>${kelas}</h1>
-                        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${kelas}">
-                    </div>
-                `);
-            });
-            
-            printWindow.document.write('</body></html>');
-            printWindow.document.close();
-            
-            setTimeout(() => {
-                printWindow.focus();
-                printWindow.print();
-            }, 1000);
-        }
+            const ws = XLSX.utils.json_to_sheet(finalData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Rekap");
+            XLSX.writeFile(wb, `Rekap_${filterType}_${now.toLocaleDateString('id-ID').replace(/\//g, '-')}.xlsx`);
+            document.getElementById('customModal').classList.add('hidden');
+        }).catch(err => showModal("Error", "Gagal proses data."));
+    }
 
+    function downloadRekapSemua() {
+        const url = localStorage.getItem('gas_url');
+        fetch(url).then(r=>r.json()).then(data => {
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "SemuaData");
+            XLSX.writeFile(wb, "Data_Absensi_Mentah.xlsx");
+        });
+    }
+
+    function simpanScriptUrl() {
+        const val = document.getElementById('scriptUrlInput').value.trim();
+        if(val) { localStorage.setItem('gas_url', val); showModal("Tersimpan", "URL Disimpan."); }
+    }
+
+    function cetakQRCode() {
+        let printWindow = window.open('', '', 'width=800,height=600');
+        printWindow.document.write(`
+            <html><head><title>Cetak QR</title><style>
+                body { font-family: sans-serif; margin: 0; padding: 0; }
+                .page { display: flex; flex-direction: column; height: 100vh; page-break-after: always; }
+                .row { display: flex; flex: 1; border-bottom: 2px dashed #ccc; }
+                .qr-card { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+                h1 { font-size: 60px; margin-bottom: 20px; }
+                img { width: 300px; height: 300px; }
+            </style></head><body>
+        `);
+        for (let i = 0; i < daftarKelas.length; i += 2) {
+            let k1 = daftarKelas[i], k2 = daftarKelas[i+1];
+            printWindow.document.write(`<div class="page"><div class="row">`);
+            printWindow.document.write(`<div class="qr-card"><h1>Kelas ${k1}</h1><img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${k1}"></div>`);
+            if(k2) printWindow.document.write(`<div class="qr-card" style="border-left: 2px dashed #ccc;"><h1>Kelas ${k2}</h1><img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${k2}"></div>`);
+            printWindow.document.write(`</div></div>`);
+        }
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        setTimeout(() => { printWindow.focus(); printWindow.print(); }, 1500);
+    }
     </script>
 </body>
 </html>
