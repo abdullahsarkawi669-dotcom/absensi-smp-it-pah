@@ -218,6 +218,11 @@
     </main>
 
     <script>
+	
+	    // --- 2. KONFIGURASI GLOBAL ---
+    const DEFAULT_GAS_URL = "https://script.google.com/macros/s/AKfycbyC7-zUS15SpKXRLj6RBdnEvpF8DZBevAowng1rE6ciWvxz4Tqe8oeIa4_z-1Fds7FH/exec";
+    if (!localStorage.getItem('gasUrl')) localStorage.setItem('gasUrl', DEFAULT_GAS_URL);
+	
         // --- 1. DATA DEFINITIONS ---
         const dayNames = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
         
@@ -1036,7 +1041,7 @@
             // Cukup tuliskan dengan memasukkan kata "SBDP" dan "Informatika" seperti contoh di bawah ini (hilangkan tanda // nya):
             // jadwalPelajaran['rabu']['JP 1']['7A'] = 'SBDP / Informatika';
 
-              // CATATAN UNTUK ADMIN:
+            // CATATAN UNTUK ADMIN:
             // Lanjutkan mengisi jadwal kelas 7A yang kosong dan kelas-kelas lainnya (7B, 7C, dst)
             // menggunakan format yang sama persis seperti contoh 7A di atas.
         }
@@ -1092,9 +1097,6 @@
 
             // Check if logged in today
             checkAutoLogin();
-            
-            // Auto Sync ke Google Apps Script setiap 5 detik
-            setInterval(syncData, 5000);
         }
 
         // --- STREAMING_CHUNK:Authentication Logic ---
@@ -1384,13 +1386,7 @@
         }
 
         function saveRecord(record) {
-            // 1. Save to permanent local history (max 1000 data agar memory hp tidak penuh)
-            let history = JSON.parse(localStorage.getItem('local_history') || '[]');
-            history.push(record);
-            if(history.length > 1000) history = history.slice(history.length - 1000);
-            localStorage.setItem('local_history', JSON.stringify(history));
-
-            // 2. Save to pending queue (antrean sinkronisasi server)
+            // Save to local pending queue
             let pending = JSON.parse(localStorage.getItem('pending_scans') || '[]');
             pending.push(record);
             localStorage.setItem('pending_scans', JSON.stringify(pending));
@@ -1399,54 +1395,53 @@
             syncData(); // Try to sync immediately
         }
 
-        let isSyncing = false;
+
+
         async function syncData() {
-            if (!isOnline || isSyncing) return;
+            if (!isOnline) return;
             
             const gasUrl = localStorage.getItem('gasUrl');
-            if (!gasUrl) return;
+            if (!gasUrl) {
+                console.log("GAS URL not set. Data saved locally.");
+                return;
+            }
 
             let pending = JSON.parse(localStorage.getItem('pending_scans') || '[]');
             if (pending.length === 0) return;
 
-            isSyncing = true;
-            let hasChanges = false;
+            // In a real scenario, you'd loop or send bulk. 
+            // We simulate a fetch to the Apps Script web app here.
             
-            while(pending.length > 0) {
-                const recordToSync = pending[0];
-                try {
-                    // IMPORTANT: Apps Script requires mode: 'no-cors' or proper CORS headers in GAS
-                    const queryParams = new URLSearchParams({
-                        action: 'insert',
-                        guru: recordToSync.guru,
-                        mapel: recordToSync.mapel,
-                        kelas: recordToSync.kelas,
-                        jenis: recordToSync.jenis,
-                        waktu: recordToSync.timestamp,
-                        jp: recordToSync.jp,
-                        keterangan: recordToSync.keterangan
-                    });
+            const recordToSync = pending[0]; // Take first
+            try {
+                // IMPORTANT: Apps Script requires mode: 'no-cors' or proper CORS headers in GAS
+                // Using GET with query params is easiest for simple no-cors GAS setups
+                const queryParams = new URLSearchParams({
+                    action: 'insert',
+                    guru: recordToSync.guru,
+                    mapel: recordToSync.mapel,
+                    kelas: recordToSync.kelas,
+                    jenis: recordToSync.jenis,
+                    waktu: recordToSync.timestamp,
+                    jp: recordToSync.jp,
+                    keterangan: recordToSync.keterangan
+                });
 
-                    await fetch(`${gasUrl}?${queryParams.toString()}`, {
-                        method: 'GET',
-                        mode: 'no-cors' // Allows sending data without expecting a readable response
-                    });
+                const response = await fetch(`${gasUrl}?${queryParams.toString()}`, {
+                    method: 'GET',
+                    mode: 'no-cors' // Allows sending data without expecting a readable response
+                });
 
-                    // Hapus dari antrean karena sudah terkirim (Berhasil hit GAS API)
-                    pending.shift(); 
-                    localStorage.setItem('pending_scans', JSON.stringify(pending));
-                    updatePendingBadge();
-                    hasChanges = true;
-                } catch (err) {
-                    console.error("Gagal sync:", err);
-                    break; // Keluar dari loop apabila jaringan tiba2 terputus
-                }
-            }
-            
-            isSyncing = false;
-            // Update UI jika berhasil tersinkron agar tulisan "Belum tersinkron" berubah jadi "Tersinkron"
-            if (hasChanges && currentUser && document.getElementById('contentRekap') && !document.getElementById('contentRekap').classList.contains('hide')) {
-                loadPersonalHistory();
+                // Since no-cors gives opaque response, we assume success if no network error
+                pending.shift(); // Remove from queue
+                localStorage.setItem('pending_scans', JSON.stringify(pending));
+                updatePendingBadge();
+                
+                // Recursively sync the rest
+                if(pending.length > 0) syncData();
+
+            } catch (err) {
+                console.error("Gagal sync:", err);
             }
         }
 
@@ -1454,23 +1449,16 @@
 
         function loadPersonalHistory() {
             const container = document.getElementById('personalHistory');
-            
-            let history = JSON.parse(localStorage.getItem('local_history') || '[]');
+            // In a full app, this would fetch from GAS. Here we read local pending + a simulated history
             let pending = JSON.parse(localStorage.getItem('pending_scans') || '[]');
-            let pendingIds = pending.map(p => p.id); // Untuk cek apakah masih ngantre
-            
-            // Filter hanya hari ini dan milik user yang sedang login
-            const todayStr = new Date().toISOString().split('T')[0];
-            let myScans = history.filter(p => p.guru === currentUser.name && p.timestamp.startsWith(todayStr));
+            let myScans = pending.filter(p => p.guru === currentUser.name);
             
             if(myScans.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Belum ada data scan hari ini.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500 text-sm py-4">Belum ada data scan lokal hari ini.</p>';
                 return;
             }
 
-            container.innerHTML = myScans.reverse().map(scan => {
-                const isPending = pendingIds.includes(scan.id);
-                return `
+            container.innerHTML = myScans.reverse().map(scan => `
                 <div class="bg-white p-3 rounded shadow-sm border-l-4 ${scan.jenis === 'Masuk' ? 'border-green-500' : 'border-red-500'}">
                     <div class="flex justify-between items-start">
                         <div>
@@ -1479,13 +1467,10 @@
                             <p class="text-xs font-semibold ${scan.jenis === 'Masuk' ? 'text-green-600' : 'text-red-600'}">${scan.jenis} - ${new Date(scan.timestamp).toLocaleTimeString('id-ID')}</p>
                             ${scan.keterangan ? `<p class="text-xs text-gray-600 mt-1 italic">Ket: ${scan.keterangan}</p>` : ''}
                         </div>
-                        ${isPending 
-                            ? '<span class="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded h-fit border border-yellow-200">Menunggu Sinkron</span>' 
-                            : '<span class="text-[10px] bg-emerald-100 text-emerald-800 px-1 rounded h-fit border border-emerald-200"><i class="fas fa-check"></i> Tersinkron</span>'}
+                        <span class="text-[10px] bg-yellow-100 text-yellow-800 px-1 rounded">Belum tersinkron</span>
                     </div>
                 </div>
-                `;
-            }).join('');
+            `).join('');
         }
 
         function updateNetworkStatus() {
@@ -1581,7 +1566,7 @@
         }
 
         function downloadReport(type) {
-            showMessage(`Fitur download laporan ${type} akan memanggil link Google Apps Script untuk generate PDF/Excel. Pastikan URL GAS sudah diatur di menu Super Admin.`);
+            showMessage(`Fitur download laporan ${type} akan memanggil link Google Apps Script untuk generate PDF/Excel`);
         }
 
         // --- NEW FEATURES: TARDINESS ANALYSIS & SUPER ADMIN EXPORT ---
@@ -1630,8 +1615,7 @@
 
         function generateLateEarlyLog() {
             const container = document.getElementById('lateEarlyList');
-            // Gunakan local_history agar data yang sudah disinkron tetap terbaca di log admin
-            let allRecords = JSON.parse(localStorage.getItem('local_history') || '[]');
+            let allRecords = JSON.parse(localStorage.getItem('pending_scans') || '[]');
             
             if(allRecords.length === 0) {
                 container.innerHTML = '<p class="text-gray-500 italic">Belum ada data absensi di perangkat ini.</p>';
@@ -1669,8 +1653,7 @@
 
         // Export Data Khusus Super Admin
         function exportSuperAdmin(filterType) {
-            // Gunakan local_history agar keseluruhan data tetap bisa didownload
-            let allRecords = JSON.parse(localStorage.getItem('local_history') || '[]');
+            let allRecords = JSON.parse(localStorage.getItem('pending_scans') || '[]');
             if (allRecords.length === 0) return showMessage('Tidak ada data yang tersimpan di perangkat untuk di-export.');
 
             const now = new Date();
