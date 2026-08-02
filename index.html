@@ -525,6 +525,2471 @@
                     </select>
                 </div>
 				
+
+
+                <button class="btn btn-primary" id="agusLoadReport"><i class="fa-solid fa-bolt"></i> Generate Rekap Guru</button>
+<button class="btn btn-success" id="agusDownloadXls" onclick="exportTableToExcel('agusBody', 'Rekap_Agus.xls')">
+    <i class="fa-solid fa-file-excel"></i> Download XLS
+</button>
+                <div class="table-wrap mt-4" style="max-height:350px;overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr><th>Nama Guru</th><th>Mapel</th><th>Telat</th><th>Cepat</th><th>Total</th></tr>
+                        </thead>
+                        <tbody id="agusBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- MODAL -->
+<div id="modalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+        <div class="flex justify-between items-center mb-4 border-b pb-2">
+            <h3 style="margin:0;"><i class="fa-solid fa-layer-group"></i> Dialog</h3>
+            <button class="close-btn" id="modalClose"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div id="modalContent"></div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    // ===================================================================
+    // DATA MASTER (SMP Islam Terpadu Putra Abu Hurairah Mataram)
+    // ===================================================================
+
+
+
+    const TEACHERS = [
+        { name: 'Budiman, S. Pd.', isAdmin: true, subjects: [], adminType: 'admin' },
+        { name: 'Adi Hardiyansyah, M. Pd.', isAdmin: true, subjects: ['IPA Terpadu'], adminType: 'admin' },
+        { name: 'Agus Sarkawi, S. T.', isAdmin: true, subjects: ['Informatika'], adminType: 'agus' },
+        { name: 'Abdul Hafizh Hizam, Lc.', subjects: ['Aqidah'] },
+        { name: 'Adiandri Suhaili, M. Pd.', subjects: ['IPA Terpadu'] },
+        { name: 'Ahmad Arroiyan, Lc.', subjects: ['Bahasa Arab', 'Qowaidul Lughoh', 'Kitabah & Khat'] },
+        { name: 'Ahmad Mahsan Haikal, Lc.', subjects: ['Kitabah & Khat', 'Bahasa Arab', "Ta'bir"] },
+        { name: 'Andri Jaelani, Lc., M. H.', subjects: ["Ta'bir", 'Kitabah & Khat'] },
+        { name: 'Arsyad, S. Pd.', subjects: ['Bahasa Indonesia'] },
+        { name: 'Firman, S. Pd.', subjects: ['Bahasa Indonesia'] },
+        { name: 'Hafizh Bagis, Lc.', subjects: ['Bahasa Arab', 'Kitabah & Khat'] },
+        { name: 'Hairul Umam Insani, S. Pd.', subjects: ['Bahasa Inggris'] },
+        { name: 'Haqikahurrahman, S. Pd.', subjects: ['Matematika'] },
+        { name: 'Jamaluddin, Lc.', subjects: ['Fiqih'] },
+        { name: 'Jumadil Awal, SE.', subjects: ['IPS', 'Pancasila'] },
+        { name: 'Junaidi, S. Pd.', subjects: ['IPS', 'Pancasila'] },
+        { name: 'L. Muh. Baidui, M. Pd.', subjects: ['IPA Terpadu'] },
+        { name: 'Lalu M. Sulistiono, SP.', subjects: ['Fiqih'] },
+        { name: 'Ludfi Rusdiyono, S. Pd.', subjects: ['Bahasa Inggris'] },
+        { name: 'M. Tahir, M. Pd.', subjects: ['PJOK'] },
+        { name: 'Muhammad Al Huraibi, Lc.', subjects: ['Bahasa Arab'] },
+        { name: 'Saifuddin Hidayat, S. Pd.', subjects: ['Matematika', 'SBDP'] },
+        { name: 'Salman, S. Pd. I.', subjects: ['Adab Akhlak'] },
+        { name: 'Syahrul Hasyim, Lc.', subjects: ['Aqidah'] },
+        { name: 'Syamsul Bahri, Lc.', subjects: ['Kitabah & Khat', 'Bahasa Arab', 'Qowaidul Lughoh'] },
+        { name: 'Taufiqurrahman, Lc.', subjects: ['Bahasa Arab', 'Kitabah & Khat'] },
+        { name: 'Zulfi Farid, Lc.', subjects: ['Bahasa Arab', "Ta'bir"] },
+        { name: 'Zulkarnaen Teguh W, S. Pd.', subjects: ['Hadits'] },
+        { name: 'Ahmad Fazhlurrahman', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Abdul Hanan', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Akmaluddin', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Aminullah', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Azza Mahsari, S. Pd.', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Fauzul Kabir, S. Pd.', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Haris Fajriansyah, B. A.', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Irfan Hidayat, S.Pd.', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Iswahyudi, S. T.', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Maliki', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Musalim Amin, S. Pd. I.', subjects: ['Tahfizhul Qur\'an'] },
+        { name: 'Ukasyah', subjects: ['Tahfizhul Qur\'an'] }
+    ];
+
+    const CLASSES = ['7A', '7B', '7C', '7D', '7E', '8A', '8B', '8C', '8D', '8E', '9A', '9B', '9C', '9D'];
+
+    // ===================================================================
+    // GOOGLE APPS SCRIPT URL
+    // ===================================================================
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzMPQe7RzA6CpvL99gm0LTiK5hefUfan_muH7KcwKnBd298b9CxCN8bLr0kR0Mxg6Cipw/exec';
+
+    // ===================================================================
+    // STRUKTUR JADWAL PELAJARAN LOKAL
+    // ===================================================================
+    // Menggunakan jadwal cache dari LocalStorage jika ada, atau menggunakan data default di bawah ini.
+    let jadwalPelajaran = JSON.parse(localStorage.getItem('jadwal_cache')) || {
+        'senin': { 'JP 1':{}, 'JP 2':{}, 'JP 3':{}, 'JP 4':{}, 'JP 5':{}, 'JP 6':{}, 'JP 7':{}, 'JP 8':{} },
+        'selasa':{ 'JP 1':{}, 'JP 2':{}, 'JP 3':{}, 'JP 4':{}, 'JP 5':{}, 'JP 6':{}, 'JP 7':{}, 'JP 8':{} },
+        'rabu':  { 'JP 1':{}, 'JP 2':{}, 'JP 3':{}, 'JP 4':{}, 'JP 5':{}, 'JP 6':{}, 'JP 7':{}, 'JP 8':{} },
+        'kamis': { 'JP 1':{}, 'JP 2':{}, 'JP 3':{}, 'JP 4':{}, 'JP 5':{}, 'JP 6':{}, 'JP 7':{}, 'JP 8':{} },
+        'jumat': { 'JP 1':{}, 'JP 2':{}, 'JP 3':{}, 'JP 4':{}, 'JP 5':{}, 'JP 6':{}, 'JP 7':{}, 'JP 8':{} },
+        'sabtu': { 'JP 1':{}, 'JP 2':{}, 'JP 3':{}, 'JP 4':{}, 'JP 5':{}, 'JP 6':{}, 'JP 7':{}, 'JP 8':{} }
+    };
+
+    // Data Manual (Fallback) sesuai permintaan
+    // KELAS 7A
+    jadwalPelajaran['senin']['JP 2']['7A'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+    jadwalPelajaran['senin']['JP 5']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+    jadwalPelajaran['senin']['JP 6']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+    jadwalPelajaran['senin']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['senin']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+
+    jadwalPelajaran['selasa']['JP 1']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['selasa']['JP 2']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['selasa']['JP 5']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+    jadwalPelajaran['selasa']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+    jadwalPelajaran['selasa']['JP 7']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+    jadwalPelajaran['selasa']['JP 8']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+
+    jadwalPelajaran['rabu']['JP 1']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+    jadwalPelajaran['rabu']['JP 2']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+    jadwalPelajaran['rabu']['JP 3']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+    jadwalPelajaran['rabu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+    jadwalPelajaran['rabu']['JP 5']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['rabu']['JP 6']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+
+    jadwalPelajaran['kamis']['JP 1']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+    jadwalPelajaran['kamis']['JP 2']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+    jadwalPelajaran['kamis']['JP 5']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+    jadwalPelajaran['kamis']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+    jadwalPelajaran['kamis']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['kamis']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+
+    jadwalPelajaran['jumat']['JP 3']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+    jadwalPelajaran['jumat']['JP 4']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+    jadwalPelajaran['jumat']['JP 5']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['jumat']['JP 6']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+
+    jadwalPelajaran['sabtu']['JP 1']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+    jadwalPelajaran['sabtu']['JP 2']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+    jadwalPelajaran['sabtu']['JP 3']['7A'] = 'SBDP / Informatika'; // Logika Pengecualian
+    jadwalPelajaran['sabtu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+    jadwalPelajaran['sabtu']['JP 5']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+    jadwalPelajaran['sabtu']['JP 6']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+    jadwalPelajaran['sabtu']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+    jadwalPelajaran['sabtu']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+
+    // KELAS 7B
+        jadwalPelajaran['senin']['JP 2']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['senin']['JP 5']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['senin']['JP 7']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['senin']['JP 8']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 2']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 5']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['selasa']['JP 6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['selasa']['JP 7']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['selasa']['JP 8']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['rabu']['JP 2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['rabu']['JP 3']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 4']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 5']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['rabu']['JP 6']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 2']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 5']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['kamis']['JP 7']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['kamis']['JP 8']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		
+		jadwalPelajaran['jumat']['JP 3']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['jumat']['JP 4']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['jumat']['JP 5']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 6']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['sabtu']['JP 2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+		jadwalPelajaran['sabtu']['JP 3']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['sabtu']['JP 4']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['sabtu']['JP 5']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['sabtu']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['sabtu']['JP 7']['7B'] = 'SBDP / Informatika';
+		jadwalPelajaran['sabtu']['JP 8']['7B'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+		
+		// KELAS 7C
+        jadwalPelajaran['senin']['JP 2']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['senin']['JP 5']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['senin']['JP 7']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['senin']['JP 8']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['selasa']['JP 2']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['selasa']['JP 5']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 6']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 3']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['rabu']['JP 4']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['rabu']['JP 5']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['rabu']['JP 6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 5']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 6']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 7']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['kamis']['JP 8']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['jumat']['JP 2']['7C'] = 'SBDP / Informatika';
+		jadwalPelajaran['jumat']['JP 5']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['jumat']['JP 6']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['sabtu']['JP 2']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['sabtu']['JP 3']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['sabtu']['JP 4']['7C'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+		jadwalPelajaran['sabtu']['JP 5']['7C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['sabtu']['JP 6']['7C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['sabtu']['JP 7']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		
+		// KELAS 7D
+        jadwalPelajaran['senin']['JP 2']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['senin']['JP 3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['senin']['JP 4']['7D'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+		jadwalPelajaran['senin']['JP 5']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['senin']['JP 6']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['senin']['JP 7']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['senin']['JP 8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		
+		jadwalPelajaran['selasa']['JP 3']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['selasa']['JP 4']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['selasa']['JP 5']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['selasa']['JP 6']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['selasa']['JP 7']['7D'] = 'SBDP / Informatika';
+		jadwalPelajaran['selasa']['JP 8']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 2']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 5']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['rabu']['JP 6']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['rabu']['JP 7']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['rabu']['JP 8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['kamis']['JP 4']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['kamis']['JP 5']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
+		jadwalPelajaran['kamis']['JP 6']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 2']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['jumat']['JP 5']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 6']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 2']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 3']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['sabtu']['JP 4']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['sabtu']['JP 5']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['sabtu']['JP 6']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['sabtu']['JP 7']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		
+		// KELAS 7E
+        jadwalPelajaran['senin']['JP 2']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['senin']['JP 3']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['senin']['JP 4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['senin']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['senin']['JP 7']['7E'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+		jadwalPelajaran['senin']['JP 8']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		
+		jadwalPelajaran['selasa']['JP 3']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['selasa']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['selasa']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 8']['7E'] = 'SBDP / Informatika';
+		
+		jadwalPelajaran['rabu']['JP 1']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['rabu']['JP 2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['rabu']['JP 5']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 6']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		
+		jadwalPelajaran['rabu']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 8']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		
+		jadwalPelajaran['kamis']['JP 3']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
+		jadwalPelajaran['kamis']['JP 4']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
+		
+		jadwalPelajaran['kamis']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['kamis']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['jumat']['JP 2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 5']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		jadwalPelajaran['jumat']['JP 6']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['sabtu']['JP 2']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		
+		jadwalPelajaran['sabtu']['JP 3']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 4']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 5']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['sabtu']['JP 6']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
+		
+		jadwalPelajaran['sabtu']['JP 7']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+		
+		jadwalPelajaran['sabtu']['JP 8']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
+		
+		// KELAS 8A
+		jadwalPelajaran['senin']['JP 2']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['senin']['JP 3']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['senin']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['senin']['JP 5']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['senin']['JP 7']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['senin']['JP 8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		
+		jadwalPelajaran['selasa']['JP 3']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 5']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 6']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['rabu']['JP 2']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['rabu']['JP 5']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['rabu']['JP 6']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['rabu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 8']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 2']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 5']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['kamis']['JP 6']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['jumat']['JP 2']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['jumat']['JP 5']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
+		jadwalPelajaran['jumat']['JP 6']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
+		
+		jadwalPelajaran['sabtu']['JP 1']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['sabtu']['JP 2']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['sabtu']['JP 3']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 4']['8A'] = 'SBDP / Informatika';
+		jadwalPelajaran['sabtu']['JP 5']['8A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['sabtu']['JP 6']['8A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['sabtu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['8A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		
+		// KELAS 8B
+		jadwalPelajaran['senin']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['senin']['JP 3']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['senin']['JP 4']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['senin']['JP 5']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['selasa']['JP 2']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['selasa']['JP 3']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['selasa']['JP 4']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['selasa']['JP 8']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 2']['8B'] = 'SBDP / Informatika';
+		jadwalPelajaran['rabu']['JP 3']['8B'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['rabu']['JP 4']['8B'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['rabu']['JP 5']['8B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 6']['8B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 7']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['rabu']['JP 8']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 5']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 7']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 3']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
+		jadwalPelajaran['jumat']['JP 4']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
+		
+		jadwalPelajaran['sabtu']['JP 1']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['sabtu']['JP 2']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['sabtu']['JP 3']['8B'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['sabtu']['JP 4']['8B'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['sabtu']['JP 5']['8B'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 7']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['sabtu']['JP 8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+
+		// KELAS 8C
+		jadwalPelajaran['senin']['JP 2']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['senin']['JP 5']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['selasa']['JP 2']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['selasa']['JP 3']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['selasa']['JP 4']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['selasa']['JP 7']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 2']['8C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 3']['8C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 4']['8C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 5']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 6']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 7']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 3']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['kamis']['JP 4']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['kamis']['JP 5']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['kamis']['JP 6']['8C'] = 'SBDP / Informatika';
+		jadwalPelajaran['kamis']['JP 7']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		jadwalPelajaran['kamis']['JP 8']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
+		jadwalPelajaran['jumat']['JP 2']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
+		jadwalPelajaran['jumat']['JP 3']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['jumat']['JP 4']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 2']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 3']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 4']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 5']['8C'] = 'Kitabah & Khat (Andri Jaelani, Lc., M. H.)';
+		jadwalPelajaran['sabtu']['JP 6']['8C'] = 'Kitabah & Khat (Andri Jaelani, Lc., M. H.)';
+		jadwalPelajaran['sabtu']['JP 7']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+
+		// KELAS 8D
+		jadwalPelajaran['senin']['JP 2']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['senin']['JP 3']['8D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['senin']['JP 4']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['senin']['JP 5']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['senin']['JP 6']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 2']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 3']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['selasa']['JP 4']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['selasa']['JP 7']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 3']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 4']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 5']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 6']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 7']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['rabu']['JP 8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 3']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['kamis']['JP 4']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['kamis']['JP 5']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 6']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['kamis']['JP 7']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['kamis']['JP 8']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['8D'] = 'SBDP / Informatika';
+		jadwalPelajaran['jumat']['JP 2']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 3']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['jumat']['JP 4']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['sabtu']['JP 2']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['sabtu']['JP 3']['8D'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
+		jadwalPelajaran['sabtu']['JP 4']['8D'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
+		jadwalPelajaran['sabtu']['JP 5']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 6']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 7']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+
+		// KELAS 8E
+		jadwalPelajaran['senin']['JP 2']['8E'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['senin']['JP 3']['8E'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['senin']['JP 4']['8E'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['senin']['JP 5']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['senin']['JP 6']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+		jadwalPelajaran['selasa']['JP 2']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 3']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 4']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 8']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		
+		jadwalPelajaran['rabu']['JP 1']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['rabu']['JP 2']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['rabu']['JP 3']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['rabu']['JP 4']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['rabu']['JP 5']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 6']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 7']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 8']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		
+		jadwalPelajaran['kamis']['JP 3']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['kamis']['JP 4']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['kamis']['JP 5']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['kamis']['JP 6']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['kamis']['JP 7']['8E'] = 'SBDP / Informatika';
+		jadwalPelajaran['kamis']['JP 8']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 1']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		jadwalPelajaran['jumat']['JP 2']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 2']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 3']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['sabtu']['JP 4']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+		jadwalPelajaran['sabtu']['JP 5']['8E'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['sabtu']['JP 6']['8E'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['sabtu']['JP 7']['8E'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
+		jadwalPelajaran['sabtu']['JP 8']['8E'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
+
+		// KELAS 9A
+		jadwalPelajaran['senin']['JP 2']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['senin']['JP 3']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['senin']['JP 4']['9A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['senin']['JP 7']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
+		jadwalPelajaran['senin']['JP 8']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
+		
+		jadwalPelajaran['selasa']['JP 3']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['selasa']['JP 4']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['selasa']['JP 5']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 6']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 3']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 4']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 5']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 6']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 7']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['rabu']['JP 8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['kamis']['JP 2']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['kamis']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['kamis']['JP 4']['9A'] = 'SBDP / Informatika';
+		jadwalPelajaran['kamis']['JP 5']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 6']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 7']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['kamis']['JP 8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 3']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 4']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 5']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 6']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		jadwalPelajaran['sabtu']['JP 2']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		jadwalPelajaran['sabtu']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['sabtu']['JP 4']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['sabtu']['JP 5']['9A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 6']['9A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 7']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		
+		// KELAS 9B
+		jadwalPelajaran['senin']['JP 2']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['senin']['JP 3']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['senin']['JP 4']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['senin']['JP 7']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['senin']['JP 8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		
+		jadwalPelajaran['selasa']['JP 3']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 4']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 5']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 6']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 3']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['rabu']['JP 4']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['rabu']['JP 5']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['rabu']['JP 6']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['rabu']['JP 7']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['kamis']['JP 2']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['kamis']['JP 3']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['kamis']['JP 4']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+		jadwalPelajaran['kamis']['JP 5']['9B'] = 'Fiqih (Jamaluddin, Lc.)';
+		jadwalPelajaran['kamis']['JP 6']['9B'] = 'Fiqih (Jamaluddin, Lc.)';
+		jadwalPelajaran['kamis']['JP 7']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 8']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		
+		jadwalPelajaran['jumat']['JP 3']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 4']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 5']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 6']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 2']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 3']['9B'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['sabtu']['JP 4']['9B'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['sabtu']['JP 5']['9B'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		jadwalPelajaran['sabtu']['JP 6']['9B'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		jadwalPelajaran['sabtu']['JP 7']['9B'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 8']['9B'] = 'SBDP / Informatika';
+		
+		// KELAS 9C
+		jadwalPelajaran['senin']['JP 2']['9C'] = 'SBDP / Informatika';
+		jadwalPelajaran['senin']['JP 3']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['senin']['JP 4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['senin']['JP 7']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['senin']['JP 8']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['selasa']['JP 2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['selasa']['JP 5']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['selasa']['JP 6']['9C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 7']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['selasa']['JP 8']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		
+		jadwalPelajaran['rabu']['JP 3']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['rabu']['JP 4']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['rabu']['JP 5']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['rabu']['JP 6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['rabu']['JP 7']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['rabu']['JP 8']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['kamis']['JP 2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['kamis']['JP 3']['9C'] = 'Fiqih (Jamaluddin, Lc.)';
+		jadwalPelajaran['kamis']['JP 4']['9C'] = 'Fiqih (Jamaluddin, Lc.)';
+		jadwalPelajaran['kamis']['JP 5']['9C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['kamis']['JP 6']['9C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['kamis']['JP 7']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 8']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		
+		jadwalPelajaran['jumat']['JP 3']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 4']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 5']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['jumat']['JP 6']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		
+		jadwalPelajaran['sabtu']['JP 1']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['sabtu']['JP 2']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['sabtu']['JP 3']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 5']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['sabtu']['JP 6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['sabtu']['JP 7']['9C'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		jadwalPelajaran['sabtu']['JP 8']['9C'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+
+		// KELAS 9D
+		jadwalPelajaran['senin']['JP 2']['9D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['senin']['JP 3']['9D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+		jadwalPelajaran['senin']['JP 4']['9D'] = 'SBDP / Informatika';
+		jadwalPelajaran['senin']['JP 7']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		jadwalPelajaran['senin']['JP 8']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+		
+		jadwalPelajaran['selasa']['JP 1']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 2']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 5']['9D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+		jadwalPelajaran['selasa']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['selasa']['JP 7']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['selasa']['JP 8']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		
+		jadwalPelajaran['rabu']['JP 3']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 4']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+		jadwalPelajaran['rabu']['JP 5']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['rabu']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+		jadwalPelajaran['rabu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['rabu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		
+		jadwalPelajaran['kamis']['JP 1']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 2']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 3']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 4']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['kamis']['JP 5']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['kamis']['JP 6']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['kamis']['JP 7']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
+		jadwalPelajaran['kamis']['JP 8']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
+		
+		jadwalPelajaran['jumat']['JP 3']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['jumat']['JP 4']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+		jadwalPelajaran['jumat']['JP 5']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		jadwalPelajaran['jumat']['JP 6']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+		
+		jadwalPelajaran['sabtu']['JP 1']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 2']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 3']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 4']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 5']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 6']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+		jadwalPelajaran['sabtu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+		jadwalPelajaran['sabtu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+
+    // ===================================================================
+    // FUNGSI PENGECEKAN JADWAL & KOPEL KHUSUS
+    // ===================================================================
+    
+    // Fungsi untuk menentukan apakah saat ini pekan ganjil atau genap
+    function isPekanGanjil(date) {
+        const d = new Date(date);
+        d.setHours(0,0,0,0);
+        d.setDate(d.getDate() + 4 - (d.getDay()||7));
+        const yearStart = new Date(d.getFullYear(),0,1);
+        const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        return weekNo % 2 !== 0; // true jika ganjil, false jika genap
+    }
+
+    function getMapelForScan(kelas, guruName, hari, jp) {
+        hari = hari.toLowerCase();
+        
+        // 1. CEK KOPEL TAHFIZH (Untuk 11 Guru)
+        const isGuruTahfizh = TEACHERS.some(t => t.name === guruName && t.subjects.includes("Tahfizhul Qur'an"));
+        if (isGuruTahfizh) {
+            const isKopel1 = ['7A', '7B', '7C'].includes(kelas) && (
+                (hari === 'senin' && (jp === 'JP 3' || jp === 'JP 4')) ||
+                (hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) ||
+                (hari === 'rabu' && (jp === 'JP 7' || jp === 'JP 8')) ||
+                (hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4'))
+            );
+            const isKopel2 = ['7D', '7E', '8A'].includes(kelas) && (
+                (hari === 'selasa' && (jp === 'JP 1' || jp === 'JP 2')) ||
+                (hari === 'rabu' && (jp === 'JP 3' || jp === 'JP 4')) ||
+                (hari === 'kamis' && (jp === 'JP 7' || jp === 'JP 8')) ||
+                (hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4'))
+            );
+            const isKopel3 = ['8B', '8C', '8D', '8E'].includes(kelas) && (
+                (hari === 'senin' && (jp === 'JP 7' || jp === 'JP 8')) ||
+                (hari === 'selasa' && (jp === 'JP 5' || jp === 'JP 6')) ||
+                (hari === 'kamis' && (jp === 'JP 1' || jp === 'JP 2')) ||
+                (hari === 'jumat' && (jp === 'JP 5' || jp === 'JP 6'))
+            );
+            const isKopel4 = ['9A', '9B', '9C', '9D'].includes(kelas) && (
+                (hari === 'senin' && (jp === 'JP 5' || jp === 'JP 6')) ||
+                (hari === 'rabu' && (jp === 'JP 1' || jp === 'JP 2')) ||
+                (hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2'))
+            );
+            
+            if (isKopel1 || isKopel2 || isKopel3 || isKopel4) {
+                return "Tahfizhul Qur'an";
+            }
+        }
+
+        // 2. CEK KOPEL OLAHRAGA (Khusus M. Tahir, M. Pd.)
+        if (guruName === 'M. Tahir, M. Pd.') {
+            if (['9A', '9B'].includes(kelas) && hari === 'selasa' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
+            if (['9C', '9D'].includes(kelas) && hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
+            if (['7D', '7E'].includes(kelas) && hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
+            if (['7A', '7B'].includes(kelas) && hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
+        }
+
+        // 3. CEK DARI OBJEK JADWAL PELAJARAN (termasuk SBDP/Informatika)
+        if (jadwalPelajaran[hari] && jadwalPelajaran[hari][jp] && jadwalPelajaran[hari][jp][kelas]) {
+            const jadwalRaw = jadwalPelajaran[hari][jp][kelas];
+            
+            // Pengecualian Informatika & SBDP bergantian tiap pekan
+            if (jadwalRaw.includes('SBDP / Informatika') || jadwalRaw.includes('Informatika / SBDP')) {
+                const pekanGanjil = isPekanGanjil(new Date());
+                // Asumsi: Ganjil = Informatika (Agus Sarkawi), Genap = SBDP (Saifuddin Hidayat)
+                if (pekanGanjil && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
+                if (!pekanGanjil && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+            }
+
+            // Cek guru lain dari string (contoh format: "IPS / Pancasila (Jumadil Awal, SE.)")
+            if (jadwalRaw.includes(guruName)) {
+                return jadwalRaw.split('(')[0].trim(); // Ambil nama mapel saja (sebelum kurung)
+            }
+        }
+
+        return null; // Tidak ada jadwal reguler yang cocok
+    }
+
+    // ===================================================================
+    // FUNGSI PENENTUAN JAM PELAJARAN (JP) OTOMATIS BERDASAR WAKTU
+    // ===================================================================
+    function getCurrentJPInfo() {
+        const now = new Date();
+        const h = now.getHours();
+        const m = now.getMinutes();
+        const time = h + m/60;
+
+        // Sesuaikan rentang waktu ini dengan jam riil di sekolah
+        // Format waktu menggunakan desimal. Contoh: 07:30 = 7.5
+        if (time >= 7.50 && time < 8.16) return 'JP 1';   // 07:30 - 08:10
+        if (time >= 8.16 && time < 8.83) return 'JP 2';   // 08:10 - 08:50
+        if (time >= 8.83 && time < 9.50) return 'JP 3';   // 08:50 - 09:30
+        if (time >= 9.50 && time < 10.16) return 'JP 4';  // 09:30 - 10:10
+        if (time >= 10.50 && time < 11.16) return 'JP 5'; // 10:30 - 11:10
+        if (time >= 11.16 && time < 11.83) return 'JP 6'; // 11:10 - 11:50
+        if (time >= 13.00 && time < 13.66) return 'JP 7'; // 13:00 - 13:40
+        if (time >= 13.66 && time < 14.33) return 'JP 8'; // 13:40 - 14:20
+        
+        return 'Di luar JP';
+    }
+
+
+    // ===================================================================
+    // INDEXED DB
+    // ===================================================================
+    const DB_NAME = 'AbsensiGuruDB';
+    const STORE_NAME = 'attendance';
+    let db = null;
+
+    function openDB() {
+        return new Promise((resolve, reject) => {
+            try {
+                const request = indexedDB.open(DB_NAME, 1);
+                request.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains(STORE_NAME)) {
+                        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        store.createIndex('teacher', 'teacher', { unique: false });
+                        store.createIndex('date', 'date', { unique: false });
+                        store.createIndex('synced', 'synced', { unique: false });
+                    }
+                };
+                request.onsuccess = (e) => { db = e.target.result; resolve(db); };
+                request.onerror = (e) => { reject(e.target.error); };
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function saveAttendanceLocal(data) {
+        return new Promise((resolve, reject) => {
+            if (!db) { reject(new Error('Database tidak terbuka')); return; }
+            try {
+                const safeStr = (val) => { if (val === undefined || val === null) return ''; return String(val); };
+                const record = {
+                    teacher: safeStr(data.teacher || ''),
+                    class: safeStr(data.class || ''),
+                    subject: safeStr(data.subject || 'Kegiatan Lain'),
+                    action: safeStr(data.action || 'masuk'),
+                    date: safeStr(data.date || ''),
+                    time: safeStr(data.time || ''),
+                    day: safeStr(data.day || ''),
+                    jp: safeStr(data.jp || 'JP -'),
+                    timestamp: safeStr(data.timestamp || new Date().toISOString()),
+                    keterangan: safeStr(data.keterangan || ''),
+                    synced: data.synced === true ? true : false
+                };
+                if (!record.teacher || !record.class || !record.date) {
+                    reject(new Error('Data tidak lengkap')); return;
+                }
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.add(record);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = (e) => { reject(e.target.error); };
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function getUnsynced() {
+        return new Promise((resolve, reject) => {
+            if (!db) { reject(new Error('DB not open')); return; }
+            try {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const index = store.index('synced');
+                const range = IDBKeyRange.only(false);
+                const req = index.getAll(range);
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function markSynced(ids) {
+        return new Promise((resolve, reject) => {
+            if (!db) { reject(new Error('DB not open')); return; }
+            if (!ids || ids.length === 0) { resolve(); return; }
+            try {
+                const tx = db.transaction(STORE_NAME, 'readwrite');
+                const store = tx.objectStore(STORE_NAME);
+                let done = 0;
+                ids.forEach(id => {
+                    const req = store.get(id);
+                    req.onsuccess = () => {
+                        const data = req.result;
+                        if (data) { data.synced = true; store.put(data); }
+                        done++;
+                        if (done === ids.length) resolve();
+                    };
+                    req.onerror = () => reject(req.error);
+                });
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function getLocalHistory(teacher, date) {
+        return new Promise((resolve, reject) => {
+            if (!db) { reject(new Error('DB not open')); return; }
+            try {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const index = store.index('teacher');
+                const range = IDBKeyRange.only(teacher);
+                const req = index.getAll(range);
+                req.onsuccess = () => {
+                    const all = req.result || [];
+                    const filtered = date ? all.filter(item => item.date === date) : all;
+                    resolve(filtered);
+                };
+                req.onerror = () => reject(req.error);
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function getAllLocalData() {
+        return new Promise((resolve, reject) => {
+            if (!db) { resolve([]); return; }
+            try {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const req = store.getAll();
+                req.onsuccess = () => resolve(req.result || []);
+                req.onerror = () => reject(req.error);
+            } catch (e) { reject(e); }
+        });
+    }
+
+    function countPendingSync() {
+        return new Promise((resolve, reject) => {
+            if (!db) { resolve(0); return; }
+            try {
+                const tx = db.transaction(STORE_NAME, 'readonly');
+                const store = tx.objectStore(STORE_NAME);
+                const index = store.index('synced');
+                const range = IDBKeyRange.only(false);
+                const req = index.count(range);
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error);
+            } catch (e) { reject(e); }
+        });
+    }
+
+    // ===================================================================
+    // FUNGSI KIRIM / TERIMA DATA (GAS)
+    // ===================================================================
+    async function sendToGoogleSheet(record) {
+        try {
+            const payload = {
+                teacher: record.teacher || '',
+                class: record.class || '',
+                subject: record.subject || '',
+                action: record.action || '',
+                date: record.date || '',
+                time: record.time || '',
+                day: record.day || '',
+                jp: record.jp || '',
+                timestamp: record.timestamp || '',
+                keterangan: record.keterangan || ''
+            };
+
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify({ api_action: 'addAttendance', ...payload })
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`HTTP ${response.status}: ${errorText}`);
+            }
+
+            const result = await response.json();
+            return { success: true, data: result };
+        } catch (e) {
+            return { success: false, error: e.message };
+        }
+    }
+
+    // Fungsi fetch jadwal dari script Google Sheet ke Local Cache
+    document.getElementById('agusSyncJadwal').addEventListener('click', async () => {
+        const btn = document.getElementById('agusSyncJadwal');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menarik Jadwal...';
+        addSyncLog('Tarik data jadwal dari server...', 'info');
+        
+        try {
+            const response = await fetch(GAS_URL + '?action=getJadwal');
+            if (!response.ok) throw new Error("Gagal terhubung ke GAS");
+            
+            const result = await response.json();
+            if (result.success && result.data) {
+                // Reset jadwal (jangan di reset manual kalau mau gabung dengan data hardcode)
+                // Disini kita akan inject data baru langsung ke var jadwalPelajaran
+                const fetchedData = result.data;
+                
+                fetchedData.forEach(row => {
+                    // Format kolom di sheet: Kelas | Hari | JP | Mapel | Guru
+                    // Index 0: Kelas, Index 1: Hari, Index 2: JP, Index 3: Mapel, Index 4: Guru
+                    const vKelas = row[0];
+                    const vHari = (row[1] || "").toString().toLowerCase().trim();
+                    const vJp = (row[2] || "").toString().toUpperCase().trim();
+                    const vMapel = row[3];
+                    const vGuru = row[4];
+                    
+                    if (vKelas && vHari && vJp && jadwalPelajaran[vHari]) {
+                        if (!jadwalPelajaran[vHari][vJp]) {
+                            jadwalPelajaran[vHari][vJp] = {};
+                        }
+                        // Membentuk format "Mapel (Guru)" seperti di data statis
+                        jadwalPelajaran[vHari][vJp][vKelas] = `${vMapel} (${vGuru})`;
+                    }
+                });
+                
+                // Simpan ke local storage agar persisten 
+                localStorage.setItem('jadwal_cache', JSON.stringify(jadwalPelajaran));
+                
+                addSyncLog('✅ Jadwal berhasil diperbarui dari Server', 'success');
+                showToast('Jadwal berhasil disinkronkan', 'success');
+            } else {
+                addSyncLog('⚠️ Format JSON tidak sesuai', 'error');
+            }
+        } catch (e) {
+            showToast('Gagal Tarik Jadwal', 'error');
+            addSyncLog('❌ ' + e.message, 'error');
+        }
+        btn.innerHTML = originalText;
+    });
+
+    // ===================================================================
+    // PROSEDUR SINKRONISASI UTAMA
+    // ===================================================================
+    async function syncNow(showToastMsg = true, showLog = false) {
+        if (!navigator.onLine) {
+            const msg = '❌ Offline. Gagal sinkron.';
+            if (showLog) addSyncLog(msg, 'error');
+            if (showToastMsg) showToast(msg, 'error');
+            return { success: false, message: 'Offline' };
+        }
+
+        try {
+            const unsynced = await getUnsynced();
+            if (unsynced.length === 0) {
+                const msg = '✅ Tidak ada data pending.';
+                if (showLog) addSyncLog(msg, 'success');
+                if (showToastMsg) showToast(msg, 'success');
+                updateSyncStatus();
+                return { success: true, message: 'Tidak ada data' };
+            }
+
+            if (showLog) addSyncLog(`📤 Pushing ${unsynced.length} data...`, 'info');
+            if (showToastMsg) showToast(`🔄 Pushing ${unsynced.length} data...`, 'info');
+
+            let successCount = 0;
+            let failCount = 0;
+            const successIds = [];
+
+            for (const item of unsynced) {
+                const result = await sendToGoogleSheet(item);
+                if (result.success) {
+                    successCount++;
+                    successIds.push(item.id);
+                    if (showLog) addSyncLog(`✅ Item ${item.id} (${item.teacher}) terkirim`, 'success');
+                } else {
+                    failCount++;
+                    if (showLog) addSyncLog(`❌ Item ${item.id} gagal: ${result.error}`, 'error');
+                }
+            }
+
+            if (successIds.length > 0) {
+                await markSynced(successIds);
+            }
+
+            const msg = `Sync selesai: ${successCount} berhasil, ${failCount} gagal.`;
+            if (failCount === 0) {
+                if (showLog) addSyncLog(`✅ ${msg}`, 'success');
+                if (showToastMsg) showToast('✅ Semua data sukses terkirim!', 'success');
+            } else {
+                if (showLog) addSyncLog(`⚠️ ${msg}`, 'error');
+                if (showToastMsg) showToast(`⚠️ ${failCount} gagal. Cek log Admin.`, 'error');
+            }
+
+            updateSyncStatus();
+            return { success: failCount === 0, message: msg };
+
+        } catch (e) {
+            console.error('Sync error:', e);
+            if (showLog) addSyncLog(`❌ Error: ${e.message}`, 'error');
+            if (showToastMsg) showToast('❌ Gagal: ' + e.message, 'error');
+            return { success: false, message: e.message };
+        }
+    }
+
+    // ===================================================================
+    // UPDATE STATUS SINKRON
+    // ===================================================================
+    async function updateSyncStatus() {
+        try {
+            const pending = await countPendingSync();
+            const el = document.getElementById('syncStatus');
+            if (el) {
+                if (pending === 0) {
+                    el.innerHTML = '<i class="fa-solid fa-check"></i> Semua Sync';
+                    el.style.background = 'rgba(16, 185, 129, 0.4)';
+                } else {
+                    el.innerHTML = `<i class="fa-solid fa-rotate"></i> ${pending} pending`;
+                    el.style.background = 'rgba(245, 158, 11, 0.4)';
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }
+
+    // ===================================================================
+    // LOG SINKRONISASI
+    // ===================================================================
+    function addSyncLog(message, type = 'info') {
+        const logContainer = document.getElementById('syncLog');
+        if (!logContainer) return;
+        const entry = document.createElement('div');
+        entry.className = `entry ${type}`;
+        const time = new Date().toLocaleTimeString();
+        entry.innerHTML = `[${time}] ${message}`;
+        logContainer.appendChild(entry);
+        logContainer.scrollTop = logContainer.scrollHeight;
+        while (logContainer.children.length > 100) {
+            logContainer.removeChild(logContainer.firstChild);
+        }
+    }
+
+    // ===================================================================
+    // QR SCANNER
+    // ===================================================================
+    let html5QrCode = null;
+    let isScanning = false;
+
+		function startScanner() {
+            // Jangan mulai kamera jika layar scan tidak sedang terbuka
+            if (document.getElementById('tabScan').classList.contains('hidden') || document.getElementById('app').classList.contains('hidden')) {
+                return;
+            }
+
+            if (html5QrCode) {
+                if (isScanning) {
+                    html5QrCode.stop().then(() => {
+                        html5QrCode.clear();
+                        html5QrCode = null;
+                        isScanning = false;
+                        setTimeout(startScanner, 100);
+                    }).catch(() => {
+                        html5QrCode = null;
+                        isScanning = false;
+                        setTimeout(startScanner, 100);
+                    });
+                } else {
+                    try { html5QrCode.clear(); } catch(e){}
+                    html5QrCode = null;
+                    setTimeout(startScanner, 100);
+                }
+                return;
+            }
+            
+            const readerEl = document.getElementById('reader');
+            if (!readerEl) return;
+            readerEl.innerHTML = ''; // Bersihkan elemen sisa jika ada
+            
+            html5QrCode = new Html5Qrcode("reader");
+            const config = {
+                fps: 10,
+                qrbox: { width: 220, height: 220 },
+                formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
+            };
+            html5QrCode.start({ facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanError
+            ).then(() => {
+                isScanning = true;
+            }).catch((err) => {
+                console.error('Scanner error:', err);
+                showToast('Izinkan akses kamera di browser Anda.', 'error');
+            });
+        }
+
+        function stopScanner() {
+            if (html5QrCode && isScanning) {
+                html5QrCode.stop().then(() => {
+                    html5QrCode.clear();
+                    html5QrCode = null;
+                    isScanning = false;
+                }).catch(() => {
+                    html5QrCode = null;
+                    isScanning = false;
+                });
+            } else if (html5QrCode) {
+                try { html5QrCode.clear(); } catch(e){}
+                html5QrCode = null;
+                isScanning = false;
+            }
+        }
+
+function onScanSuccess(decodedText) {
+    if (!decodedText) return;
+    stopScanner(); // Kamera berhenti setelah scan berhasil
+    processScan(decodedText.trim().toUpperCase());
+    // Baris setTimeout restart otomatis dihapus di sini
+}
+
+    function onScanError(err) { /* ignore */ }
+
+    // ===================================================================
+    // PROSES SCAN
+    // ===================================================================
+    let currentMode = 'masuk';
+    let currentUser = null;
+    let currentUserData = null;
+    let isAdmin = false;
+    let isAgus = false;
+
+    function getDayName() {
+        const days = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+        return days[new Date().getDay()];
+    }
+
+    function getDayNameID() {
+        const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+        return days[new Date().getDay()];
+    }
+
+    function processScan(classCode) {
+        const normalized = classCode.toUpperCase().trim();
+        if (!CLASSES.includes(normalized)) {
+            showScanResult('❌ Kelas invalid: ' + normalized, 'error');
+            return;
+        }
+
+        if (!currentUser) {
+            showScanResult('Silakan login terlebih dahulu.', 'error');
+            return;
+        }
+
+        const keterangan = document.getElementById('keteranganInput').value.trim();
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+
+        // LOGIKA PEMERIKSAAN JADWAL
+        const currentDay = getDayName();
+        const jpSaatIni = getCurrentJPInfo();
+        const mapelSesuaiJadwal = getMapelForScan(normalized, currentUser, currentDay, jpSaatIni);
+
+        let subject = '';
+        if (keterangan) {
+            subject = 'Kegiatan Lain';
+        } else if (mapelSesuaiJadwal) {
+            subject = mapelSesuaiJadwal;
+        } else {
+            subject = 'Di Luar Jadwal';
+        }
+
+        const record = {
+            teacher: currentUser || '',
+            class: normalized || '',
+            subject: subject,
+            action: currentMode || 'masuk',
+            date: dateStr || '',
+            time: timeStr || '',
+            day: getDayNameID() || '',
+            jp: jpSaatIni || 'JP -',
+            timestamp: now.toISOString() || '',
+            keterangan: keterangan || '',
+            synced: false
+        };
+
+        saveAttendanceLocal(record).then(async (id) => {
+            const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
+            const msg = keterangan ?
+                `${actionIcon} ${normalized} (${keterangan})` :
+                `${actionIcon} ${normalized} (${subject})`;
+            showScanResult(msg, 'success');
+
+            const historyRecord = { ...record, id };
+            addHistoryRow(historyRecord);
+            updateHistoryCount();
+
+            if (navigator.onLine) {
+                try {
+                    const result = await sendToGoogleSheet(record);
+                    if (result.success) {
+                        await markSynced([id]);
+                        console.log(`✅ ID ${id} sync success`);
+                        showScanResult(`✅ Data terkirim ke Server!`, 'success');
+                    } else {
+                        showScanResult(`⚠️ Tersimpan lokal (Gagal sync: ${result.error})`, 'warning');
+                    }
+                    updateSyncStatus();
+                } catch (e) {
+                    showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info');
+                }
+            } else {
+                showScanResult(`⚠️ Offline (Tersimpan Lokal)`, 'info');
+            }
+
+            updateSyncStatus();
+            playBeep();
+            document.getElementById('keteranganInput').value = '';
+        }).catch((err) => {
+            showScanResult('❌ Gagal menyimpan: ' + err.message, 'error');
+        });
+    }
+
+    // ===================================================================
+    // UI HELPERS
+    // ===================================================================
+    function showScanResult(msg, type = 'info') {
+        const el = document.getElementById('scanResult');
+        el.classList.remove('hidden', 'success', 'error', 'info', 'warning');
+        el.classList.add(type);
+        el.textContent = msg;
+        clearTimeout(el._hideTimer);
+        el._hideTimer = setTimeout(() => {
+            el.classList.add('hidden');
+        }, 6000);
+    }
+
+    function addHistoryRow(record) {
+        const tbody = document.getElementById('historyBody');
+        const tr = document.createElement('tr');
+        const status = record.action === 'masuk' ? '✅ In' : '🚪 Out';
+        const ket = record.keterangan || '-';
+        tr.innerHTML = `
+            <td>${record.time}</td>
+            <td class="font-bold">${record.class}</td>
+            <td>${record.subject}</td>
+            <td>${status}</td>
+            <td class="text-xs">${ket}</td>
+        `;
+        tbody.prepend(tr);
+        if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+    }
+
+    function updateHistoryCount() {
+        document.getElementById('historyCount').textContent = document.getElementById('historyBody').children.length;
+    }
+
+    function loadHistory() {
+        if (!currentUser) return;
+        const dateStr = new Date().toISOString().split('T')[0];
+        getLocalHistory(currentUser, dateStr).then((data) => {
+            const tbody = document.getElementById('historyBody');
+            tbody.innerHTML = '';
+            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            data.forEach(record => {
+                const tr = document.createElement('tr');
+                const status = record.action === 'masuk' ? '✅ In' : '🚪 Out';
+                tr.innerHTML = `
+                    <td>${record.time}</td>
+                    <td class="font-bold">${record.class}</td>
+                    <td>${record.subject}</td>
+                    <td>${status}</td>
+                    <td class="text-xs">${record.keterangan || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            updateHistoryCount();
+        }).catch(() => {});
+    }
+
+    function playBeep() {
+        try {
+            const ctx = new(window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = 1000; osc.type = 'sine'; gain.gain.value = 0.5;
+            osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150);
+        } catch (e) { /* silent */ }
+    }
+
+    function showToast(msg, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        let icon = '';
+        if (type === 'success') icon = '<i class="fa-solid fa-circle-check"></i>';
+        if (type === 'error') icon = '<i class="fa-solid fa-circle-xmark"></i>';
+        if (type === 'warning') icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
+        if (type === 'info') icon = '<i class="fa-solid fa-circle-info"></i>';
+        
+        toast.className = 'toast ' + type;
+        toast.innerHTML = `${icon} <span>${msg}</span>`;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px) translateX(-50%)';
+            setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
+        }, 3000);
+    }
+
+    // ===================================================================
+    // LOGIN
+    // ===================================================================
+    function renderTeacherList() {
+        const container = document.getElementById('teacherList');
+        container.innerHTML = '';
+        const sorted = [...TEACHERS].sort((a, b) => a.name.localeCompare(b.name));
+        sorted.forEach(t => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = t.name;
+            btn.dataset.name = t.name;
+            
+            // Event listener on click
+            btn.addEventListener('click', (e) => {
+                e.preventDefault(); 
+                selectTeacher(t);
+            });
+            
+            btn.addEventListener('touchend', (e) => {
+                e.preventDefault(); 
+                selectTeacher(t);
+            });
+            
+            container.appendChild(btn);
+        });
+    }
+
+    function selectTeacher(teacher) {            
+        const isAdminUser = teacher.isAdmin || false;
+        const adminType = teacher.adminType || '';
+
+        if (isAdminUser) {
+            document.getElementById('passwordSection').classList.remove('hidden');
+            document.getElementById('adminPassword').value = '';
+            document.getElementById('adminPassword').focus();
+            document.getElementById('passwordSection').dataset.selectedTeacher = teacher.name;
+            document.getElementById('passwordSection').dataset.adminType = adminType;
+            document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
+            document.querySelector(`#teacherList .btn[data-name="${teacher.name}"]`)?.classList.add('selected');
+        } else {
+            document.getElementById('passwordSection').classList.add('hidden');
+            doLogin(teacher.name, false, '');
+        }
+    }
+
+    document.getElementById('adminLoginBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = document.getElementById('passwordSection');
+        const teacherName = section.dataset.selectedTeacher;
+        const adminType = section.dataset.adminType || '';
+        const password = document.getElementById('adminPassword').value.trim();
+
+        if (!teacherName) { showToast('Pilih nama admin.', 'error'); return; }
+
+        const day = getDayName();
+        let expectedPassword = '';
+        if (adminType === 'agus') {
+            expectedPassword = day + 'bismillah';
+        } else {
+            const map = { 'senin':'seni212', 'selasa':'selas212', 'rabu':'rab212', 'kamis':'kami212', 'jumat':'juma212', 'sabtu':'sabt212', 'ahad':'aha212' };
+            expectedPassword = map[day] || '212';
+        }
+
+        if (password === expectedPassword) {
+            doLogin(teacherName, true, adminType);
+        } else {
+            showToast('Password Salah!', 'error');
+            document.getElementById('adminPassword').value = '';
+        }
+    });
+
+    document.getElementById('adminPassword').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            document.getElementById('adminLoginBtn').click();
+        }
+    });
+
+    function doLogin(name, isAdminUser, adminType) {
+        currentUser = name;
+        currentUserData = TEACHERS.find(t => t.name === name) || { name, subjects: [], isAdmin: isAdminUser };
+        isAdmin = isAdminUser;
+        isAgus = (adminType === 'agus');
+
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('app').classList.remove('hidden');
+
+        document.getElementById('userNameDisplay').textContent = name;
+        const mapel = currentUserData.subjects || [];
+        document.getElementById('userMapelDisplay').textContent = mapel.length > 0 ? mapel.join(', ') : (isAdminUser ? 'Admin' : '-');
+
+        document.getElementById('adminTab').classList.toggle('hidden', !isAdminUser);
+        document.getElementById('agusTab').classList.toggle('hidden', !isAgus);
+        
+        // Hanya tampilkan tombol Input Manual jika yang login adalah Master (Agus)
+        const manualBtn = document.getElementById('manualScanBtn');
+        if(manualBtn) {
+            if(isAgus) {
+                manualBtn.classList.remove('hidden');
+            } else {
+                manualBtn.classList.add('hidden');
+                // Sembunyikan area inputnya jika terbuka
+                const manualArea = document.getElementById('manualScanArea');
+                if(manualArea) manualArea.classList.add('hidden');
+            }
+        }
+
+        updateScanModeUI();
+        setTimeout(startScanner, 500);
+        loadHistory();
+        updateClock();
+        updateOfflineStatus();
+        
+        if (navigator.onLine) syncNow(false, true);
+        updateSyncStatus();
+        
+        showToast(`Halo, ${name}`, 'success');
+        
+        if (!isAdminUser) localStorage.setItem('absensi_user', name);
+        else localStorage.removeItem('absensi_user');
+    }
+
+    document.getElementById('switchUserBtn').addEventListener('click', () => {
+        stopScanner();
+        document.getElementById('app').classList.add('hidden');
+        document.getElementById('loginScreen').classList.remove('hidden');
+        document.getElementById('passwordSection').classList.add('hidden');
+        document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
+        currentUser = null; currentUserData = null; isAdmin = false; isAgus = false;
+    });
+
+    // ===================================================================
+    // MODE SCAN
+    // ===================================================================
+    function updateScanModeUI() {
+        const m = currentMode;
+        document.getElementById('scanModeBadge').innerHTML = m === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
+        document.getElementById('scanInstruction').textContent = m === 'masuk' ? 'Arahkan kamera untuk absen MASUK' : 'Arahkan kamera untuk absen KELUAR';
+        document.getElementById('modeMasuk').className = m === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+        document.getElementById('modeKeluar').className = m === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+    }
+document.getElementById('modeMasuk').addEventListener('click', () => { 
+    currentMode = 'masuk'; 
+    updateScanModeUI(); 
+    stopScanner(); 
+    setTimeout(startScanner, 300); // Kamera menyala hanya saat tombol diklik
+});
+
+document.getElementById('modeKeluar').addEventListener('click', () => { 
+    currentMode = 'keluar'; 
+    updateScanModeUI(); 
+    stopScanner(); 
+    setTimeout(startScanner, 300); // Kamera menyala hanya saat tombol diklik
+});
+
+    // ===================================================================
+    // MANUAL SCAN
+    // ===================================================================
+    document.getElementById('manualScanBtn').addEventListener('click', () => {
+        const area = document.getElementById('manualScanArea');
+        area.classList.toggle('hidden');
+        if (!area.classList.contains('hidden')) document.getElementById('manualClassInput').focus();
+    });
+    document.getElementById('manualProcessBtn').addEventListener('click', () => {
+        const val = document.getElementById('manualClassInput').value.trim().toUpperCase();
+        if (!val) { showToast('Isi kode kelas', 'warning'); return; }
+        if (!CLASSES.includes(val)) { showToast('Kelas invalid', 'error'); return; }
+        processScan(val);
+        document.getElementById('manualClassInput').value = '';
+        document.getElementById('manualScanArea').classList.add('hidden');
+    });
+
+    // ===================================================================
+    // TOMBOL KIRIM MANUAL
+    // ===================================================================
+    document.getElementById('syncNowBtn').addEventListener('click', () => syncNow(true, true));
+    document.getElementById('adminSyncNow').addEventListener('click', () => syncNow(true, true));
+    document.getElementById('agusSyncNow').addEventListener('click', () => syncNow(true, true));
+
+    // ===================================================================
+    // CLOCK
+    // ===================================================================
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        document.getElementById('loginDayInfo').innerHTML = '<i class="fa-regular fa-calendar"></i> ' + getDayNameID() + ', ' + now.toLocaleDateString('id-ID');
+        document.getElementById('jpDisplay').textContent = getCurrentJPInfo();
+    }
+    setInterval(updateClock, 1000);
+
+    // ===================================================================
+    // OFFLINE STATUS
+    // ===================================================================
+    function updateOfflineStatus() {
+        const banner = document.getElementById('offlineBanner');
+        if (!navigator.onLine) {
+            banner.classList.add('show');
+        } else {
+            banner.classList.remove('show');
+            syncNow(false, true); updateSyncStatus();
+        }
+    }
+    window.addEventListener('online', () => { updateOfflineStatus(); showToast('🌐 Online: Sync berjalan...', 'success'); });
+    window.addEventListener('offline', () => { updateOfflineStatus(); showToast('📴 Offline', 'warning'); });
+    setInterval(() => { if (navigator.onLine) syncNow(false, false); }, 30000);
+
+    // ===================================================================
+    // TABS NAVIGATION
+    // ===================================================================
+document.querySelectorAll('#mainTabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab' + target.charAt(0).toUpperCase() + target.slice(1))?.classList.remove('hidden');
+
+        // Jika pindah tab, kamera dimatikan dulu untuk memastikan tidak nyala otomatis
+        stopScanner(); 
+        
+        if (target === 'rekap') loadRekap();
+        if (target === 'admin' && isAdmin) loadAdminData();
+        if (target === 'agus' && isAgus) loadAgusData();
+    });
+});
+
+    // ===================================================================
+    // REKAP TAB
+    // ===================================================================
+    let rekapFilter = 'day';
+    document.querySelectorAll('.rekap-filter').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.rekap-filter').forEach(b => { b.classList.remove('active'); b.classList.replace('btn-primary', 'btn-outline'); });
+            btn.classList.add('active'); btn.classList.replace('btn-outline', 'btn-primary');
+            rekapFilter = btn.dataset.filter;
+            document.getElementById('rekapPeriode').textContent = btn.textContent.trim();
+            loadRekap();
+        });
+    });
+
+    async function loadRekap() {
+        if (!currentUser) return;
+        const tbody = document.getElementById('rekapBody');
+        tbody.innerHTML = '';
+
+        try {
+            const allData = await getLocalHistory(currentUser, '');
+            const now = new Date(); const today = now.toISOString().split('T')[0];
+            let filtered = allData;
+
+            if (rekapFilter === 'day') filtered = allData.filter(d => d.date === today);
+            else if (rekapFilter === 'week') {
+                const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
+                filtered = allData.filter(d => d.date >= ws.toISOString().split('T')[0]);
+            } else if (rekapFilter === 'month') {
+                const ms = new Date(now.getFullYear(), now.getMonth(), 1);
+                filtered = allData.filter(d => d.date >= ms.toISOString().split('T')[0]);
+            } else if (rekapFilter === 'semester') {
+                const sm = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
+                filtered = allData.filter(d => d.date >= sm.toISOString().split('T')[0]);
+            }
+
+            filtered.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+
+            if (filtered.length === 0) {
+                document.getElementById('rekapEmpty').classList.remove('hidden');
+                document.getElementById('rekapSummary').querySelectorAll('.num').forEach(el => el.textContent = '0');
+                return;
+            }
+            document.getElementById('rekapEmpty').classList.add('hidden');
+
+            document.getElementById('statTotal').textContent = filtered.length;
+
+            filtered.forEach(record => {
+                const tr = document.createElement('tr');
+                const status = record.action === 'masuk' ? 'In' : 'Out';
+                tr.innerHTML = `
+                    <td>${record.date}</td>
+                    <td class="font-bold">${record.class}</td>
+                    <td>${record.subject}</td>
+                    <td>${record.action === 'masuk' ? record.time : '-'}</td>
+                    <td>${record.action === 'keluar' ? record.time : '-'}</td>
+                    <td><span class="badge ${record.action==='masuk'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'} px-2 py-1 rounded text-xs font-bold">${status}</span></td>
+                    <td class="text-xs">${record.keterangan || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (e) {
+            document.getElementById('rekapEmpty').classList.remove('hidden');
+            document.getElementById('rekapEmpty').textContent = 'Error load data';
+        }
+    }
+
+    // ===================================================================
+    // ADMIN TAB
+    // ===================================================================
+    // 1. Inisialisasi dropdown guru saat aplikasi dimuat
+function initAdminFilters() {
+    const filterSelect = document.getElementById('adminTeacherFilter');
+    TEACHERS.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.name;
+        opt.textContent = t.name;
+        filterSelect.appendChild(opt);
+    });
+}
+	
+// 2. Fungsi untuk load data
+async function loadAdminData() {
+    if (!isAdmin) return;
+    const tbody = document.getElementById('adminBody');
+    const filterTeacher = document.getElementById('adminTeacherFilter').value;
+    const filterPeriod = document.getElementById('adminPeriodFilter').value;
+    
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center">Memuat data dari Google Sheets...</td></tr>';
+    
+    try {
+        const response = await fetch(GAS_URL + '?action=getAbsensi');
+        const res = await response.json();
+        
+        if (!res.success) throw new Error(res.error);
+        
+        let data = res.data;
+        const now = new Date();
+        const todayStr = now.toISOString().split('T')[0];
+
+        // Filter Data
+        let filtered = data.filter(d => {
+            // Filter Nama Guru
+            if (filterTeacher !== 'all' && d.teacher !== filterTeacher) return false;
+            
+            // Filter Periode
+            if (filterPeriod === 'day') return d.date === todayStr;
+            if (filterPeriod === 'week') {
+                const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
+                return d.date >= ws.toISOString().split('T')[0];
+            }
+            if (filterPeriod === 'month') {
+                const ms = new Date(now.getFullYear(), now.getMonth(), 1);
+                return d.date >= ms.toISOString().split('T')[0];
+            }
+            return true;
+        });
+
+        tbody.innerHTML = '';
+        if (filtered.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center">Tidak ada data.</td></tr>';
+        } else {
+            filtered.forEach(record => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold">${record.teacher}</td>
+                    <td>${record.subject}</td>
+                    <td>${record.class}</td>
+                    <td>${record.time}</td>
+                    <td>-</td>
+                    <td><span class="badge ${record.action==='masuk'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'}">${record.action}</span></td>
+                    <td class="text-xs">${record.keterangan || '-'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        document.getElementById('adminStatTotal').textContent = filtered.length;
+    } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Gagal memuat data: ' + e.message + '</td></tr>';
+    }
+}
+
+    // Fungsi untuk mengunduh tabel sebagai file .xls
+    function exportTableToExcel(tableId, filename = 'Data_Absensi.xls') {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        
+        // Clone table untuk dimodifikasi sebelum download
+        const tableClone = table.cloneNode(true);
+        
+        // Format HTML untuk Excel agar terbaca oleh MS Excel
+        const template = `
+            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+            <head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>
+            <body><table>${tableClone.innerHTML}</table></body>
+            </html>`;
+        
+        const blob = new Blob([template], { type: 'application/vnd.ms-excel' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+// 3. Tambahkan Event Listener pada Filter
+document.getElementById('adminTeacherFilter').addEventListener('change', loadAdminData);
+document.getElementById('adminPeriodFilter').addEventListener('change', loadAdminData);
+document.getElementById('adminRefresh').addEventListener('click', loadAdminData);
+
+    // ===================================================================
+    // AGUS TAB
+    // ===================================================================
+    document.getElementById('agusCheckConnection').addEventListener('click', async () => {
+        addSyncLog('📡 Cek ping server...', 'info');
+        try {
+            const response = await fetch(GAS_URL + '?action=ping');
+            if (response.ok) { showToast('Ping OK!', 'success'); addSyncLog('✅ Ping Berhasil', 'success'); }
+            else { showToast('Ping Gagal', 'error'); addSyncLog('❌ Status: ' + response.status, 'error'); }
+        } catch (e) { showToast('Network Error', 'error'); addSyncLog('❌ Error network', 'error'); }
+    });
+
+    document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
+
+async function loadAgusData() {
+    if (!isAgus) return;
+    const tbody = document.getElementById('agusBody');
+    const period = document.getElementById('agusFilterPeriod').value;
+    
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Mengambil data dari Google Sheet...</td></tr>';
+    
+    try {
+        const response = await fetch(GAS_URL + '?action=getAbsensi');
+        
+        // Baca sebagai text dulu untuk debugging
+        const text = await response.text();
+        let res;
+        
+        try {
+            res = JSON.parse(text);
+        } catch (e) {
+            console.error("DEBUG - Server mengirim HTML, bukan JSON:", text);
+            throw new Error("Server mengirim HTML. Cek Tab Console (F12) untuk melihat error.");
+        }
+        
+        if (!res.success) throw new Error(res.error);
+        
+        let data = res.data;
+        const now = new Date();
+        
+        // 2. Filter data berdasarkan periode
+        let filtered = data.filter(d => {
+            if (!d.date) return false;
+            const dDate = new Date(d.date);
+            
+            if (period === 'day') return d.date === now.toISOString().split('T')[0];
+            if (period === 'week') {
+                const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
+                return d.date >= ws.toISOString().split('T')[0];
+            }
+            if (period === 'month') {
+                const ms = new Date(now.getFullYear(), now.getMonth(), 1);
+                return d.date >= ms.toISOString().split('T')[0];
+            }
+            return true;
+        });
+
+        // 3. Kelompokkan data per Guru
+        const reportMap = {};
+        filtered.forEach(d => {
+            if (!reportMap[d.teacher]) {
+                reportMap[d.teacher] = { name: d.teacher, mapel: d.subject || '-', total: 0 };
+            }
+            reportMap[d.teacher].total++;
+        });
+
+        // 4. Render ke tabel
+        tbody.innerHTML = '';
+        Object.values(reportMap).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-bold">${item.name}</td>
+                <td>${item.mapel}</td>
+                <td class="text-warning font-bold">0</td>
+                <td class="text-danger font-bold">0</td>
+                <td class="text-primary font-bold">${item.total}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        if (Object.keys(reportMap).length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada data ditemukan.</td></tr>';
+        }
+        
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${e.message}</td></tr>`;
+    }
+}
+
+    // MODAL HANDLERS
+    document.getElementById('agusEditLink').addEventListener('click', () => {
+        document.getElementById('modalContent').innerHTML = `
+            <div class="input-group">
+                <label>URL Apps Script Terpasang</label>
+                <input type="text" id="gasUrlInput" value="${GAS_URL}" />
+            </div>
+            <button class="btn btn-primary" id="saveGasUrl">Simpan Link</button>
+        `;
+        document.getElementById('modalOverlay').classList.remove('hidden');
+        document.getElementById('saveGasUrl').onclick = () => {
+            GAS_URL = document.getElementById('gasUrlInput').value.trim();
+            localStorage.setItem('GAS_URL', GAS_URL);
+            showToast('Link Disimpan!', 'success');
+            document.getElementById('modalOverlay').classList.add('hidden');
+        };
+    });
+
+    document.getElementById('agusGenQR').addEventListener('click', () => {
+        let html = '<div class="grid-2">';
+        CLASSES.forEach(cls => {
+            html += `<div class="card text-center p-2"><h2 class="text-primary font-bold text-2xl">${cls}</h2></div>`;
+        });
+        html += '</div>';
+        document.getElementById('modalContent').innerHTML = html;
+        document.getElementById('modalOverlay').classList.remove('hidden');
+    });
+
+    document.getElementById('modalClose').addEventListener('click', () => { document.getElementById('modalOverlay').classList.add('hidden'); });
+
+    // ===================================================================
+    // INIT
+    // ===================================================================
+    document.addEventListener('DOMContentLoaded', async () => {
+        await openDB();
+        renderTeacherList();
+        document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
+        document.getElementById('jpDisplay').textContent = getCurrentJPInfo();
+        initAdminFilters();
+        const savedUser = localStorage.getItem('absensi_user');
+        if (savedUser) {
+            const t = TEACHERS.find(x => x.name === savedUser);
+            if (t && !t.isAdmin) doLogin(savedUser, false, '');
+        }
+        updateOfflineStatus();
+    });
+</script>
+</body>
+</html><!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Absensi Guru - SMP Islam Terpadu Putra Abu Hurairah Mataram</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+    <style>
+        /* ===== MODERN RESET & VARIABLES ===== */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #2563eb; /* Royal Blue */
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --accent: #f59e0b; /* Amber */
+            --accent-light: #fcd34d;
+            --success: #10b981; /* Emerald */
+            --danger: #ef4444; /* Rose */
+            --warning: #f59e0b; /* Amber */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --text-light: #64748b;
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --radius: 24px;
+            --radius-sm: 14px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+		html, body {
+			font-family: var(--font);
+			background: var(--bg);
+			color: var(--text);
+			min-height: 100vh;
+			width: 100%;
+			overflow-x: hidden;
+			-webkit-tap-highlight-color: transparent;
+		}
+		body { padding-bottom: 80px; }
+    
+    /* SCROLLBAR */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    
+    /* UTILS */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-2 { gap: 8px; } .gap-3 { gap: 12px; } .gap-4 { gap: 16px; }
+    .text-center { text-align: center; }
+    .w-full { width: 100%; }
+    .mt-2 { margin-top: 8px; } .mt-3 { margin-top: 12px; } .mt-4 { margin-top: 16px; }
+    .mb-2 { margin-bottom: 8px; } .mb-3 { margin-bottom: 12px; } .mb-4 { margin-bottom: 16px; }
+    .text-sm { font-size: 0.875rem; } .text-xs { font-size: 0.75rem; }
+    .text-muted { color: var(--text-light); }
+    .font-bold { font-weight: 700; }
+
+    .container { max-width: 500px; margin: 0 auto; padding: 16px 16px 40px; }
+
+    /* CARDS */
+    .card {
+        background: var(--card);
+        border-radius: var(--radius);
+        padding: 24px;
+        box-shadow: var(--shadow);
+        transition: var(--transition);
+        border: 1px solid rgba(226, 232, 240, 0.8);
+        margin-bottom: 16px;
+    }
+    .card-header {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-bottom: 16px; font-weight: 700; font-size: 1.1rem; color: var(--text);
+    }
+    .card-header .badge {
+        background: #eff6ff; color: var(--primary);
+        padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+
+    /* BUTTONS */
+    .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        padding: 14px 24px; border: none; border-radius: var(--radius-sm);
+        font-weight: 600; font-size: 0.95rem; cursor: pointer;
+        transition: all var(--transition); background: #f1f5f9; color: var(--text);
+        width: 100%; touch-action: manipulation; user-select: none;
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn i { font-size: 1.1em; }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3); }
+    .btn-accent { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); }
+    .btn-accent:hover { background: #d97706; transform: translateY(-1px); }
+    .btn-success { background: var(--success); color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+    .btn-outline:hover { background: var(--primary); color: #fff; }
+    .btn-sm { padding: 10px 16px; font-size: 0.85rem; }
+
+    /* INPUTS */
+    .input-group { margin-bottom: 16px; }
+    .input-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-light); }
+    .input-group input, .input-group select {
+        width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0;
+        border-radius: var(--radius-sm); font-size: 1rem; transition: var(--transition);
+        background: #f8fafc; color: var(--text); font-family: var(--font);
+    }
+    .input-group input:focus, .input-group select:focus {
+        outline: none; border-color: var(--primary); background: #fff;
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+    }
+
+    /* LOGIN SCREEN */
+    #loginScreen {
+        min-height: 100vh; display: flex; align-items: center; justify-content: center;
+        background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 20px;
+    }
+    #loginScreen .login-box {
+        background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
+        border-radius: var(--radius); padding: 40px 30px; max-width: 420px; width: 100%;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.3);
+    }
+    #loginScreen .login-box h1 { font-size: 1.6rem; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 8px; line-height: 1.2; }
+    #loginScreen .login-box .sub { text-align: center; color: var(--text-light); font-size: 0.9rem; margin-bottom: 24px; font-weight: 500; }
+    #loginScreen .login-box .logo {
+        text-align: center; font-size: 3.5rem; margin-bottom: 16px;
+        background: linear-gradient(135deg, #2563eb, #10b981);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    
+    .teacher-list {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+        max-height: 280px; overflow-y: auto; padding: 4px 4px 4px 0;
+    }
+    .teacher-list .btn {
+        font-size: 0.85rem; padding: 12px 10px; background: #f1f5f9; color: var(--text);
+        border-radius: 12px; text-align: center; font-weight: 600; border: 1px solid transparent;
+    }
+    .teacher-list .btn:hover { background: #e2e8f0; }
+    .teacher-list .btn.selected { background: var(--primary); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.2); }
+    .password-section { margin-top: 16px; border-top: 2px dashed #e2e8f0; padding-top: 16px; }
+
+    /* TOPBAR */
+    .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 16px 20px; background: var(--primary); color: #fff;
+        border-radius: 20px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
+        background-image: url('[https://www.transparenttextures.com/patterns/cubes.png](https://www.transparenttextures.com/patterns/cubes.png)');
+    }
+    .topbar .user { font-weight: 700; font-size: 1rem; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;}
+    .topbar .user .mapel-label {
+        background: rgba(255,255,255,0.2); backdrop-filter: blur(4px);
+        color: #fff; padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+    }
+    .topbar .time { font-size: 0.8rem; text-align: right; }
+    .topbar .time .jp { font-weight: 700; background: var(--accent); color: #fff; padding: 4px 12px; border-radius: 20px; display: inline-block; margin-bottom: 4px; }
+    .topbar .sync-status { font-size: 0.7rem; background: rgba(0,0,0,0.2); padding: 4px 12px; border-radius: 20px; display: inline-block; color: #fff; font-weight: 500; }
+
+    /* SCANNER */
+    #reader {
+        width: 100%; max-width: 400px; margin: 0 auto; border-radius: var(--radius-sm);
+        overflow: hidden; background: #0f172a; position: relative;
+        box-shadow: inset 0 0 0 2px rgba(255,255,255,0.1);
+    }
+    #reader video { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); }
+    .scanner-overlay { position: relative; width: 100%; max-width: 400px; margin: 0 auto; }
+    .scanner-overlay .corner { display: none; }
+
+    .scan-result {
+        padding: 16px 20px; border-radius: var(--radius-sm); margin-top: 16px;
+        text-align: center; font-weight: 600; font-size: 0.95rem; display: flex; flex-direction: column; gap: 8px;
+    }
+    .scan-result.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
+    .scan-result.error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
+    .scan-result.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+
+    /* TABS */
+    .tabs {
+        display: flex; gap: 8px; background: #e2e8f0; border-radius: 16px;
+        padding: 6px; margin-bottom: 24px; overflow-x: auto; flex-wrap: nowrap;
+    }
+    .tabs .tab {
+        padding: 12px 16px; border: none; border-radius: 12px; font-weight: 600; font-size: 0.85rem;
+        cursor: pointer; transition: var(--transition); background: transparent; color: var(--text-light);
+        white-space: nowrap; flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .tabs .tab.active { background: #fff; color: var(--primary); box-shadow: var(--shadow-sm); }
+    .tabs .tab:active { transform: scale(0.96); }
+
+    /* TABLES */
+    .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid #e2e8f0; background: #fff; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    th {
+        background: #f8fafc; font-weight: 700; color: var(--text-light); font-size: 0.75rem;
+        text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 2;
+    }
+    tbody tr:hover { background: #f8fafc; }
+    tr:last-child td { border-bottom: none; }
+
+    /* STATS */
+    .report-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+    .report-summary .stat { background: #f8fafc; padding: 16px 12px; border-radius: var(--radius-sm); text-align: center; border: 1px solid #e2e8f0; }
+    .report-summary .stat .num { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .report-summary .stat .label { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+
+    .admin-special-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .admin-special-grid .btn { font-size: 0.85rem; padding: 16px 12px; }
+    
+    .sync-log {
+        background: #0f172a; color: #f8fafc; border-radius: var(--radius-sm); padding: 12px;
+        max-height: 160px; overflow-y: auto; font-size: 0.8rem; margin-top: 12px; font-family: monospace;
+    }
+    .sync-log .entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sync-log .entry.success { color: #34d399; }
+    .sync-log .entry.error { color: #f87171; }
+    .sync-log .entry.info { color: #60a5fa; }
+
+    /* MODAL */
+    .modal-overlay {
+        position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px;
+        animation: fadeIn 0.2s ease;
+    }
+    .modal-overlay .modal {
+        background: #fff; border-radius: var(--radius); max-width: 460px; width: 100%;
+        max-height: 90vh; overflow-y: auto; padding: 32px 24px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+    }
+    .modal-overlay .modal h3 { font-size: 1.3rem; margin-bottom: 16px; font-weight: 700; }
+    .modal-overlay .modal .close-btn {
+        float: right; background: #f1f5f9; border: none; width: 32px; height: 32px;
+        border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: var(--text);
+        display: flex; align-items: center; justify-content: center; transition: var(--transition);
+    }
+    .modal-overlay .modal .close-btn:hover { background: #e2e8f0; }
+
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+
+    .offline-banner {
+        background: var(--warning); color: #fff; padding: 12px 16px; border-radius: var(--radius-sm);
+        font-weight: 600; font-size: 0.85rem; text-align: center; margin-bottom: 16px;
+        display: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+    }
+    .offline-banner.show { display: block; animation: slideDown 0.3s ease; }
+    @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 480px) {
+        .container { padding: 12px 12px 40px; }
+        .card { padding: 20px 16px; }
+        .topbar { flex-direction: column; align-items: stretch; text-align: center; }
+        .topbar .time { text-align: center; margin-top: 8px; }
+        .topbar .user { justify-content: center; }
+    }
+
+    .divider { border: none; border-top: 2px dashed #cbd5e1; margin: 24px 0; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .text-success { color: var(--success); } .text-danger { color: var(--danger); } .text-warning { color: var(--warning); }
+
+    /* TOAST */
+    .toast-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; width: 90%; max-width: 420px; }
+    .toast {
+        padding: 16px 20px; border-radius: 16px; background: #0f172a; color: #fff;
+        font-weight: 600; font-size: 0.9rem; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        animation: slideUpToast 0.4s cubic-bezier(0.16, 1, 0.3, 1); text-align: center; margin-bottom: 10px;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .toast.success { background: var(--success); } .toast.error { background: var(--danger); } .toast.warning { background: var(--warning); }
+    @keyframes slideUpToast { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+
+<!-- LOGIN SCREEN -->
+<div id="loginScreen">
+    <div class="login-box">
+        <div class="logo"><i class="fa-solid fa-graduation-cap"></i></div>
+        <h1>SMP Islam Terpadu Putra Abu Hurairah Mataram</h1>
+        <p class="sub">Sistem Absensi Guru Berbasis QR Code</p>
+        <hr class="divider" />
+
+        <div class="input-group">
+            <label>Pilih Nama Guru / Identitas</label>
+            <div class="teacher-list" id="teacherList"></div>
+        </div>
+
+        <div class="password-section hidden" id="passwordSection">
+            <div class="input-group">
+                <label><i class="fa-solid fa-key mr-1"></i> Password Admin</label>
+                <input type="password" id="adminPassword" placeholder="Masukkan password..." />
+            </div>
+            <button class="btn btn-primary" id="adminLoginBtn"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login Admin</button>
+            <p class="text-xs text-muted mt-3 text-center">* Password sesuai hari login</p>
+        </div>
+
+        <div class="mt-4 text-center text-xs text-muted font-bold">
+            <span id="loginDayInfo"></span>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="hidden">
+
+    <div id="offlineBanner" class="offline-banner">
+        <i class="fa-solid fa-wifi-slash"></i> Mode Offline — Data akan tersimpan lokal & dikirim saat online
+    </div>
+
+    <div class="container">
+        <div class="topbar" id="topbar">
+            <div class="user">
+                <span id="userNameDisplay">-</span>
+                <span class="mapel-label" id="userMapelDisplay">-</span>
+                <button class="btn btn-sm btn-outline" style="width:auto;padding:6px 12px;border-color:rgba(255,255,255,0.4);color:#fff;font-size:0.75rem;" id="switchUserBtn">
+                    <i class="fa-solid fa-right-from-bracket"></i> Ganti
+                </button>
+            </div>
+            <div class="time">
+                <div id="currentTimeDisplay" style="font-weight:700; font-size:1.1rem; margin-bottom:4px;">--:--</div>
+                <div class="jp" id="jpDisplay">JP -</div>
+                <div class="sync-status" id="syncStatus"><i class="fa-solid fa-rotate"></i> Sinkron: 0 pending</div>
+            </div>
+        </div>
+
+        <div class="tabs" id="mainTabs">
+            <button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
+            <button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
+            <button class="tab hidden" data-tab="admin" id="adminTab"><i class="fa-solid fa-shield-halved"></i> Admin</button>
+            <button class="tab hidden" data-tab="agus" id="agusTab"><i class="fa-solid fa-crown"></i> Master</button>
+        </div>
+
+        <!-- TAB SCAN -->
+        <div id="tabScan" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-camera-retro"></i> Scan QR Kelas</span>
+                    <span class="badge" id="scanModeBadge">✅ Masuk</span>
+                </div>
+                <p class="text-sm text-muted mb-4" id="scanInstruction">Arahkan kamera ke QR Code kelas untuk absen masuk</p>
+
+                <div class="flex gap-2 mb-4">
+                    <button class="btn btn-sm btn-primary" id="modeMasuk" style="flex:1;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk</button>
+                    <button class="btn btn-sm btn-outline" id="modeKeluar" style="flex:1;"><i class="fa-solid fa-door-open"></i> Keluar</button>
+                </div>
+
+                <div class="input-group">
+                    <label><i class="fa-regular fa-clipboard"></i> Keterangan (opsional)</label>
+                    <input type="text" id="keteranganInput" placeholder="Misal: Ekskul, Piket, dll." />
+                    <p class="text-xs text-muted mt-1">* Isi jika absen di luar jadwal reguler.</p>
+                </div>
+
+                <div class="scanner-overlay">
+                    <div id="reader"></div>
+                </div>
+
+                <div class="flex gap-2 mt-4" id="manualScanContainer">
+                    <button class="btn btn-accent hidden" id="manualScanBtn"><i class="fa-solid fa-keyboard"></i> Input Manual</button>
+                    <button class="btn btn-success" id="syncNowBtn"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Data</button>
+                </div>
+                <div id="manualScanArea" class="mt-3 hidden p-4 bg-gray-50 rounded-xl border border-gray-200">
+                    <div class="input-group">
+                        <label>Kode Kelas</label>
+                        <input type="text" id="manualClassInput" placeholder="Contoh: 7A, 8B, 9C ..." />
+                    </div>
+                    <button class="btn btn-primary" id="manualProcessBtn"><i class="fa-solid fa-check-to-slot"></i> Proses Kelas</button>
+                </div>
+
+                <div id="scanResult" class="scan-result hidden"></div>
+
+                <div class="mt-5">
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="font-bold text-gray-800"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Hari Ini</span>
+                        <span class="text-xs font-bold bg-gray-200 text-gray-700 px-2 py-1 rounded-full" id="historyCount">0</span>
+                    </div>
+                    <div class="table-wrap" style="max-height:240px;overflow-y:auto;">
+                        <table>
+                            <thead>
+                                <tr><th>Waktu</th><th>Kelas</th><th>Mapel</th><th>Status</th><th>Ket</th></tr>
+                            </thead>
+                            <tbody id="historyBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB REKAP -->
+        <div id="tabRekap" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-chart-line"></i> Rekap Absensi</span>
+                    <span class="badge" id="rekapPeriode">Hari Ini</span>
+                </div>
+
+                <div class="flex gap-2 mb-4 overflow-x-auto pb-2">
+                    <button class="btn btn-sm btn-primary rekap-filter active" data-filter="day">Hari</button>
+                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="week">Pekan</button>
+                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="month">Bulan</button>
+                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="semester">Semester</button>
+                </div>
+
+                <div class="report-summary" id="rekapSummary">
+                    <div class="stat"><div class="num text-primary" id="statTotal">0</div><div class="label">Total Absen</div></div>
+                    <div class="stat"><div class="num text-warning" id="statLate">0</div><div class="label">Terlambat</div></div>
+                    <div class="stat"><div class="num text-danger" id="statEarly">0</div><div class="label">Pulang Cepat</div></div>
+                </div>
+
+                <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr><th>Tanggal</th><th>Kelas</th><th>Mapel</th><th>In</th><th>Out</th><th>Status</th><th>Ket</th></tr>
+                        </thead>
+                        <tbody id="rekapBody"></tbody>
+                    </table>
+                </div>
+                <p class="text-sm text-muted mt-3 text-center font-medium" id="rekapEmpty">Belum ada data</p>
+
+                <div id="downloadArea" class="hidden mt-4">
+                    <button class="btn btn-success" id="downloadRekapBtn"><i class="fa-solid fa-file-excel"></i> Download Excel</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB ADMIN -->
+        <div id="tabAdmin" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-clipboard-user"></i> Dashboard Admin</span>
+                    <span class="badge">Semua Guru</span>
+                </div>
+
+                <div class="flex gap-2 mb-4">
+                    <button class="btn btn-sm btn-primary admin-view active" data-view="all">Semua</button>
+                    <button class="btn btn-sm btn-outline admin-view" data-view="late">Terlambat</button>
+                    <button class="btn btn-sm btn-outline admin-view" data-view="early">Pulang Cepat</button>
+                </div>
+
+                <div class="input-group">
+                    <label>Filter Nama Guru</label>
+                    <select id="adminTeacherFilter"><option value="all">-- Semua Guru --</option></select>
+                </div>
+
+                <div class="report-summary" id="adminSummary">
+                    <div class="stat"><div class="num text-primary" id="adminStatTotal">0</div><div class="label">Total</div></div>
+                    <div class="stat"><div class="num text-warning" id="adminStatLate">0</div><div class="label">Lambat</div></div>
+                    <div class="stat"><div class="num text-danger" id="adminStatEarly">0</div><div class="label">Cepat</div></div>
+                </div>
+
+<div class="input-group">
+    <label>Filter Periode</label>
+    <select id="adminPeriodFilter">
+        <option value="all">Semua Waktu</option>
+        <option value="day">Hari Ini</option>
+        <option value="week">Pekan Ini</option>
+        <option value="month">Bulan Ini</option>
+    </select>
+</div>
+
+                <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
+                    <table>
+                        <thead>
+                            <tr><th>Guru</th><th>Mapel</th><th>Kelas</th><th>In</th><th>Out</th><th>Status</th><th>Ket</th></tr>
+                        </thead>
+                        <tbody id="adminBody"></tbody>
+                    </table>
+                </div>
+
+                <div class="mt-4 flex flex-col gap-2">
+                    <button class="btn btn-success" id="adminDownloadXls" onclick="exportTableToExcel('adminBody', 'Rekap_Admin.xls')">
+    <i class="fa-solid fa-file-excel"></i> Download XLS
+</button>
+                    <div class="grid-2">
+                        <button class="btn btn-primary" id="adminSyncNow"><i class="fa-solid fa-cloud-arrow-up"></i> Push Data</button>
+                        <button class="btn btn-outline" id="adminRefresh"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB AGUS -->
+        <div id="tabAgus" class="tab-content hidden">
+            <div class="card">
+                <div class="card-header">
+                    <span><i class="fa-solid fa-user-tie"></i> Master Admin</span>
+                    <span class="badge">Akses Khusus</span>
+                </div>
+
+                <div class="input-group">
+                    <label><i class="fa-solid fa-stopwatch"></i> Toleransi Waktu (menit)</label>
+                    <input type="number" id="toleranceInput" value="3" min="0" max="30" />
+                </div>
+
+                <div class="admin-special-grid">
+                    <button class="btn btn-primary" id="agusGenQR"><i class="fa-solid fa-qrcode"></i> Cetak QR</button>
+                    <button class="btn btn-accent" id="agusEditLink"><i class="fa-solid fa-link"></i> Link Script</button>
+                    <button class="btn btn-success" id="agusSyncJadwal"><i class="fa-solid fa-cloud-arrow-down"></i> Tarik Jadwal</button>
+                    <button class="btn btn-outline" id="agusManualScan"><i class="fa-solid fa-pen-to-square"></i> Manual</button>
+                </div>
+
+                <div class="flex gap-2 mt-4">
+                    <button class="btn btn-success" id="agusSyncNow" style="flex:2;"><i class="fa-solid fa-cloud-arrow-up"></i> Force Sync</button>
+                    <button class="btn btn-outline" id="agusCheckConnection" style="flex:1;"><i class="fa-solid fa-wifi"></i> Ping</button>
+                </div>
+
+                <div class="sync-log" id="syncLog">
+                    <div class="entry info">📋 Log sinkronisasi real-time akan muncul di sini...</div>
+                </div>
+
+                <hr class="divider" />
+
+                <div class="input-group">
+                    <label>Filter Laporan Guru</label>
+                    <select id="agusFilterPeriod">
+                        <option value="day">Hari Ini</option>
+                        <option value="week" selected>Pekan Ini</option>
+                        <option value="month">Bulan Ini</option>
+                        <option value="semester">Semester Ini</option>
+                    </select>
+                </div>
+				
 <div class="input-group">
     <label>Filter Periode</label>
     <select id="adminPeriodFilter">
