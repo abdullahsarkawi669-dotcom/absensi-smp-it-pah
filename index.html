@@ -1739,16 +1739,12 @@
             }
         }
 
-    function onScanSuccess(decodedText) {
-        if (!decodedText) return;
-        stopScanner();
-        processScan(decodedText.trim().toUpperCase());
-        setTimeout(() => {
-            if (document.getElementById('tabScan').classList.contains('hidden') === false) {
-                startScanner();
-            }
-        }, 2000);
-    }
+function onScanSuccess(decodedText) {
+    if (!decodedText) return;
+    stopScanner(); // Kamera berhenti setelah scan berhasil
+    processScan(decodedText.trim().toUpperCase());
+    // Baris setTimeout restart otomatis dihapus di sini
+}
 
     function onScanError(err) { /* ignore */ }
 
@@ -2082,8 +2078,19 @@
         document.getElementById('modeMasuk').className = m === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
         document.getElementById('modeKeluar').className = m === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
     }
-    document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
-    document.getElementById('modeKeluar').addEventListener('click', () => { currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
+document.getElementById('modeMasuk').addEventListener('click', () => { 
+    currentMode = 'masuk'; 
+    updateScanModeUI(); 
+    stopScanner(); 
+    setTimeout(startScanner, 300); // Kamera menyala hanya saat tombol diklik
+});
+
+document.getElementById('modeKeluar').addEventListener('click', () => { 
+    currentMode = 'keluar'; 
+    updateScanModeUI(); 
+    stopScanner(); 
+    setTimeout(startScanner, 300); // Kamera menyala hanya saat tombol diklik
+});
 
     // ===================================================================
     // MANUAL SCAN
@@ -2139,22 +2146,22 @@
     // ===================================================================
     // TABS NAVIGATION
     // ===================================================================
-    document.querySelectorAll('#mainTabs .tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            const target = tab.dataset.tab;
-            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('tab' + target.charAt(0).toUpperCase() + target.slice(1))?.classList.remove('hidden');
+document.querySelectorAll('#mainTabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab' + target.charAt(0).toUpperCase() + target.slice(1))?.classList.remove('hidden');
 
-            if (target === 'scan') setTimeout(startScanner, 300);
-            else stopScanner();
-
-            if (target === 'rekap') loadRekap();
-            if (target === 'admin' && isAdmin) loadAdminData();
-            if (target === 'agus' && isAgus) loadAgusData();
-        });
+        // Jika pindah tab, kamera dimatikan dulu untuk memastikan tidak nyala otomatis
+        stopScanner(); 
+        
+        if (target === 'rekap') loadRekap();
+        if (target === 'admin' && isAdmin) loadAdminData();
+        if (target === 'agus' && isAgus) loadAgusData();
     });
+});
 
     // ===================================================================
     // REKAP TAB
@@ -2341,32 +2348,71 @@ document.getElementById('adminRefresh').addEventListener('click', loadAdminData)
 
     document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
 
-    async function loadAgusData() {
-        if (!isAgus) return;
-        const tbody = document.getElementById('agusBody');
+async function loadAgusData() {
+    if (!isAgus) return;
+    const tbody = document.getElementById('agusBody');
+    const period = document.getElementById('agusFilterPeriod').value;
+    
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Mengambil data dari Google Sheet...</td></tr>';
+    
+    try {
+        // 1. Fetch data langsung dari Google Sheet API
+        const response = await fetch(GAS_URL + '?action=getAbsensi');
+        const res = await response.json();
+        
+        if (!res.success) throw new Error(res.error);
+        
+        let data = res.data;
+        const now = new Date();
+        
+        // 2. Filter data berdasarkan periode
+        let filtered = data.filter(d => {
+            if (!d.date) return false;
+            const dDate = new Date(d.date);
+            
+            if (period === 'day') return d.date === now.toISOString().split('T')[0];
+            if (period === 'week') {
+                const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
+                return d.date >= ws.toISOString().split('T')[0];
+            }
+            if (period === 'month') {
+                const ms = new Date(now.getFullYear(), now.getMonth(), 1);
+                return d.date >= ms.toISOString().split('T')[0];
+            }
+            return true;
+        });
+
+        // 3. Kelompokkan data per Guru
+        const reportMap = {};
+        filtered.forEach(d => {
+            if (!reportMap[d.teacher]) {
+                reportMap[d.teacher] = { name: d.teacher, mapel: d.subject || '-', total: 0 };
+            }
+            reportMap[d.teacher].total++;
+        });
+
+        // 4. Render ke tabel
         tbody.innerHTML = '';
-        try {
-            const allData = await getAllLocalData();
-            const period = document.getElementById('agusFilterPeriod').value;
-            // Simple filter as placeholder for UI demonstration
-            const tMap = {};
-            allData.forEach(d => {
-                if(!tMap[d.teacher]) tMap[d.teacher] = { name: d.teacher, mapel: d.subject, t:0, l:0, e:0 };
-                tMap[d.teacher].t++;
-            });
-            Object.values(tMap).forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="font-bold">${item.name}</td>
-                    <td>${item.mapel}</td>
-                    <td class="text-warning font-bold">0</td>
-                    <td class="text-danger font-bold">0</td>
-                    <td class="text-primary font-bold">${item.t}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-        } catch (e) {}
+        Object.values(reportMap).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-bold">${item.name}</td>
+                <td>${item.mapel}</td>
+                <td class="text-warning font-bold">0</td>
+                <td class="text-danger font-bold">0</td>
+                <td class="text-primary font-bold">${item.total}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        if (Object.keys(reportMap).length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada data ditemukan.</td></tr>';
+        }
+        
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${e.message}</td></tr>`;
     }
+}
 
     // MODAL HANDLERS
     document.getElementById('agusEditLink').addEventListener('click', () => {
