@@ -586,28 +586,28 @@
 
     let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxV2GcDV9W7SJGZrijYW5wJUkuh2lqH-EizSprchY7_8LegPT38mEmOcf7QP0-CtZw5Mg/exec';
 
-const JADWAL_WAKTU = {
-    reguler: {
-        'JP 1': { masuk: '07:30', keluar: '08:10' },
-        'JP 2': { masuk: '08:10', keluar: '08:50' },
-        'JP 3': { masuk: '08:50', keluar: '09:30' },
-        'JP 4': { masuk: '09:30', keluar: '10:10' },
-        'JP 5': { masuk: '10:40', keluar: '11:15' },
-        'JP 6': { masuk: '11:15', keluar: '11:50' },
-        'JP 7': { masuk: '11:50', keluar: '12:25' },
-        'JP 8': { masuk: '12:25', keluar: '13:00' }
-    },
-    jumat: {
-        'JP 1': { masuk: '07:30', keluar: '08:05' },
-        'JP 2': { masuk: '08:05', keluar: '08:40' },
-        'JP 3': { masuk: '08:40', keluar: '09:15' },
-        'JP 4': { masuk: '09:15', keluar: '09:50' },
-        'JP 5': { masuk: '10:20', keluar: '10:55' },
-        'JP 6': { masuk: '10:55', keluar: '11:30' }
-    }
-};
+    // JADWAL WAKTU TETAP DIPERTAHANKAN
+    const JADWAL_WAKTU = {
+        reguler: {
+            'JP 1': { masuk: '07:30', keluar: '08:10' },
+            'JP 2': { masuk: '08:10', keluar: '08:50' },
+            'JP 3': { masuk: '08:50', keluar: '09:30' },
+            'JP 4': { masuk: '09:30', keluar: '10:10' },
+            'JP 5': { masuk: '10:40', keluar: '11:15' },
+            'JP 6': { masuk: '11:15', keluar: '11:50' },
+            'JP 7': { masuk: '11:50', keluar: '12:25' },
+            'JP 8': { masuk: '12:25', keluar: '13:00' }
+        },
+        jumat: {
+            'JP 1': { masuk: '07:30', keluar: '08:05' },
+            'JP 2': { masuk: '08:05', keluar: '08:40' },
+            'JP 3': { masuk: '08:40', keluar: '09:15' },
+            'JP 4': { masuk: '09:15', keluar: '09:50' },
+            'JP 5': { masuk: '10:20', keluar: '10:55' },
+            'JP 6': { masuk: '10:55', keluar: '11:30' }
+        }
+    };
 
-    // Mencegah error 'Cannot set properties of undefined' dengan mengamankan struktur dasar objek jadwal
     let jadwalPelajaran = JSON.parse(localStorage.getItem('jadwal_cache')) || {};
     const allDays = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'ahad'];
     const allJPs = ['JP 1', 'JP 2', 'JP 3', 'JP 4', 'JP 5', 'JP 6', 'JP 7', 'JP 8'];
@@ -618,40 +618,37 @@ const JADWAL_WAKTU = {
         });
     });
 
-    // Data Manual (Fallback) sesuai permintaan
+    // =====================================================================
+    // SELURUH JADWAL MANUAL DIPERTAHANKAN SESUAI FILE ASLI (JANGAN DIUBAH)
+    // =====================================================================
     // KELAS 7A
     jadwalPelajaran['senin']['JP 2']['7A'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
     jadwalPelajaran['senin']['JP 5']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['senin']['JP 6']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['senin']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['senin']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-
     jadwalPelajaran['selasa']['JP 1']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['selasa']['JP 2']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['selasa']['JP 5']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 8']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-
     jadwalPelajaran['rabu']['JP 1']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['rabu']['JP 2']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['rabu']['JP 3']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['rabu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['rabu']['JP 5']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['rabu']['JP 6']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-
     jadwalPelajaran['kamis']['JP 1']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['kamis']['JP 2']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['kamis']['JP 5']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['kamis']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['kamis']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-
     jadwalPelajaran['jumat']['JP 3']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['jumat']['JP 4']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['jumat']['JP 5']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
     jadwalPelajaran['jumat']['JP 6']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
-
     jadwalPelajaran['sabtu']['JP 1']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['7A'] = 'SBDP / Informatika';
@@ -667,33 +664,28 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['senin']['JP 7']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['senin']['JP 8']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    
     jadwalPelajaran['selasa']['JP 1']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 2']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 5']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['selasa']['JP 6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['selasa']['JP 7']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['selasa']['JP 8']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    
     jadwalPelajaran['rabu']['JP 1']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['rabu']['JP 2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['rabu']['JP 3']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 4']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 5']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['rabu']['JP 6']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    
     jadwalPelajaran['kamis']['JP 1']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 2']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 5']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['kamis']['JP 7']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['kamis']['JP 8']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    
     jadwalPelajaran['jumat']['JP 3']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
     jadwalPelajaran['jumat']['JP 4']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
     jadwalPelajaran['jumat']['JP 5']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['jumat']['JP 6']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['sabtu']['JP 2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
     jadwalPelajaran['sabtu']['JP 3']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
@@ -702,40 +694,35 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['sabtu']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['sabtu']['JP 7']['7B'] = 'SBDP / Informatika';
     jadwalPelajaran['sabtu']['JP 8']['7B'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
-    
+
     // KELAS 7C
     jadwalPelajaran['senin']['JP 2']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['senin']['JP 5']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['senin']['JP 6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['senin']['JP 7']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['senin']['JP 8']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    
     jadwalPelajaran['selasa']['JP 1']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['selasa']['JP 2']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['selasa']['JP 5']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 6']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 1']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 3']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['rabu']['JP 4']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['rabu']['JP 5']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['rabu']['JP 6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 1']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 5']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['kamis']['JP 6']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['kamis']['JP 7']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['kamis']['JP 8']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['jumat']['JP 2']['7C'] = 'SBDP / Informatika';
     jadwalPelajaran['jumat']['JP 5']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['jumat']['JP 6']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['sabtu']['JP 2']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['sabtu']['JP 3']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
@@ -744,7 +731,7 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['sabtu']['JP 6']['7C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['sabtu']['JP 7']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 8']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    
+
     // KELAS 7D
     jadwalPelajaran['senin']['JP 2']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['senin']['JP 3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
@@ -753,31 +740,26 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 6']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['senin']['JP 7']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['senin']['JP 8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    
     jadwalPelajaran['selasa']['JP 3']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['selasa']['JP 4']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['selasa']['JP 5']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['selasa']['JP 6']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['selasa']['JP 7']['7D'] = 'SBDP / Informatika';
     jadwalPelajaran['selasa']['JP 8']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    
     jadwalPelajaran['rabu']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['rabu']['JP 2']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['rabu']['JP 5']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['rabu']['JP 6']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['rabu']['JP 7']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['rabu']['JP 8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['kamis']['JP 4']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
     jadwalPelajaran['kamis']['JP 5']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
     jadwalPelajaran['kamis']['JP 6']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['jumat']['JP 2']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['jumat']['JP 5']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['jumat']['JP 6']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
@@ -786,7 +768,7 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['sabtu']['JP 6']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['sabtu']['JP 7']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 8']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    
+
     // KELAS 7E
     jadwalPelajaran['senin']['JP 2']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['senin']['JP 3']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
@@ -795,46 +777,35 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['senin']['JP 7']['7E'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
     jadwalPelajaran['senin']['JP 8']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    
     jadwalPelajaran['selasa']['JP 3']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['selasa']['JP 4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['selasa']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['selasa']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['selasa']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 8']['7E'] = 'SBDP / Informatika';
-    
     jadwalPelajaran['rabu']['JP 1']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['rabu']['JP 2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['rabu']['JP 5']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 6']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    
     jadwalPelajaran['rabu']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 8']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    
     jadwalPelajaran['kamis']['JP 3']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
     jadwalPelajaran['kamis']['JP 4']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
-    
     jadwalPelajaran['kamis']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['kamis']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 1']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['jumat']['JP 2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 5']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['jumat']['JP 6']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['sabtu']['JP 2']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    
     jadwalPelajaran['sabtu']['JP 3']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 4']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 5']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['sabtu']['JP 6']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
-    
     jadwalPelajaran['sabtu']['JP 7']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
     jadwalPelajaran['sabtu']['JP 8']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
-    
+
     // KELAS 8A
     jadwalPelajaran['senin']['JP 2']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['senin']['JP 3']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
@@ -843,31 +814,26 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 6']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
     jadwalPelajaran['senin']['JP 7']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['senin']['JP 8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    
     jadwalPelajaran['selasa']['JP 3']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['selasa']['JP 5']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['selasa']['JP 6']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 1']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['rabu']['JP 2']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['rabu']['JP 5']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['rabu']['JP 6']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['rabu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 8']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    
     jadwalPelajaran['kamis']['JP 1']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['kamis']['JP 2']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['kamis']['JP 5']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['kamis']['JP 6']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    
     jadwalPelajaran['jumat']['JP 1']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
     jadwalPelajaran['jumat']['JP 2']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
     jadwalPelajaran['jumat']['JP 5']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
     jadwalPelajaran['jumat']['JP 6']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
-    
     jadwalPelajaran['sabtu']['JP 1']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
@@ -876,21 +842,19 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['sabtu']['JP 6']['8A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['sabtu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 8']['8A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    
+
     // KELAS 8B
     jadwalPelajaran['senin']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['senin']['JP 3']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['senin']['JP 4']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['senin']['JP 5']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['senin']['JP 6']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    
     jadwalPelajaran['selasa']['JP 1']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['selasa']['JP 2']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['selasa']['JP 3']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['selasa']['JP 4']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['selasa']['JP 8']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    
     jadwalPelajaran['rabu']['JP 1']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['rabu']['JP 2']['8B'] = 'SBDP / Informatika';
     jadwalPelajaran['rabu']['JP 3']['8B'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
@@ -899,17 +863,14 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['rabu']['JP 6']['8B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['rabu']['JP 7']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['rabu']['JP 8']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 5']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['kamis']['JP 6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['kamis']['JP 7']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    
     jadwalPelajaran['jumat']['JP 1']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['jumat']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['jumat']['JP 3']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
     jadwalPelajaran['jumat']['JP 4']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
-    
     jadwalPelajaran['sabtu']['JP 1']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['sabtu']['JP 2']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['sabtu']['JP 3']['8B'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
@@ -923,14 +884,12 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 2']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
     jadwalPelajaran['senin']['JP 5']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['senin']['JP 6']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    
     jadwalPelajaran['selasa']['JP 1']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['selasa']['JP 2']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['selasa']['JP 3']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['selasa']['JP 4']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['selasa']['JP 7']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 1']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['rabu']['JP 2']['8C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
     jadwalPelajaran['rabu']['JP 3']['8C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
@@ -939,19 +898,16 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['rabu']['JP 6']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['rabu']['JP 7']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['rabu']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 3']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['kamis']['JP 4']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['kamis']['JP 5']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['kamis']['JP 6']['8C'] = 'SBDP / Informatika';
     jadwalPelajaran['kamis']['JP 7']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
     jadwalPelajaran['kamis']['JP 8']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 1']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
     jadwalPelajaran['jumat']['JP 2']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
     jadwalPelajaran['jumat']['JP 3']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
     jadwalPelajaran['jumat']['JP 4']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
@@ -967,33 +923,28 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 4']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['senin']['JP 5']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['senin']['JP 6']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
-    
     jadwalPelajaran['selasa']['JP 1']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['selasa']['JP 2']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['selasa']['JP 3']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['selasa']['JP 4']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['selasa']['JP 7']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 3']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['rabu']['JP 4']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['rabu']['JP 5']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['rabu']['JP 6']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['rabu']['JP 7']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['rabu']['JP 8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 3']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['kamis']['JP 4']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['kamis']['JP 5']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
     jadwalPelajaran['kamis']['JP 6']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['kamis']['JP 7']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
     jadwalPelajaran['kamis']['JP 8']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    
     jadwalPelajaran['jumat']['JP 1']['8D'] = 'SBDP / Informatika';
     jadwalPelajaran['jumat']['JP 2']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['jumat']['JP 3']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['jumat']['JP 4']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
     jadwalPelajaran['sabtu']['JP 2']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
     jadwalPelajaran['sabtu']['JP 3']['8D'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
@@ -1009,14 +960,12 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 4']['8E'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['senin']['JP 5']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['senin']['JP 6']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    
     jadwalPelajaran['selasa']['JP 1']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
     jadwalPelajaran['selasa']['JP 2']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['selasa']['JP 3']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['selasa']['JP 4']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['selasa']['JP 8']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    
     jadwalPelajaran['rabu']['JP 1']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['rabu']['JP 2']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['rabu']['JP 3']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
@@ -1025,17 +974,14 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['rabu']['JP 6']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['rabu']['JP 7']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['rabu']['JP 8']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    
     jadwalPelajaran['kamis']['JP 3']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['kamis']['JP 4']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['kamis']['JP 5']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['kamis']['JP 6']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['kamis']['JP 7']['8E'] = 'SBDP / Informatika';
     jadwalPelajaran['kamis']['JP 8']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 1']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
     jadwalPelajaran['jumat']['JP 2']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
@@ -1051,21 +997,18 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 4']['9A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
     jadwalPelajaran['senin']['JP 7']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
     jadwalPelajaran['senin']['JP 8']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
-    
     jadwalPelajaran['selasa']['JP 3']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['selasa']['JP 4']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['selasa']['JP 5']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['selasa']['JP 6']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 3']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['rabu']['JP 4']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['rabu']['JP 5']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['rabu']['JP 6']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['rabu']['JP 7']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['rabu']['JP 8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 1']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['kamis']['JP 2']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['kamis']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
@@ -1074,12 +1017,10 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['kamis']['JP 6']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['kamis']['JP 7']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['kamis']['JP 8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 3']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['jumat']['JP 4']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['jumat']['JP 5']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['jumat']['JP 6']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
     jadwalPelajaran['sabtu']['JP 2']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
     jadwalPelajaran['sabtu']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
@@ -1095,21 +1036,18 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 4']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['senin']['JP 7']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['senin']['JP 8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    
     jadwalPelajaran['selasa']['JP 3']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['selasa']['JP 4']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['selasa']['JP 5']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['selasa']['JP 6']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 3']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['rabu']['JP 4']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['rabu']['JP 5']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['rabu']['JP 6']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
     jadwalPelajaran['rabu']['JP 7']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['rabu']['JP 8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    
     jadwalPelajaran['kamis']['JP 1']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['kamis']['JP 2']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['kamis']['JP 3']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
@@ -1118,12 +1056,10 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['kamis']['JP 6']['9B'] = 'Fiqih (Jamaluddin, Lc.)';
     jadwalPelajaran['kamis']['JP 7']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['kamis']['JP 8']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    
     jadwalPelajaran['jumat']['JP 3']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['jumat']['JP 4']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['jumat']['JP 5']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['jumat']['JP 6']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['9B'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
@@ -1139,21 +1075,18 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['senin']['JP 7']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
     jadwalPelajaran['senin']['JP 8']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    
     jadwalPelajaran['selasa']['JP 1']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['selasa']['JP 2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['selasa']['JP 5']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['selasa']['JP 6']['9C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
     jadwalPelajaran['selasa']['JP 7']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['selasa']['JP 8']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    
     jadwalPelajaran['rabu']['JP 3']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['rabu']['JP 4']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['rabu']['JP 5']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['rabu']['JP 6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['rabu']['JP 7']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['rabu']['JP 8']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    
     jadwalPelajaran['kamis']['JP 1']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['kamis']['JP 2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['kamis']['JP 3']['9C'] = 'Fiqih (Jamaluddin, Lc.)';
@@ -1162,12 +1095,10 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['kamis']['JP 6']['9C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['kamis']['JP 7']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['kamis']['JP 8']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    
     jadwalPelajaran['jumat']['JP 3']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['jumat']['JP 4']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['jumat']['JP 5']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['jumat']['JP 6']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    
     jadwalPelajaran['sabtu']['JP 1']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['sabtu']['JP 2']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['sabtu']['JP 3']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
@@ -1183,21 +1114,18 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['senin']['JP 4']['9D'] = 'SBDP / Informatika';
     jadwalPelajaran['senin']['JP 7']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
     jadwalPelajaran['senin']['JP 8']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    
     jadwalPelajaran['selasa']['JP 1']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['selasa']['JP 2']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
     jadwalPelajaran['selasa']['JP 5']['9D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
     jadwalPelajaran['selasa']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['selasa']['JP 7']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['selasa']['JP 8']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    
     jadwalPelajaran['rabu']['JP 3']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['rabu']['JP 4']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
     jadwalPelajaran['rabu']['JP 5']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['rabu']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
     jadwalPelajaran['rabu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['rabu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    
     jadwalPelajaran['kamis']['JP 1']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['kamis']['JP 2']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
     jadwalPelajaran['kamis']['JP 3']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
@@ -1206,12 +1134,10 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['kamis']['JP 6']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['kamis']['JP 7']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
     jadwalPelajaran['kamis']['JP 8']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
-    
     jadwalPelajaran['jumat']['JP 3']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['jumat']['JP 4']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
     jadwalPelajaran['jumat']['JP 5']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
     jadwalPelajaran['jumat']['JP 6']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    
     jadwalPelajaran['sabtu']['JP 1']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 2']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
     jadwalPelajaran['sabtu']['JP 3']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
@@ -1221,43 +1147,22 @@ const JADWAL_WAKTU = {
     jadwalPelajaran['sabtu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['sabtu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
 
-    // Logika penguraian Mapel yang di-scan vs jadwal
+    // ==========================================
+    // LOGIKA PENGURAIAN MAPEL (KOPEL TAHFIZH, OLAHRAGA, SBDP DIPERTAHANKAN)
+    // ==========================================
     function getMapelForScan(kelas, guruName, hari, jp) {
         hari = (hari || "").toLowerCase();
         
-        // 1. CEK KOPEL TAHFIZH (Untuk 11 Guru)
         const isGuruTahfizh = TEACHERS.some(t => t.name === guruName && t.subjects.includes("Tahfizhul Qur'an"));
         if (isGuruTahfizh) {
-            const isKopel1 = ['7A', '7B', '7C'].includes(kelas) && (
-                (hari === 'senin' && (jp === 'JP 3' || jp === 'JP 4')) ||
-                (hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) ||
-                (hari === 'rabu' && (jp === 'JP 7' || jp === 'JP 8')) ||
-                (hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4'))
-            );
-            const isKopel2 = ['7D', '7E', '8A'].includes(kelas) && (
-                (hari === 'selasa' && (jp === 'JP 1' || jp === 'JP 2')) ||
-                (hari === 'rabu' && (jp === 'JP 3' || jp === 'JP 4')) ||
-                (hari === 'kamis' && (jp === 'JP 7' || jp === 'JP 8')) ||
-                (hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4'))
-            );
-            const isKopel3 = ['8B', '8C', '8D', '8E'].includes(kelas) && (
-                (hari === 'senin' && (jp === 'JP 7' || jp === 'JP 8')) ||
-                (hari === 'selasa' && (jp === 'JP 5' || jp === 'JP 6')) ||
-                (hari === 'kamis' && (jp === 'JP 1' || jp === 'JP 2')) ||
-                (hari === 'jumat' && (jp === 'JP 5' || jp === 'JP 6'))
-            );
-            const isKopel4 = ['9A', '9B', '9C', '9D'].includes(kelas) && (
-                (hari === 'senin' && (jp === 'JP 5' || jp === 'JP 6')) ||
-                (hari === 'rabu' && (jp === 'JP 1' || jp === 'JP 2')) ||
-                (hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2'))
-            );
+            const isKopel1 = ['7A', '7B', '7C'].includes(kelas) && ((hari === 'senin' && (jp === 'JP 3' || jp === 'JP 4')) || (hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) || (hari === 'rabu' && (jp === 'JP 7' || jp === 'JP 8')) || (hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')));
+            const isKopel2 = ['7D', '7E', '8A'].includes(kelas) && ((hari === 'selasa' && (jp === 'JP 1' || jp === 'JP 2')) || (hari === 'rabu' && (jp === 'JP 3' || jp === 'JP 4')) || (hari === 'kamis' && (jp === 'JP 7' || jp === 'JP 8')) || (hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4')));
+            const isKopel3 = ['8B', '8C', '8D', '8E'].includes(kelas) && ((hari === 'senin' && (jp === 'JP 7' || jp === 'JP 8')) || (hari === 'selasa' && (jp === 'JP 5' || jp === 'JP 6')) || (hari === 'kamis' && (jp === 'JP 1' || jp === 'JP 2')) || (hari === 'jumat' && (jp === 'JP 5' || jp === 'JP 6')));
+            const isKopel4 = ['9A', '9B', '9C', '9D'].includes(kelas) && ((hari === 'senin' && (jp === 'JP 5' || jp === 'JP 6')) || (hari === 'rabu' && (jp === 'JP 1' || jp === 'JP 2')) || (hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2')));
             
-            if (isKopel1 || isKopel2 || isKopel3 || isKopel4) {
-                return "Tahfizhul Qur'an";
-            }
+            if (isKopel1 || isKopel2 || isKopel3 || isKopel4) return "Tahfizhul Qur'an";
         }
 
-        // 2. CEK KOPEL OLAHRAGA (Khusus M. Tahir, M. Pd.)
         if (guruName === 'M. Tahir, M. Pd.') {
             if (['9A', '9B'].includes(kelas) && hari === 'selasa' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
             if (['9C', '9D'].includes(kelas) && hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
@@ -1265,47 +1170,69 @@ const JADWAL_WAKTU = {
             if (['7A', '7B'].includes(kelas) && hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
         }
 
-        // 3. CEK DARI OBJEK JADWAL PELAJARAN
         if (jadwalPelajaran[hari] && jadwalPelajaran[hari][jp] && jadwalPelajaran[hari][jp][kelas]) {
             const jadwalRaw = jadwalPelajaran[hari][jp][kelas];
-            
-            // Pengecualian Informatika & SBDP (Agar tidak bergantung tanggalan kalender yang rawan error)
-            // Jika slot berisi SBDP / Informatika, cukup izinkan guru dengan subject terkait.
             if (jadwalRaw.includes('SBDP') || jadwalRaw.includes('Informatika')) {
                 if (guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
                 if (guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
             }
-
-            // Pengecekan standar
-            if (jadwalRaw.includes(guruName)) {
-                return jadwalRaw.split('(')[0].trim(); // Ambil nama mapel saja
-            }
+            if (jadwalRaw.includes(guruName)) return jadwalRaw.split('(')[0].trim();
         }
-
-        return null; // Tidak ada jadwal yang cocok
+        return null;
     }
 
-    // Kalkulasi Presisi Menit untuk menentukan JP saat ini
-    function getCurrentJPInfo() {
+    // ==========================================
+    // FUNGSI GLOBAL & HELPER 
+    // ==========================================
+    function parseTime(t) {
+        if(!t || t==='-') return null;
+        let pts = t.split(':'); let d = new Date();
+        d.setHours(parseInt(pts[0],10), parseInt(pts[1],10), 0, 0);
+        return d;
+    }
+
+    function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
+    function getDayNameID() { return ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]; }
+
+    // MODIFIKASI: Deteksi JP toleransi 10 menit berdasarkan mode (masuk/keluar)
+    function getCurrentJPInfo(mode = '') {
         const now = new Date();
         const totalMins = (now.getHours() * 60) + now.getMinutes();
-
-        // Range waktu berdasarkan total menit (Lebih stabil dari hitungan desimal)
-        if (totalMins >= 450 && totalMins < 490) return 'JP 1';   // 07:30 - 08:10 (450 - 490)
-        if (totalMins >= 490 && totalMins < 530) return 'JP 2';   // 08:10 - 08:50 (490 - 530)
-        if (totalMins >= 530 && totalMins < 570) return 'JP 3';   // 08:50 - 09:30 (530 - 570)
-        if (totalMins >= 570 && totalMins < 610) return 'JP 4';   // 09:30 - 10:10 (570 - 610)
-        // Istirahat 10:10 - 10:30 (610 - 630)
-        if (totalMins >= 630 && totalMins < 670) return 'JP 5';   // 10:30 - 11:10 (630 - 670)
-        if (totalMins >= 670 && totalMins < 710) return 'JP 6';   // 11:10 - 11:50 (670 - 710)
-        // Dzuhur / Istirahat
-        if (totalMins >= 780 && totalMins < 820) return 'JP 7';   // 13:00 - 13:40 (780 - 820)
-        if (totalMins >= 820 && totalMins < 860) return 'JP 8';   // 13:40 - 14:20 (820 - 860)
+        const isJumat = (getDayName() === 'jumat');
+        const jadwal = isJumat ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
         
-        return 'Di luar JP';
+        let bestJP = 'Di luar JP';
+        let minDiff = 9999;
+        
+        for (let jp in jadwal) {
+            let mArr = jadwal[jp].masuk.split(':');
+            let kArr = jadwal[jp].keluar.split(':');
+            let m = parseInt(mArr[0], 10)*60 + parseInt(mArr[1], 10);
+            let k = parseInt(kArr[0], 10)*60 + parseInt(kArr[1], 10);
+            
+            let isValid = false;
+            if (mode === 'masuk') {
+                isValid = (totalMins >= (m - 10) && totalMins < (k - 5)); 
+            } else if (mode === 'keluar') {
+                isValid = (totalMins >= (m + 5) && totalMins <= (k + 10));
+            } else {
+                isValid = (totalMins >= (m - 10) && totalMins <= (k + 10));
+            }
+            
+            if (isValid) {
+                let center = (m + k) / 2;
+                let diff = Math.abs(totalMins - center);
+                if (diff < minDiff) {
+                    minDiff = diff; bestJP = jp;
+                }
+            }
+        }
+        return bestJP;
     }
 
-
+    // ==========================================
+    // DATABASE INDEXEDDB 
+    // ==========================================
     const DB_NAME = 'AbsensiGuruDB';
     const STORE_NAME = 'attendance';
     let db = null;
@@ -1343,18 +1270,17 @@ const JADWAL_WAKTU = {
                     time: safeStr(data.time || ''),
                     day: safeStr(data.day || ''),
                     jp: safeStr(data.jp || 'JP -'),
+                    jadwal_masuk: safeStr(data.jadwal_masuk || ''),
+                    jadwal_keluar: safeStr(data.jadwal_keluar || ''),
                     timestamp: safeStr(data.timestamp || new Date().toISOString()),
                     keterangan: safeStr(data.keterangan || ''),
-                    synced: data.synced === true ? true : false
+                    synced: false
                 };
-                if (!record.teacher || !record.class || !record.date) {
-                    reject(new Error('Data tidak lengkap')); return;
-                }
                 const tx = db.transaction(STORE_NAME, 'readwrite');
                 const store = tx.objectStore(STORE_NAME);
                 const req = store.add(record);
                 req.onsuccess = () => resolve(req.result);
-                req.onerror = (e) => { reject(e.target.error); };
+                req.onerror = (e) => reject(e.target.error);
             } catch (e) { reject(e); }
         });
     }
@@ -1366,16 +1292,13 @@ const JADWAL_WAKTU = {
                 const tx = db.transaction(STORE_NAME, 'readonly');
                 const store = tx.objectStore(STORE_NAME);
                 const req = store.getAll();
-                req.onsuccess = () => {
-                    const allRecords = req.result || [];
-                    const pending = allRecords.filter(item => item.synced === false || item.synced === 0);
-                    resolve(pending);
-                };
+                req.onsuccess = () => resolve((req.result || []).filter(item => item.synced === false));
                 req.onerror = () => reject(req.error);
             } catch (e) { reject(e); }
         });
     }
 
+    // MODIFIKASI: Hapus permanen data temporary jika sukses tersinkron (mengganti store.put dengan store.delete)
     function markSynced(ids) {
         return new Promise((resolve, reject) => {
             if (!db) { reject(new Error('DB not open')); return; }
@@ -1385,13 +1308,8 @@ const JADWAL_WAKTU = {
                 const store = tx.objectStore(STORE_NAME);
                 let done = 0;
                 ids.forEach(id => {
-                    const req = store.get(id);
-                    req.onsuccess = () => {
-                        const data = req.result;
-                        if (data) { data.synced = true; store.put(data); }
-                        done++;
-                        if (done === ids.length) resolve();
-                    };
+                    const req = store.delete(id); 
+                    req.onsuccess = () => { done++; if (done === ids.length) resolve(); };
                     req.onerror = () => reject(req.error);
                 });
             } catch (e) { reject(e); }
@@ -1407,65 +1325,33 @@ const JADWAL_WAKTU = {
                 const index = store.index('teacher');
                 const range = IDBKeyRange.only(teacher);
                 const req = index.getAll(range);
-                req.onsuccess = () => {
-                    const all = req.result || [];
-                    const filtered = date ? all.filter(item => item.date === date) : all;
-                    resolve(filtered);
-                };
+                req.onsuccess = () => resolve((req.result || []).filter(item => date ? item.date === date : true));
                 req.onerror = () => reject(req.error);
             } catch (e) { reject(e); }
         });
     }
 
     function countPendingSync() {
-        return new Promise((resolve, reject) => {
-            if (!db) { resolve(0); return; }
-            try {
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const req = store.getAll();
-                req.onsuccess = () => {
-                    const allRecords = req.result || [];
-                    const pendingCount = allRecords.filter(item => item.synced === false || item.synced === 0).length;
-                    resolve(pendingCount);
-                };
-                req.onerror = () => reject(req.error);
-            } catch (e) { reject(e); }
-        });
+        return getUnsynced().then(res => res.length).catch(() => 0);
     }
 
-    // ===================================================================
     async function sendToGoogleSheet(record) {
         try {
             const payload = {
-                teacher: record.teacher || '',
-                class: record.class || '',
-                subject: record.subject || '',
-                action: record.action || '',
-                date: record.date || '',
-                time: record.time || '',
-                day: record.day || '',
-                jp: record.jp || '',
-                timestamp: record.timestamp || '',
+                teacher: record.teacher || '', class: record.class || '', subject: record.subject || '',
+                action: record.action || '', date: record.date || '', time: record.time || '',
+                day: record.day || '', jp: record.jp || '', timestamp: record.timestamp || '',
+                jadwal_masuk: record.jadwal_masuk || '', jadwal_keluar: record.jadwal_keluar || '',
                 keterangan: record.keterangan || ''
             };
-
             const response = await fetch(GAS_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ api_action: 'addAttendance', ...payload })
             });
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            const result = await response.json();
-            return { success: true, data: result };
-        } catch (e) {
-            return { success: false, error: e.message };
-        }
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return { success: true, data: await response.json() };
+        } catch (e) { return { success: false, error: e.message }; }
     }
 
     document.getElementById('agusSyncJadwal').addEventListener('click', async () => {
@@ -1473,83 +1359,49 @@ const JADWAL_WAKTU = {
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menarik Jadwal...';
         addSyncLog('Tarik data jadwal dari server...', 'info');
-        
         try {
             const response = await fetch(GAS_URL + '?action=getJadwal');
             if (!response.ok) throw new Error("Gagal terhubung ke GAS");
-            
             const result = await response.json();
             if (result.success && result.data) {
-                const fetchedData = result.data;
-                fetchedData.forEach(row => {
-                    const vKelas = row[0];
-                    const vHari = (row[1] || "").toString().toLowerCase().trim();
-                    const vJp = (row[2] || "").toString().toUpperCase().trim();
-                    const vMapel = row[3];
-                    const vGuru = row[4];
-                    
+                result.data.forEach(row => {
+                    const vKelas = row[0], vHari = (row[1] || "").toString().toLowerCase().trim(), vJp = (row[2] || "").toString().toUpperCase().trim(), vMapel = row[3], vGuru = row[4];
                     if (vKelas && vHari && vJp && jadwalPelajaran[vHari]) {
-                        if (!jadwalPelajaran[vHari][vJp]) {
-                            jadwalPelajaran[vHari][vJp] = {};
-                        }
+                        if (!jadwalPelajaran[vHari][vJp]) jadwalPelajaran[vHari][vJp] = {};
                         jadwalPelajaran[vHari][vJp][vKelas] = `${vMapel} (${vGuru})`;
                     }
                 });
-                
                 localStorage.setItem('jadwal_cache', JSON.stringify(jadwalPelajaran));
-                addSyncLog('✅ Jadwal berhasil diperbarui dari Server', 'success');
-                showToast('Jadwal berhasil disinkronkan', 'success');
-            } else {
-                addSyncLog('⚠️ Format JSON tidak sesuai', 'error');
-            }
-        } catch (e) {
-            showToast('Gagal Tarik Jadwal', 'error');
-            addSyncLog('❌ ' + e.message, 'error');
-        }
+                addSyncLog('✅ Jadwal berhasil diperbarui', 'success'); showToast('Jadwal disinkronkan', 'success');
+            } else { addSyncLog('⚠️ Format JSON tidak sesuai', 'error'); }
+        } catch (e) { showToast('Gagal Tarik Jadwal', 'error'); addSyncLog('❌ ' + e.message, 'error'); }
         btn.innerHTML = originalText;
     });
 
     async function syncNow(showToastMsg = true, showLog = false) {
         if (!navigator.onLine) {
-            const msg = '❌ Offline. Gagal sinkron.';
-            if (showLog) addSyncLog(msg, 'error');
-            if (showToastMsg) showToast(msg, 'error');
+            if (showLog) addSyncLog('❌ Offline. Gagal sinkron.', 'error');
+            if (showToastMsg) showToast('❌ Offline. Gagal sinkron.', 'error');
             return { success: false, message: 'Offline' };
         }
-
         try {
             const unsynced = await getUnsynced();
             if (unsynced.length === 0) {
-                const msg = '✅ Tidak ada data pending.';
-                if (showLog) addSyncLog(msg, 'success');
-                if (showToastMsg) showToast(msg, 'success');
-                updateSyncStatus();
-                return { success: true, message: 'Tidak ada data' };
+                if (showLog) addSyncLog('✅ Tidak ada data pending.', 'success');
+                if (showToastMsg) showToast('✅ Tidak ada data pending.', 'success');
+                updateSyncStatus(); return { success: true, message: 'Tidak ada data' };
             }
-
             if (showLog) addSyncLog(`📤 Pushing ${unsynced.length} data...`, 'info');
             if (showToastMsg) showToast(`🔄 Pushing ${unsynced.length} data...`, 'info');
-
-            let successCount = 0;
-            let failCount = 0;
-            const successIds = [];
-
+            
+            let successCount = 0, failCount = 0, successIds = [];
             for (const item of unsynced) {
                 const result = await sendToGoogleSheet(item);
-                if (result.success) {
-                    successCount++;
-                    successIds.push(item.id);
-                    if (showLog) addSyncLog(`✅ Item ${item.id} (${item.teacher}) terkirim`, 'success');
-                } else {
-                    failCount++;
-                    if (showLog) addSyncLog(`❌ Item ${item.id} gagal: ${result.error}`, 'error');
-                }
+                if (result.success) { successCount++; successIds.push(item.id); if (showLog) addSyncLog(`✅ Item ${item.id} terkirim`, 'success'); } 
+                else { failCount++; if (showLog) addSyncLog(`❌ Item ${item.id} gagal: ${result.error}`, 'error'); }
             }
-
-            if (successIds.length > 0) {
-                await markSynced(successIds);
-            }
-
+            if (successIds.length > 0) await markSynced(successIds);
+            
             const msg = `Sync selesai: ${successCount} berhasil, ${failCount} gagal.`;
             if (failCount === 0) {
                 if (showLog) addSyncLog(`✅ ${msg}`, 'success');
@@ -1558,12 +1410,10 @@ const JADWAL_WAKTU = {
                 if (showLog) addSyncLog(`⚠️ ${msg}`, 'error');
                 if (showToastMsg) showToast(`⚠️ ${failCount} gagal. Cek log Admin.`, 'error');
             }
-
             updateSyncStatus();
+            loadHistory(); loadRekap(); 
             return { success: failCount === 0, message: msg };
-
         } catch (e) {
-            console.error('Sync error:', e);
             if (showLog) addSyncLog(`❌ Error: ${e.message}`, 'error');
             if (showToastMsg) showToast('❌ Gagal: ' + e.message, 'error');
             return { success: false, message: e.message };
@@ -1575,311 +1425,45 @@ const JADWAL_WAKTU = {
             const pending = await countPendingSync();
             const el = document.getElementById('syncStatus');
             if (el) {
-                if (pending === 0) {
-                    el.innerHTML = '<i class="fa-solid fa-check"></i> Semua Sync';
-                    el.style.background = 'rgba(16, 185, 129, 0.4)';
-                } else {
-                    el.innerHTML = `<i class="fa-solid fa-rotate"></i> ${pending} pending`;
-                    el.style.background = 'rgba(245, 158, 11, 0.4)';
-                }
+                if (pending === 0) { el.innerHTML = '<i class="fa-solid fa-check"></i> Semua Sync'; el.style.background = 'rgba(16, 185, 129, 0.4)'; } 
+                else { el.innerHTML = `<i class="fa-solid fa-rotate"></i> ${pending} pending`; el.style.background = 'rgba(245, 158, 11, 0.4)'; }
             }
-        } catch (e) { /* ignore */ }
+        } catch (e) {}
     }
 
     function addSyncLog(message, type = 'info') {
         const logContainer = document.getElementById('syncLog');
         if (!logContainer) return;
-        const entry = document.createElement('div');
-        entry.className = `entry ${type}`;
-        const time = new Date().toLocaleTimeString();
-        entry.innerHTML = `[${time}] ${message}`;
-        logContainer.appendChild(entry);
-        logContainer.scrollTop = logContainer.scrollHeight;
-        while (logContainer.children.length > 100) {
-            logContainer.removeChild(logContainer.firstChild);
-        }
+        const entry = document.createElement('div'); entry.className = `entry ${type}`;
+        entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+        logContainer.appendChild(entry); logContainer.scrollTop = logContainer.scrollHeight;
+        while (logContainer.children.length > 100) logContainer.removeChild(logContainer.firstChild);
     }
 
-    let html5QrCode = null;
-    let isScanning = false;
+    // ==========================================
+    // UI & LOGIKA SCAN
+    // ==========================================
+    let html5QrCode = null, isScanning = false, currentMode = 'masuk', currentUser = null, currentUserData = null;
+    let isAdmin = false, isAgus = false;
 
-    function startScanner() {
-        if (document.getElementById('tabScan').classList.contains('hidden') || document.getElementById('app').classList.contains('hidden')) {
-            return;
-        }
-
-        if (html5QrCode) {
-            if (isScanning) {
-                html5QrCode.stop().then(() => {
-                    html5QrCode.clear();
-                    html5QrCode = null;
-                    isScanning = false;
-                    setTimeout(startScanner, 100);
-                }).catch(() => {
-                    html5QrCode = null;
-                    isScanning = false;
-                    setTimeout(startScanner, 100);
-                });
-            } else {
-                try { html5QrCode.clear(); } catch(e){}
-                html5QrCode = null;
-                setTimeout(startScanner, 100);
-            }
-            return;
-        }
-        
-        const readerEl = document.getElementById('reader');
-        if (!readerEl) return;
-        readerEl.innerHTML = '';
-        
-        html5QrCode = new Html5Qrcode("reader");
-        const config = {
-            fps: 10,
-            qrbox: { width: 220, height: 220 },
-            formatsToSupport: [Html5QrcodeSupportedFormats.QR_CODE]
-        };
-        html5QrCode.start({ facingMode: "environment" },
-            config,
-            onScanSuccess,
-            onScanError
-        ).then(() => {
-            isScanning = true;
-        }).catch((err) => {
-            console.error('Scanner error:', err);
-            showToast('Izinkan akses kamera di browser Anda.', 'error');
-        });
-    }
-
-    function stopScanner() {
-        if (html5QrCode && isScanning) {
-            html5QrCode.stop().then(() => {
-                html5QrCode.clear();
-                html5QrCode = null;
-                isScanning = false;
-            }).catch(() => {
-                html5QrCode = null;
-                isScanning = false;
-            });
-        } else if (html5QrCode) {
-            try { html5QrCode.clear(); } catch(e){}
-            html5QrCode = null;
-            isScanning = false;
-        }
-    }
-
-    function onScanSuccess(decodedText) {
-        if (!decodedText) return;
-        stopScanner();
-        processScan(decodedText.trim().toUpperCase());
-    }
-
-    function onScanError(err) { /* ignore */ }
-
-    let currentMode = 'masuk';
-    let currentUser = null;
-    let currentUserData = null;
-    let isAdmin = false;
-    let isAgus = false;
-
-    function getDayName() {
-        const days = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
-        return days[new Date().getDay()];
-    }
-
-    function getDayNameID() {
-        const days = ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-        return days[new Date().getDay()];
-    }
-
-function processScan(classCode) {
-    const normalized = classCode.toUpperCase().trim();
-    if (!CLASSES.includes(normalized)) {
-        showScanResult('❌ Kelas invalid: ' + normalized, 'error');
-        return;
-    }
-
-    if (!currentUser) {
-        showScanResult('Silakan login terlebih dahulu.', 'error');
-        return;
-    }
-
-    const keterangan = document.getElementById('keteranganInput').value.trim();
-    const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
-    const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    const currentDay = getDayName();
-    const jpSaatIni = getCurrentJPInfo();
-    const mapelSesuaiJadwal = getMapelForScan(normalized, currentUser, currentDay, jpSaatIni);
-
-    let subject = keterangan ? 'Kegiatan Lain' : (mapelSesuaiJadwal || 'Di Luar Jadwal');
-    
-    // PENENTUAN JADWAL (Tambahan Baru)
-    const isJumat = (currentDay === 'jumat');
-    const jadwalReferensi = isJumat ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
-    const batasWaktu = jadwalReferensi[jpSaatIni] || { masuk: '00:00', keluar: '00:00' };
-
-    const record = {
-        teacher: currentUser || '',
-        class: normalized || '',
-        subject: subject,
-        action: currentMode || 'masuk',
-        date: dateStr || '',
-        time: timeStr || '',
-        day: getDayNameID() || '',
-        jp: jpSaatIni || 'JP -',
-        jadwal_masuk: batasWaktu.masuk,
-        jadwal_keluar: batasWaktu.keluar,
-        timestamp: now.toISOString() || '',
-        keterangan: keterangan || '',
-        synced: false
-    };
-
-    saveAttendanceLocal(record).then(async (id) => {
-        const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
-        showScanResult(keterangan ? `${actionIcon} ${normalized} (${keterangan})` : `${actionIcon} ${normalized} (${subject})`, 'success');
-        
-        addHistoryRow({ ...record, id });
-        updateHistoryCount();
-
-        if (navigator.onLine) {
-            try {
-                const result = await sendToGoogleSheet(record);
-                if (result.success) {
-                    await markSynced([id]);
-                    showScanResult(`✅ Data terkirim ke Server!`, 'success');
-                } else {
-                    showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning');
-                }
-            } catch (e) {
-                showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info');
-            }
-        }
-        updateSyncStatus();
-        playBeep();
-        document.getElementById('keteranganInput').value = '';
-    }).catch((err) => {
-        showScanResult('❌ Gagal menyimpan: ' + err.message, 'error');
-    });
-}
-    function showScanResult(msg, type = 'info') {
-        const el = document.getElementById('scanResult');
-        el.classList.remove('hidden', 'success', 'error', 'info', 'warning');
-        el.classList.add(type);
-        el.textContent = msg;
-        clearTimeout(el._hideTimer);
-        el._hideTimer = setTimeout(() => {
-            el.classList.add('hidden');
-        }, 6000);
-    }
-
-    function addHistoryRow(record) {
-        const tbody = document.getElementById('historyBody');
-        const tr = document.createElement('tr');
-        const status = record.action === 'masuk' ? '✅ In' : '🚪 Out';
-        const ket = record.keterangan || '-';
-        tr.innerHTML = `
-            <td>${record.time}</td>
-            <td class="font-bold">${record.class}</td>
-            <td>${record.subject}</td>
-            <td>${status}</td>
-            <td class="text-xs">${ket}</td>
-        `;
-        tbody.prepend(tr);
-        if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
-    }
-
-    function updateHistoryCount() {
-        document.getElementById('historyCount').textContent = document.getElementById('historyBody').children.length;
-    }
-
-    function loadHistory() {
-        if (!currentUser) return;
-        const dateStr = new Date().toISOString().split('T')[0];
-        getLocalHistory(currentUser, dateStr).then((data) => {
-            const tbody = document.getElementById('historyBody');
-            tbody.innerHTML = '';
-            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-            data.forEach(record => {
-                const tr = document.createElement('tr');
-                const status = record.action === 'masuk' ? '✅ In' : '🚪 Out';
-                tr.innerHTML = `
-                    <td>${record.time}</td>
-                    <td class="font-bold">${record.class}</td>
-                    <td>${record.subject}</td>
-                    <td>${status}</td>
-                    <td class="text-xs">${record.keterangan || '-'}</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            updateHistoryCount();
-        }).catch(() => {});
-    }
-
-    function playBeep() {
-        try {
-            const ctx = new(window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.value = 1000; osc.type = 'sine'; gain.gain.value = 0.5;
-            osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150);
-        } catch (e) { /* silent */ }
-    }
-
-    function showToast(msg, type = 'info') {
-        const container = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        let icon = '';
-        if (type === 'success') icon = '<i class="fa-solid fa-circle-check"></i>';
-        if (type === 'error') icon = '<i class="fa-solid fa-circle-xmark"></i>';
-        if (type === 'warning') icon = '<i class="fa-solid fa-triangle-exclamation"></i>';
-        if (type === 'info') icon = '<i class="fa-solid fa-circle-info"></i>';
-        
-        toast.className = 'toast ' + type;
-        toast.innerHTML = `${icon} <span>${msg}</span>`;
-        container.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transform = 'translateY(10px) translateX(-50%)';
-            setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300);
-        }, 3000);
-    }
-
+    // MODIFIKASI: Menghilangkan `touchend` event untuk menghindari klik tak sengaja saat scroll
     function renderTeacherList() {
-        const container = document.getElementById('teacherList');
-        container.innerHTML = '';
-        const sorted = [...TEACHERS].sort((a, b) => a.name.localeCompare(b.name));
-        sorted.forEach(t => {
+        const container = document.getElementById('teacherList'); container.innerHTML = '';
+        [...TEACHERS].sort((a, b) => a.name.localeCompare(b.name)).forEach(t => {
             const btn = document.createElement('button');
-            btn.className = 'btn';
-            btn.textContent = t.name;
-            btn.dataset.name = t.name;
-            
-            btn.addEventListener('click', (e) => {
-                e.preventDefault(); 
-                selectTeacher(t);
-            });
-            
-            btn.addEventListener('touchend', (e) => {
-                e.preventDefault(); 
-                selectTeacher(t);
-            });
-            
+            btn.className = 'btn'; btn.textContent = t.name; btn.dataset.name = t.name;
+            btn.addEventListener('click', (e) => { e.preventDefault(); selectTeacher(t); });
             container.appendChild(btn);
         });
     }
 
     function selectTeacher(teacher) {            
         const isAdminUser = teacher.isAdmin || false;
-        const adminType = teacher.adminType || '';
-
         if (isAdminUser) {
             document.getElementById('passwordSection').classList.remove('hidden');
             document.getElementById('adminPassword').value = '';
-            document.getElementById('adminPassword').focus();
             document.getElementById('passwordSection').dataset.selectedTeacher = teacher.name;
-            document.getElementById('passwordSection').dataset.adminType = adminType;
+            document.getElementById('passwordSection').dataset.adminType = teacher.adminType || '';
             document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
             document.querySelector(`#teacherList .btn[data-name="${teacher.name}"]`)?.classList.add('selected');
         } else {
@@ -1891,151 +1475,165 @@ function processScan(classCode) {
     document.getElementById('adminLoginBtn').addEventListener('click', (e) => {
         e.preventDefault();
         const section = document.getElementById('passwordSection');
-        const teacherName = section.dataset.selectedTeacher;
+        const teacherName = section.dataset.selectedTeacher, password = document.getElementById('adminPassword').value.trim();
         const adminType = section.dataset.adminType || '';
-        const password = document.getElementById('adminPassword').value.trim();
+        let expectedPassword = adminType === 'agus' ? getDayName() + 'bismillah' : ({'senin':'seni212', 'selasa':'selas212', 'rabu':'rab212', 'kamis':'kami212', 'jumat':'juma212', 'sabtu':'sabt212', 'ahad':'aha212'})[getDayName()];
 
-        if (!teacherName) { showToast('Pilih nama admin.', 'error'); return; }
-
-        const day = getDayName();
-        let expectedPassword = '';
-        if (adminType === 'agus') {
-            expectedPassword = day + 'bismillah';
-        } else {
-            const map = { 'senin':'seni212', 'selasa':'selas212', 'rabu':'rab212', 'kamis':'kami212', 'jumat':'juma212', 'sabtu':'sabt212', 'ahad':'aha212' };
-            expectedPassword = map[day] || '212';
-        }
-
-        if (password === expectedPassword) {
-            doLogin(teacherName, true, adminType);
-        } else {
-            showToast('Password Salah!', 'error');
-            document.getElementById('adminPassword').value = '';
-        }
+        if (password === expectedPassword) doLogin(teacherName, true, adminType);
+        else { showToast('Password Salah!', 'error'); document.getElementById('adminPassword').value = ''; }
     });
 
-    document.getElementById('adminPassword').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            document.getElementById('adminLoginBtn').click();
-        }
-    });
+    document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
-function doLogin(name, isAdminUser, adminType) {
-        currentUser = name;
-        currentUserData = TEACHERS.find(t => t.name === name) || { name, subjects: [], isAdmin: isAdminUser };
-        isAdmin = isAdminUser;
-        isAgus = (adminType === 'agus');
-
-        document.getElementById('loginScreen').classList.add('hidden');
-        document.getElementById('app').classList.remove('hidden');
-
+    function doLogin(name, isAdminUser, adminType) {
+        currentUser = name; currentUserData = TEACHERS.find(t => t.name === name);
+        isAdmin = isAdminUser; isAgus = (adminType === 'agus');
+        document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('app').classList.remove('hidden');
         document.getElementById('userNameDisplay').textContent = name;
-        const mapel = currentUserData.subjects || [];
-        document.getElementById('userMapelDisplay').textContent = mapel.length > 0 ? mapel.join(', ') : (isAdminUser ? 'Admin' : '-');
+        document.getElementById('userMapelDisplay').textContent = (currentUserData.subjects || []).join(', ') || (isAdminUser ? 'Admin' : '-');
+        document.getElementById('adminTab').classList.toggle('hidden', !isAdminUser); document.getElementById('agusTab').classList.toggle('hidden', !isAgus);
+        if (document.getElementById('manualScanBtn')) { document.getElementById('manualScanBtn').classList.toggle('hidden', !isAgus); if(!isAgus) document.getElementById('manualScanArea')?.classList.add('hidden'); }
 
-        document.getElementById('adminTab').classList.toggle('hidden', !isAdminUser);
-        document.getElementById('agusTab').classList.toggle('hidden', !isAgus);
-        
-        const manualBtn = document.getElementById('manualScanBtn');
-        if(manualBtn) {
-            if(isAgus) {
-                manualBtn.classList.remove('hidden');
-            } else {
-                manualBtn.classList.add('hidden');
-                const manualArea = document.getElementById('manualScanArea');
-                if(manualArea) manualArea.classList.add('hidden');
-            }
-        }
-
-        // PERBAIKAN: Atur mode ke null agar kamera tidak otomatis hidup, dan paksa stopScanner
-        currentMode = null; 
-        updateScanModeUI();
-        stopScanner(); 
-
-        loadHistory();
-        updateClock();
-        updateOfflineStatus();
-        
-        if (navigator.onLine) syncNow(false, true);
-        updateSyncStatus();
-        
+        currentMode = null; updateScanModeUI(); stopScanner();
+        loadHistory(); updateClock(); updateOfflineStatus();
+        if (navigator.onLine) syncNow(false, true); updateSyncStatus();
         showToast(`Assalamu'alaikum ustadz ${name}`, 'success');
-        
-        if (!isAdminUser) localStorage.setItem('absensi_user', name);
-        else localStorage.removeItem('absensi_user');
+        if (!isAdminUser) localStorage.setItem('absensi_user', name); else localStorage.removeItem('absensi_user');
     }
 
     document.getElementById('switchUserBtn').addEventListener('click', () => {
-        stopScanner();
-        document.getElementById('app').classList.add('hidden');
-        document.getElementById('loginScreen').classList.remove('hidden');
+        stopScanner(); document.getElementById('app').classList.add('hidden'); document.getElementById('loginScreen').classList.remove('hidden');
         document.getElementById('passwordSection').classList.add('hidden');
         document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
         currentUser = null; currentUserData = null; isAdmin = false; isAgus = false;
     });
 
-function updateScanModeUI() {
-        const m = currentMode;
-        
-        // PERBAIKAN: Tampilan saat pertama kali login (kamera mati)
-        if (!m) {
+    function updateScanModeUI() {
+        if (!currentMode) {
             document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
             document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
-            document.getElementById('modeMasuk').className = 'btn btn-sm btn-outline';
-            document.getElementById('modeKeluar').className = 'btn btn-sm btn-outline';
+            document.getElementById('modeMasuk').className = 'btn btn-sm btn-outline'; document.getElementById('modeKeluar').className = 'btn btn-sm btn-outline';
             return;
         }
-
-        document.getElementById('scanModeBadge').innerHTML = m === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
-        document.getElementById('scanInstruction').textContent = m === 'masuk' ? 'Arahkan kamera ke QR Code kelas untuk absen MASUK' : 'Arahkan kamera ke QR Code kelas untuk absen KELUAR';
-        document.getElementById('modeMasuk').className = m === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
-        document.getElementById('modeKeluar').className = m === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+        document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
+        document.getElementById('modeMasuk').className = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+        document.getElementById('modeKeluar').className = currentMode === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
     }
+
+    document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
+    document.getElementById('modeKeluar').addEventListener('click', () => { currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
     
-    document.getElementById('modeMasuk').addEventListener('click', () => { 
-        currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300);
-    });
-
-    document.getElementById('modeKeluar').addEventListener('click', () => { 
-        currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300);
-    });
-
     document.getElementById('manualScanBtn').addEventListener('click', () => {
-        const area = document.getElementById('manualScanArea');
-        area.classList.toggle('hidden');
+        const area = document.getElementById('manualScanArea'); area.classList.toggle('hidden');
         if (!area.classList.contains('hidden')) document.getElementById('manualClassInput').focus();
     });
     
     document.getElementById('manualProcessBtn').addEventListener('click', () => {
         const val = document.getElementById('manualClassInput').value.trim().toUpperCase();
-        if (!val) { showToast('Isi kode kelas', 'warning'); return; }
-        if (!CLASSES.includes(val)) { showToast('Kelas invalid', 'error'); return; }
-        processScan(val);
-        document.getElementById('manualClassInput').value = '';
-        document.getElementById('manualScanArea').classList.add('hidden');
+        if (CLASSES.includes(val)) { processScan(val); document.getElementById('manualScanArea').classList.add('hidden'); document.getElementById('manualClassInput').value = ''; }
+        else { showToast('Kelas invalid', 'error'); }
     });
 
     document.getElementById('syncNowBtn').addEventListener('click', () => syncNow(true, true));
     document.getElementById('adminSyncNow').addEventListener('click', () => syncNow(true, true));
     document.getElementById('agusSyncNow').addEventListener('click', () => syncNow(true, true));
 
+    function startScanner() {
+        if (document.getElementById('tabScan').classList.contains('hidden') || !currentMode) return;
+        if (html5QrCode) { stopScanner(); setTimeout(startScanner, 100); return; }
+        
+        html5QrCode = new Html5Qrcode("reader");
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } },
+            (text) => { stopScanner(); processScan(text.trim().toUpperCase()); }, () => {}
+        ).then(() => isScanning = true).catch(() => showToast('Izinkan akses kamera', 'error'));
+    }
+
+    function stopScanner() {
+        if (html5QrCode) { try { html5QrCode.stop().then(() => html5QrCode.clear()); } catch(e){} html5QrCode = null; isScanning = false; }
+    }
+
+    function processScan(classCode) {
+        if (!CLASSES.includes(classCode)) { showScanResult('❌ Kelas invalid: ' + classCode, 'error'); return; }
+        if (!currentUser) { showScanResult('Silakan login.', 'error'); return; }
+
+        const ket = document.getElementById('keteranganInput').value.trim();
+        const now = new Date();
+        const dateStr = now.toISOString().split('T')[0];
+        const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        
+        const jpSaatIni = getCurrentJPInfo(currentMode);
+        const mapel = getMapelForScan(classCode, currentUser, getDayName(), jpSaatIni);
+        
+        const isJumat = (getDayName() === 'jumat');
+        const batasWaktu = (isJumat ? JADWAL_WAKTU.jumat[jpSaatIni] : JADWAL_WAKTU.reguler[jpSaatIni]) || { masuk: '00:00', keluar: '00:00' };
+        const subject = ket ? 'Kegiatan Lain' : (mapel || 'Di Luar Jadwal');
+
+        const record = {
+            teacher: currentUser, class: classCode, subject: subject, action: currentMode || 'masuk',
+            date: dateStr, time: timeStr, day: getDayNameID(), jp: jpSaatIni,
+            jadwal_masuk: batasWaktu.masuk, jadwal_keluar: batasWaktu.keluar,
+            timestamp: now.toISOString(), keterangan: ket, synced: false
+        };
+
+        saveAttendanceLocal(record).then(async (id) => {
+            const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
+            showScanResult(ket ? `${actionIcon} ${classCode} (${ket})` : `${actionIcon} ${classCode} (${subject})`, 'success');
+            addHistoryRow({...record, id});
+            
+            if (navigator.onLine) {
+                try {
+                    const res = await sendToGoogleSheet(record);
+                    if (res.success) { await markSynced([id]); showScanResult(`✅ Data terkirim ke Server!`, 'success'); }
+                    else { showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning'); }
+                } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
+            }
+            updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
+        });
+    }
+
+    function showScanResult(msg, type = 'info') {
+        const el = document.getElementById('scanResult');
+        el.classList.remove('hidden', 'success', 'error', 'info', 'warning'); el.classList.add(type); el.textContent = msg;
+        clearTimeout(el._hideTimer); el._hideTimer = setTimeout(() => el.classList.add('hidden'), 6000);
+    }
+
     function updateClock() {
         const now = new Date();
         document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('loginDayInfo').innerHTML = '<i class="fa-regular fa-calendar"></i> ' + getDayNameID() + ', ' + now.toLocaleDateString('id-ID');
-        document.getElementById('jpDisplay').textContent = getCurrentJPInfo();
+        document.getElementById('jpDisplay').textContent = getCurrentJPInfo(currentMode || 'masuk');
     }
     setInterval(updateClock, 1000);
 
+    function addHistoryRow(record) {
+        const tbody = document.getElementById('historyBody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${record.time}</td><td class="font-bold">${record.class}</td><td>${record.subject}</td><td>${record.action === 'masuk' ? '✅ In' : '🚪 Out'}</td><td class="text-xs">${record.keterangan || '-'}</td>`;
+        tbody.prepend(tr);
+        if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
+        document.getElementById('historyCount').textContent = tbody.children.length;
+    }
+
+    function loadHistory() {
+        if (!currentUser) return;
+        getLocalHistory(currentUser, new Date().toISOString().split('T')[0]).then((data) => {
+            const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
+            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(record => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${record.time}</td><td class="font-bold">${record.class}</td><td>${record.subject}</td><td>${record.action === 'masuk' ? '✅ In' : '🚪 Out'}</td><td class="text-xs">${record.keterangan || '-'}</td>`;
+                tbody.appendChild(tr);
+            });
+            document.getElementById('historyCount').textContent = tbody.children.length;
+        });
+    }
+
+    function playBeep() {
+        try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 1000; osc.type = 'sine'; gain.gain.value = 0.5; osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150); } catch (e) {}
+    }
+
     function updateOfflineStatus() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) {
-            banner.classList.add('show');
-        } else {
-            banner.classList.remove('show');
-            syncNow(false, true); updateSyncStatus();
-        }
+        if (!navigator.onLine) { banner.classList.add('show'); } else { banner.classList.remove('show'); syncNow(false, true); updateSyncStatus(); }
     }
     window.addEventListener('online', () => { updateOfflineStatus(); showToast('🌐 Online: Sync berjalan...', 'success'); });
     window.addEventListener('offline', () => { updateOfflineStatus(); showToast('📴 Offline', 'warning'); });
@@ -2043,17 +1641,13 @@ function updateScanModeUI() {
 
     document.querySelectorAll('#mainTabs .tab').forEach(tab => {
         tab.addEventListener('click', () => {
-            const target = tab.dataset.tab;
-            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active')); tab.classList.add('active');
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('tab' + target.charAt(0).toUpperCase() + target.slice(1))?.classList.remove('hidden');
-
-            stopScanner(); 
-            
-            if (target === 'rekap') loadRekap();
-            if (target === 'admin' && isAdmin) loadAdminData();
-            if (target === 'agus' && isAgus) loadAgusData();
+            document.getElementById('tab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.remove('hidden');
+            stopScanner();
+            if (tab.dataset.tab === 'rekap') loadRekap();
+            if (tab.dataset.tab === 'admin' && isAdmin) loadAdminData();
+            if (tab.dataset.tab === 'agus' && isAgus) loadAgusData();
         });
     });
 
@@ -2062,189 +1656,122 @@ function updateScanModeUI() {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.rekap-filter').forEach(b => { b.classList.remove('active'); b.classList.replace('btn-primary', 'btn-outline'); });
             btn.classList.add('active'); btn.classList.replace('btn-outline', 'btn-primary');
-            rekapFilter = btn.dataset.filter;
-            document.getElementById('rekapPeriode').textContent = btn.textContent.trim();
+            rekapFilter = btn.dataset.filter; document.getElementById('rekapPeriode').textContent = btn.textContent.trim();
             loadRekap();
         });
     });
 
+    // MODIFIKASI: Kalkulasi toleransi keterlambatan dan kecepatan (Sisi Guru)
     async function loadRekap() {
         if (!currentUser) return;
-        const tbody = document.getElementById('rekapBody');
-        tbody.innerHTML = '';
-
+        const tbody = document.getElementById('rekapBody'); tbody.innerHTML = '';
         try {
             const allData = await getLocalHistory(currentUser, '');
             const now = new Date(); const today = now.toISOString().split('T')[0];
-            let filtered = allData;
+            let filtered = allData.filter(d => {
+                if(rekapFilter === 'day') return d.date === today;
+                if(rekapFilter === 'week') return d.date >= new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
+                if(rekapFilter === 'month') return d.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                if(rekapFilter === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
+                return true;
+            }).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
 
-            if (rekapFilter === 'day') filtered = allData.filter(d => d.date === today);
-            else if (rekapFilter === 'week') {
-                const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
-                filtered = allData.filter(d => d.date >= ws.toISOString().split('T')[0]);
-            } else if (rekapFilter === 'month') {
-                const ms = new Date(now.getFullYear(), now.getMonth(), 1);
-                filtered = allData.filter(d => d.date >= ms.toISOString().split('T')[0]);
-            } else if (rekapFilter === 'semester') {
-                const sm = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
-                filtered = allData.filter(d => d.date >= sm.toISOString().split('T')[0]);
-            }
-
-            filtered.sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+            const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
+            let lateCount = 0; let earlyCount = 0;
 
             if (filtered.length === 0) {
                 document.getElementById('rekapEmpty').classList.remove('hidden');
-                document.getElementById('rekapSummary').querySelectorAll('.num').forEach(el => el.textContent = '0');
-                return;
+                document.getElementById('rekapSummary').querySelectorAll('.num').forEach(el => el.textContent = '0'); return;
             }
             document.getElementById('rekapEmpty').classList.add('hidden');
 
-            document.getElementById('statTotal').textContent = filtered.length;
-
-            filtered.forEach(record => {
+            filtered.forEach(r => {
+                if (r.action === 'masuk' && r.jadwal_masuk) {
+                    let j = parseTime(r.jadwal_masuk); let w = parseTime(r.time);
+                    if (j && w && Math.round((w-j)/60000) > tol) lateCount++;
+                }
+                if (r.action === 'keluar' && r.jadwal_keluar) {
+                    let j = parseTime(r.jadwal_keluar); let w = parseTime(r.time);
+                    if (j && w && Math.round((j-w)/60000) > tol) earlyCount++;
+                }
                 const tr = document.createElement('tr');
-                const status = record.action === 'masuk' ? 'In' : 'Out';
-                tr.innerHTML = `
-                    <td>${record.date}</td>
-                    <td class="font-bold">${record.class}</td>
-                    <td>${record.subject}</td>
-                    <td>${record.action === 'masuk' ? record.time : '-'}</td>
-                    <td>${record.action === 'keluar' ? record.time : '-'}</td>
-                    <td><span class="badge ${record.action==='masuk'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'} px-2 py-1 rounded text-xs font-bold">${status}</span></td>
-                    <td class="text-xs">${record.keterangan || '-'}</td>
-                `;
+                tr.innerHTML = `<td>${r.date}</td><td class="font-bold">${r.class}</td><td>${r.subject}</td>
+                                <td>${r.action === 'masuk' ? r.time : '-'}</td><td>${r.action === 'keluar' ? r.time : '-'}</td>
+                                <td><span class="badge ${r.action==='masuk'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'} px-2 py-1 rounded text-xs font-bold">${r.action==='masuk'?'In':'Out'}</span></td>
+                                <td class="text-xs">${r.keterangan || '-'}</td>`;
                 tbody.appendChild(tr);
             });
-        } catch (e) {
-            document.getElementById('rekapEmpty').classList.remove('hidden');
-            document.getElementById('rekapEmpty').textContent = 'Error load data';
-        }
+            document.getElementById('statTotal').textContent = filtered.length; document.getElementById('statLate').textContent = lateCount; document.getElementById('statEarly').textContent = earlyCount;
+        } catch (e) { document.getElementById('rekapEmpty').classList.remove('hidden'); document.getElementById('rekapEmpty').textContent = 'Error load data'; }
     }
 
     function initAdminFilters() {
         const filterSelect = document.getElementById('adminTeacherFilter');
-        TEACHERS.forEach(t => {
-            const opt = document.createElement('option');
-            opt.value = t.name;
-            opt.textContent = t.name;
-            filterSelect.appendChild(opt);
-        });
+        TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
 	
-async function loadAdminData() {
-    if (!isAdmin) return;
-    const tbody = document.getElementById('adminBody');
-    const filterTeacher = document.getElementById('adminTeacherFilter').value;
-    const filterPeriod = document.getElementById('adminPeriodFilter').value;
-    
-    tbody.innerHTML = '<tr><td colspan="9" class="text-center">Memuat data dari Google Sheets...</td></tr>';
-    
-    try {
-        const response = await fetch(GAS_URL + '?action=getAbsensi');
-        const res = await response.json();
+    // MODIFIKASI: Kalkulasi toleransi waktu (Dashboard Admin)
+    async function loadAdminData() {
+        if (!isAdmin) return;
+        const tbody = document.getElementById('adminBody');
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center">Memuat data dari Google Sheets...</td></tr>';
         
-        if (!res.success) throw new Error(res.error);
-        
-        const now = new Date();
-        const todayStr = now.toISOString().split('T')[0];
+        try {
+            const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
+            if (!res.success) throw new Error(res.error);
+            const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
+            const filterTeacher = document.getElementById('adminTeacherFilter').value;
+            const filterPeriod = document.getElementById('adminPeriodFilter').value;
+            const todayStr = new Date().toISOString().split('T')[0];
 
-        let filtered = res.data.filter(d => {
-            if (filterTeacher !== 'all' && d.teacher !== filterTeacher) return false;
-            if (filterPeriod === 'day') return d.date === todayStr;
-            if (filterPeriod === 'week') {
-                const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
-                return d.date >= ws.toISOString().split('T')[0];
-            }
-            if (filterPeriod === 'month') {
-                const ms = new Date(now.getFullYear(), now.getMonth(), 1);
-                return d.date >= ms.toISOString().split('T')[0];
-            }
-            return true;
-        });
-
-        // KELOMPOKKAN MASUK DAN KELUAR
-        const grouped = {};
-        filtered.forEach(d => {
-            if (!d.date || !d.teacher || !d.jp) return;
-            const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
-            if (!grouped[key]) {
-                grouped[key] = {
-                    date: d.date, teacher: d.teacher, subject: d.subject, class: d.class, jp: d.jp,
-                    jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
-                    waktu_masuk: '-', waktu_keluar: '-'
-                };
-            }
-            if (d.action === 'masuk') {
-                grouped[key].waktu_masuk = d.time;
-                grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk;
-            } else if (d.action === 'keluar') {
-                grouped[key].waktu_keluar = d.time;
-                grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar;
-            }
-        });
-
-        function parseTime(t) {
-            if(!t || t==='-') return null;
-            let pts = t.split(':'); let d = new Date();
-            d.setHours(parseInt(pts[0],10), parseInt(pts[1],10), 0, 0);
-            return d;
-        }
-
-        let totalLate = 0; let totalEarly = 0; let totalRecords = 0;
-        const finalData = Object.values(grouped).sort((a,b) => a.date.localeCompare(b.date) || a.teacher.localeCompare(b.teacher));
-
-        tbody.innerHTML = '';
-        if (finalData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data.</td></tr>';
-        } else {
-            finalData.forEach(g => {
-                let telatMenit = 0; let cepatMenit = 0;
-                let jM = parseTime(g.jadwal_masuk); let wM = parseTime(g.waktu_masuk);
-                if(jM && wM && wM > jM) telatMenit = Math.round((wM - jM) / 60000);
-                
-                let jK = parseTime(g.jadwal_keluar); let wK = parseTime(g.waktu_keluar);
-                if(jK && wK && wK < jK) cepatMenit = Math.round((jK - wK) / 60000);
-
-                totalLate += telatMenit; totalEarly += cepatMenit; totalRecords++;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${g.date}</td>
-                    <td class="font-bold">${g.teacher}</td>
-                    <td>${g.subject}</td>
-                    <td>${g.class}</td>
-                    <td>${g.jp}</td>
-                    <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
-                    <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
-                    <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td>
-                    <td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>
-                `;
-                tbody.appendChild(tr);
+            let filtered = res.data.filter(d => {
+                if (filterTeacher !== 'all' && d.teacher !== filterTeacher) return false;
+                if (filterPeriod === 'day') return d.date === todayStr;
+                if (filterPeriod === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
+                if (filterPeriod === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+                return true;
             });
-        }
-        document.getElementById('adminStatTotal').textContent = totalRecords;
-        document.getElementById('adminStatLate').textContent = totalLate + ' Mnt';
-        document.getElementById('adminStatEarly').textContent = totalEarly + ' Mnt';
-    } catch (e) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-danger">Gagal memuat data: ' + e.message + '</td></tr>';
+
+            const grouped = {};
+            filtered.forEach(d => {
+                if (!d.date || !d.teacher || !d.jp) return;
+                const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
+                if (!grouped[key]) grouped[key] = { date: d.date, teacher: d.teacher, subject: d.subject, class: d.class, jp: d.jp, jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-', waktu_masuk: '-', waktu_keluar: '-' };
+                if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; }
+                if (d.action === 'keluar') { grouped[key].waktu_keluar = d.time; grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; }
+            });
+
+            let tLate = 0, tEarly = 0; tbody.innerHTML = '';
+            const finalData = Object.values(grouped).sort((a,b) => a.date.localeCompare(b.date) || a.teacher.localeCompare(b.teacher));
+            
+            if (finalData.length === 0) tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data.</td></tr>';
+            else {
+                finalData.forEach(g => {
+                    let telatMenit = 0, cepatMenit = 0;
+                    let jM = parseTime(g.jadwal_masuk), wM = parseTime(g.waktu_masuk);
+                    if (jM && wM) { let diff = Math.round((wM - jM) / 60000); if (diff > tol) telatMenit = diff; }
+                    
+                    let jK = parseTime(g.jadwal_keluar), wK = parseTime(g.waktu_keluar);
+                    if (jK && wK) { let diff = Math.round((jK - wK) / 60000); if (diff > tol) cepatMenit = diff; }
+                    
+                    tLate += telatMenit; tEarly += cepatMenit;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td>${g.jp}</td>
+                        <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
+                        <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
+                        <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>`;
+                    tbody.appendChild(tr);
+                });
+            }
+            document.getElementById('adminStatTotal').textContent = finalData.length; document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
     }
-}
+
     function exportTableToExcel(tableId, filename = 'Data_Absensi.xls') {
-        const table = document.getElementById(tableId);
-        if (!table) return;
-        const tableClone = table.cloneNode(true);
-        const template = `
-            <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-            <head><meta charset="UTF-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Sheet1</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head>
-            <body><table>${tableClone.innerHTML}</table></body>
-            </html>`;
-        const blob = new Blob([template], { type: 'application/vnd.ms-excel' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        a.click();
-        URL.revokeObjectURL(url);
+        const table = document.getElementById(tableId); if (!table) return;
+        const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table>${table.cloneNode(true).innerHTML}</table></body></html>`;
+        const blob = new Blob([template], { type: 'application/vnd.ms-excel' }); const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
     }
 
     document.getElementById('adminTeacherFilter').addEventListener('change', loadAdminData);
@@ -2262,107 +1789,86 @@ async function loadAdminData() {
 
     document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
 
+    // MODIFIKASI: Kalkulasi toleransi waktu di Laporan Master (Agus)
     async function loadAgusData() {
         if (!isAgus) return;
         const tbody = document.getElementById('agusBody');
         const period = document.getElementById('agusFilterPeriod').value;
+        const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
         
         tbody.innerHTML = '<tr><td colspan="5" class="text-center">Mengambil data dari Google Sheet...</td></tr>';
         
         try {
             const response = await fetch(GAS_URL + '?action=getAbsensi');
-            const text = await response.text();
-            let res;
-            try { res = JSON.parse(text); } catch (e) { throw new Error("Server mengirim HTML."); }
+            const res = await response.json();
             if (!res.success) throw new Error(res.error);
             
-            let data = res.data;
             const now = new Date();
-            
-            let filtered = data.filter(d => {
+            let filtered = res.data.filter(d => {
                 if (!d.date) return false;
                 if (period === 'day') return d.date === now.toISOString().split('T')[0];
-                if (period === 'week') {
-                    const ws = new Date(now); ws.setDate(now.getDate() - now.getDay() + 1);
-                    return d.date >= ws.toISOString().split('T')[0];
-                }
-                if (period === 'month') {
-                    const ms = new Date(now.getFullYear(), now.getMonth(), 1);
-                    return d.date >= ms.toISOString().split('T')[0];
-                }
+                if (period === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
+                if (period === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+                if (period === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
                 return true;
             });
 
             const reportMap = {};
             filtered.forEach(d => {
-                if (!reportMap[d.teacher]) {
-                    reportMap[d.teacher] = { name: d.teacher, mapel: d.subject || '-', total: 0 };
-                }
+                if (!reportMap[d.teacher]) reportMap[d.teacher] = { name: d.teacher, mapel: d.subject || '-', total: 0, telat: 0, cepat: 0 };
                 reportMap[d.teacher].total++;
+                
+                if (d.action === 'masuk' && d.jadwal_masuk) {
+                    let j = parseTime(d.jadwal_masuk); let w = parseTime(d.time);
+                    if (j && w && Math.round((w-j)/60000) > tol) reportMap[d.teacher].telat++;
+                }
+                if (d.action === 'keluar' && d.jadwal_keluar) {
+                    let j = parseTime(d.jadwal_keluar); let w = parseTime(d.time);
+                    if (j && w && Math.round((j-w)/60000) > tol) reportMap[d.teacher].cepat++;
+                }
             });
 
             tbody.innerHTML = '';
             Object.values(reportMap).forEach(item => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="font-bold">${item.name}</td>
-                    <td>${item.mapel}</td>
-                    <td class="text-warning font-bold">0</td>
-                    <td class="text-danger font-bold">0</td>
-                    <td class="text-primary font-bold">${item.total}</td>
-                `;
+                tr.innerHTML = `<td class="font-bold">${item.name}</td><td>${item.mapel}</td>
+                    <td class="${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
+                    <td class="${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
+                    <td class="text-primary font-bold">${item.total}</td>`;
                 tbody.appendChild(tr);
             });
-            
-            if (Object.keys(reportMap).length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada data ditemukan.</td></tr>';
-            }
-            
-        } catch (e) {
-            tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${e.message}</td></tr>`;
-        }
+            if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada data.</td></tr>';
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${e.message}</td></tr>`; }
     }
 
     document.getElementById('agusEditLink').addEventListener('click', () => {
-        document.getElementById('modalContent').innerHTML = `
-            <div class="input-group">
-                <label>URL Apps Script Terpasang</label>
-                <input type="text" id="gasUrlInput" value="${GAS_URL}" />
-            </div>
-            <button class="btn btn-primary" id="saveGasUrl">Simpan Link</button>
-        `;
+        document.getElementById('modalContent').innerHTML = `<div class="input-group"><label>URL Apps Script Terpasang</label><input type="text" id="gasUrlInput" value="${GAS_URL}" /></div><button class="btn btn-primary" id="saveGasUrl">Simpan Link</button>`;
         document.getElementById('modalOverlay').classList.remove('hidden');
         document.getElementById('saveGasUrl').onclick = () => {
-            GAS_URL = document.getElementById('gasUrlInput').value.trim();
-            localStorage.setItem('GAS_URL', GAS_URL);
-            showToast('Link Disimpan!', 'success');
-            document.getElementById('modalOverlay').classList.add('hidden');
+            GAS_URL = document.getElementById('gasUrlInput').value.trim(); localStorage.setItem('GAS_URL', GAS_URL); showToast('Link Disimpan!', 'success'); document.getElementById('modalOverlay').classList.add('hidden');
         };
     });
 
     document.getElementById('agusGenQR').addEventListener('click', () => {
-        let html = '<div class="grid-2">';
-        CLASSES.forEach(cls => {
-            html += `<div class="card text-center p-2"><h2 class="text-primary font-bold text-2xl">${cls}</h2></div>`;
-        });
-        html += '</div>';
-        document.getElementById('modalContent').innerHTML = html;
-        document.getElementById('modalOverlay').classList.remove('hidden');
+        let html = '<div class="grid-2">'; CLASSES.forEach(cls => { html += `<div class="card text-center p-2"><h2 class="text-primary font-bold text-2xl">${cls}</h2></div>`; }); html += '</div>';
+        document.getElementById('modalContent').innerHTML = html; document.getElementById('modalOverlay').classList.remove('hidden');
     });
 
     document.getElementById('modalClose').addEventListener('click', () => { document.getElementById('modalOverlay').classList.add('hidden'); });
 
+    function showToast(msg, type = 'info') {
+        const container = document.getElementById('toastContainer'); const toast = document.createElement('div');
+        let icon = '';
+        if (type === 'success') icon = '<i class="fa-solid fa-circle-check"></i>'; if (type === 'error') icon = '<i class="fa-solid fa-circle-xmark"></i>';
+        if (type === 'warning') icon = '<i class="fa-solid fa-triangle-exclamation"></i>'; if (type === 'info') icon = '<i class="fa-solid fa-circle-info"></i>';
+        toast.className = 'toast ' + type; toast.innerHTML = `${icon} <span>${msg}</span>`; container.appendChild(toast);
+        setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(10px) translateX(-50%)'; setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300); }, 3000);
+    }
+
     document.addEventListener('DOMContentLoaded', async () => {
-        await openDB();
-        renderTeacherList();
-        document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
-        document.getElementById('jpDisplay').textContent = getCurrentJPInfo();
-        initAdminFilters();
-        const savedUser = localStorage.getItem('absensi_user');
-        if (savedUser) {
-            const t = TEACHERS.find(x => x.name === savedUser);
-            if (t && !t.isAdmin) doLogin(savedUser, false, '');
-        }
+        await openDB(); renderTeacherList(); document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
+        document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); initAdminFilters();
+        const savedUser = localStorage.getItem('absensi_user'); if (savedUser) { const t = TEACHERS.find(x => x.name === savedUser); if (t && !t.isAdmin) doLogin(savedUser, false, ''); }
         updateOfflineStatus();
     });
 </script>
