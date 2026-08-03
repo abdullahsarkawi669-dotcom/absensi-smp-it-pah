@@ -586,7 +586,6 @@
 
     let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxV2GcDV9W7SJGZrijYW5wJUkuh2lqH-EizSprchY7_8LegPT38mEmOcf7QP0-CtZw5Mg/exec';
 
-    // JADWAL WAKTU TETAP DIPERTAHANKAN
     const JADWAL_WAKTU = {
         reguler: {
             'JP 1': { masuk: '07:30', keluar: '08:10' },
@@ -618,9 +617,6 @@
         });
     });
 
-    // =====================================================================
-    // SELURUH JADWAL MANUAL DIPERTAHANKAN SESUAI FILE ASLI (JANGAN DIUBAH)
-    // =====================================================================
     // KELAS 7A
     jadwalPelajaran['senin']['JP 2']['7A'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
     jadwalPelajaran['senin']['JP 5']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
@@ -1147,9 +1143,6 @@
     jadwalPelajaran['sabtu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
     jadwalPelajaran['sabtu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
 
-    // ==========================================
-    // LOGIKA PENGURAIAN MAPEL (KOPEL TAHFIZH, OLAHRAGA, SBDP DIPERTAHANKAN)
-    // ==========================================
     function getMapelForScan(kelas, guruName, hari, jp) {
         hari = (hari || "").toLowerCase();
         
@@ -1181,9 +1174,6 @@
         return null;
     }
 
-    // ==========================================
-    // FUNGSI GLOBAL & HELPER 
-    // ==========================================
     function parseTime(t) {
         if(!t || t==='-') return null;
         let pts = t.split(':'); let d = new Date();
@@ -1194,7 +1184,6 @@
     function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
     function getDayNameID() { return ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]; }
 
-    // MODIFIKASI: Deteksi JP toleransi 10 menit berdasarkan mode (masuk/keluar)
     function getCurrentJPInfo(mode = '') {
         const now = new Date();
         const totalMins = (now.getHours() * 60) + now.getMinutes();
@@ -1222,17 +1211,12 @@
             if (isValid) {
                 let center = (m + k) / 2;
                 let diff = Math.abs(totalMins - center);
-                if (diff < minDiff) {
-                    minDiff = diff; bestJP = jp;
-                }
+                if (diff < minDiff) { minDiff = diff; bestJP = jp; }
             }
         }
         return bestJP;
     }
 
-    // ==========================================
-    // DATABASE INDEXEDDB 
-    // ==========================================
     const DB_NAME = 'AbsensiGuruDB';
     const STORE_NAME = 'attendance';
     let db = null;
@@ -1298,7 +1282,6 @@
         });
     }
 
-    // MODIFIKASI: Hapus permanen data temporary jika sukses tersinkron (mengganti store.put dengan store.delete)
     function markSynced(ids) {
         return new Promise((resolve, reject) => {
             if (!db) { reject(new Error('DB not open')); return; }
@@ -1331,9 +1314,7 @@
         });
     }
 
-    function countPendingSync() {
-        return getUnsynced().then(res => res.length).catch(() => 0);
-    }
+    function countPendingSync() { return getUnsynced().then(res => res.length).catch(() => 0); }
 
     async function sendToGoogleSheet(record) {
         try {
@@ -1345,8 +1326,7 @@
                 keterangan: record.keterangan || ''
             };
             const response = await fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ api_action: 'addAttendance', ...payload })
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -1410,8 +1390,7 @@
                 if (showLog) addSyncLog(`⚠️ ${msg}`, 'error');
                 if (showToastMsg) showToast(`⚠️ ${failCount} gagal. Cek log Admin.`, 'error');
             }
-            updateSyncStatus();
-            loadHistory(); loadRekap(); 
+            updateSyncStatus(); loadHistory(); loadRekap(); 
             return { success: failCount === 0, message: msg };
         } catch (e) {
             if (showLog) addSyncLog(`❌ Error: ${e.message}`, 'error');
@@ -1432,21 +1411,17 @@
     }
 
     function addSyncLog(message, type = 'info') {
-        const logContainer = document.getElementById('syncLog');
-        if (!logContainer) return;
+        const logContainer = document.getElementById('syncLog'); if (!logContainer) return;
         const entry = document.createElement('div'); entry.className = `entry ${type}`;
         entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
         logContainer.appendChild(entry); logContainer.scrollTop = logContainer.scrollHeight;
         while (logContainer.children.length > 100) logContainer.removeChild(logContainer.firstChild);
     }
 
-    // ==========================================
-    // UI & LOGIKA SCAN
-    // ==========================================
     let html5QrCode = null, isScanning = false, currentMode = 'masuk', currentUser = null, currentUserData = null;
     let isAdmin = false, isAgus = false;
+    let adminViewMode = 'all'; 
 
-    // MODIFIKASI: Menghilangkan `touchend` event untuk menghindari klik tak sengaja saat scroll
     function renderTeacherList() {
         const container = document.getElementById('teacherList'); container.innerHTML = '';
         [...TEACHERS].sort((a, b) => a.name.localeCompare(b.name)).forEach(t => {
@@ -1661,48 +1636,98 @@
         });
     });
 
-    // MODIFIKASI: Kalkulasi toleransi keterlambatan dan kecepatan (Sisi Guru)
+    document.querySelectorAll('.admin-view').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.admin-view').forEach(b => { b.classList.remove('active', 'btn-primary'); b.classList.add('btn-outline'); });
+            btn.classList.remove('btn-outline'); btn.classList.add('active', 'btn-primary');
+            adminViewMode = btn.dataset.view;
+            loadAdminData();
+        });
+    });
+
+    // MEMPERBARUI FUNGSI REKAP UNTUK MENARIK DATA DARI SERVER
     async function loadRekap() {
         if (!currentUser) return;
-        const tbody = document.getElementById('rekapBody'); tbody.innerHTML = '';
+        const tbody = document.getElementById('rekapBody'); 
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center font-bold text-gray-500 py-6"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menarik data dari server...</td></tr>';
+        
         try {
-            const allData = await getLocalHistory(currentUser, '');
-            const now = new Date(); const today = now.toISOString().split('T')[0];
-            let filtered = allData.filter(d => {
+            const response = await fetch(GAS_URL + '?action=getAbsensi');
+            const res = await response.json();
+            if (!res.success) throw new Error(res.error);
+
+            const now = new Date(); 
+            const today = now.toISOString().split('T')[0];
+            
+            let filtered = res.data.filter(d => {
+                if (d.teacher !== currentUser) return false;
                 if(rekapFilter === 'day') return d.date === today;
                 if(rekapFilter === 'week') return d.date >= new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
                 if(rekapFilter === 'month') return d.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                if(rekapFilter === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
-                return true;
-            }).sort((a, b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+                return true; // Untuk 'all' (semua)
+            });
 
             const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
             let lateCount = 0; let earlyCount = 0;
 
-            if (filtered.length === 0) {
+            const grouped = {};
+            filtered.forEach(d => {
+                if (!d.date || !d.class || !d.jp) return;
+                const key = d.date + '_' + d.class + '_' + d.jp;
+                if (!grouped[key]) grouped[key] = {
+                    date: d.date, class: d.class, subject: d.subject, jp: d.jp,
+                    jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
+                    waktu_masuk: '-', waktu_keluar: '-', ket: d.keterangan || '-'
+                };
+                if (d.action === 'masuk') {
+                    grouped[key].waktu_masuk = d.time;
+                    grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk;
+                    if(d.keterangan) grouped[key].ket = d.keterangan;
+                }
+                if (d.action === 'keluar') {
+                    grouped[key].waktu_keluar = d.time;
+                    grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar;
+                    if(d.keterangan && grouped[key].ket === '-') grouped[key].ket = d.keterangan;
+                }
+            });
+
+            const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || b.waktu_masuk.localeCompare(a.waktu_masuk));
+
+            tbody.innerHTML = '';
+            if (finalData.length === 0) {
                 document.getElementById('rekapEmpty').classList.remove('hidden');
-                document.getElementById('rekapSummary').querySelectorAll('.num').forEach(el => el.textContent = '0'); return;
+                document.getElementById('rekapSummary').querySelectorAll('.num').forEach(el => el.textContent = '0'); 
+                return;
             }
             document.getElementById('rekapEmpty').classList.add('hidden');
 
-            filtered.forEach(r => {
-                if (r.action === 'masuk' && r.jadwal_masuk) {
-                    let j = parseTime(r.jadwal_masuk); let w = parseTime(r.time);
-                    if (j && w && Math.round((w-j)/60000) > tol) lateCount++;
-                }
-                if (r.action === 'keluar' && r.jadwal_keluar) {
-                    let j = parseTime(r.jadwal_keluar); let w = parseTime(r.time);
-                    if (j && w && Math.round((j-w)/60000) > tol) earlyCount++;
-                }
+            finalData.forEach(r => {
+                let isLate = false, isEarly = false;
+                let jM = parseTime(r.jadwal_masuk); let wM = parseTime(r.waktu_masuk);
+                if (jM && wM && Math.round((wM-jM)/60000) > tol) { lateCount++; isLate = true; }
+                
+                let jK = parseTime(r.jadwal_keluar); let wK = parseTime(r.waktu_keluar);
+                if (jK && wK && Math.round((jK-wK)/60000) > tol) { earlyCount++; isEarly = true; }
+
+                let statusHTML = '';
+                if (isLate && isEarly) statusHTML = '<span class="badge bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Telat & Cepat</span>';
+                else if (isLate) statusHTML = '<span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold">Telat</span>';
+                else if (isEarly) statusHTML = '<span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold">Cepat</span>';
+                else statusHTML = '<span class="badge bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">Tepat Waktu</span>';
+
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${r.date}</td><td class="font-bold">${r.class}</td><td>${r.subject}</td>
-                                <td>${r.action === 'masuk' ? r.time : '-'}</td><td>${r.action === 'keluar' ? r.time : '-'}</td>
-                                <td><span class="badge ${r.action==='masuk'?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'} px-2 py-1 rounded text-xs font-bold">${r.action==='masuk'?'In':'Out'}</span></td>
-                                <td class="text-xs">${r.keterangan || '-'}</td>`;
+                                <td>${r.waktu_masuk}</td><td>${r.waktu_keluar}</td>
+                                <td>${statusHTML}</td>
+                                <td class="text-xs">${r.ket}</td>`;
                 tbody.appendChild(tr);
             });
-            document.getElementById('statTotal').textContent = filtered.length; document.getElementById('statLate').textContent = lateCount; document.getElementById('statEarly').textContent = earlyCount;
-        } catch (e) { document.getElementById('rekapEmpty').classList.remove('hidden'); document.getElementById('rekapEmpty').textContent = 'Error load data'; }
+            document.getElementById('statTotal').textContent = finalData.length; document.getElementById('statLate').textContent = lateCount; document.getElementById('statEarly').textContent = earlyCount;
+        } catch (e) { 
+            tbody.innerHTML = ''; 
+            document.getElementById('rekapEmpty').classList.remove('hidden'); 
+            document.getElementById('rekapEmpty').textContent = 'Koneksi gagal saat memuat data server'; 
+        }
     }
 
     function initAdminFilters() {
@@ -1710,7 +1735,6 @@
         TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
 	
-    // MODIFIKASI: Kalkulasi toleransi waktu (Dashboard Admin)
     async function loadAdminData() {
         if (!isAdmin) return;
         const tbody = document.getElementById('adminBody');
@@ -1741,29 +1765,38 @@
                 if (d.action === 'keluar') { grouped[key].waktu_keluar = d.time; grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; }
             });
 
-            let tLate = 0, tEarly = 0; tbody.innerHTML = '';
+            let tLate = 0, tEarly = 0, visibleRecords = 0; 
+            tbody.innerHTML = '';
             const finalData = Object.values(grouped).sort((a,b) => a.date.localeCompare(b.date) || a.teacher.localeCompare(b.teacher));
             
-            if (finalData.length === 0) tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data.</td></tr>';
-            else {
-                finalData.forEach(g => {
-                    let telatMenit = 0, cepatMenit = 0;
-                    let jM = parseTime(g.jadwal_masuk), wM = parseTime(g.waktu_masuk);
-                    if (jM && wM) { let diff = Math.round((wM - jM) / 60000); if (diff > tol) telatMenit = diff; }
-                    
-                    let jK = parseTime(g.jadwal_keluar), wK = parseTime(g.waktu_keluar);
-                    if (jK && wK) { let diff = Math.round((jK - wK) / 60000); if (diff > tol) cepatMenit = diff; }
-                    
-                    tLate += telatMenit; tEarly += cepatMenit;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td>${g.jp}</td>
-                        <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
-                        <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
-                        <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>`;
-                    tbody.appendChild(tr);
-                });
+            finalData.forEach(g => {
+                let telatMenit = 0, cepatMenit = 0;
+                let jM = parseTime(g.jadwal_masuk), wM = parseTime(g.waktu_masuk);
+                if (jM && wM) { let diff = Math.round((wM - jM) / 60000); if (diff > tol) telatMenit = diff; }
+                
+                let jK = parseTime(g.jadwal_keluar), wK = parseTime(g.waktu_keluar);
+                if (jK && wK) { let diff = Math.round((jK - wK) / 60000); if (diff > tol) cepatMenit = diff; }
+                
+                if (adminViewMode === 'late' && telatMenit === 0) return;
+                if (adminViewMode === 'early' && cepatMenit === 0) return;
+                
+                tLate += telatMenit; tEarly += cepatMenit; visibleRecords++;
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td>${g.jp}</td>
+                    <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
+                    <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
+                    <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>`;
+                tbody.appendChild(tr);
+            });
+            
+            if (visibleRecords === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data yang sesuai filter.</td></tr>';
             }
-            document.getElementById('adminStatTotal').textContent = finalData.length; document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
+
+            document.getElementById('adminStatTotal').textContent = visibleRecords; 
+            document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
+            document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
         } catch (e) { tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
     }
 
@@ -1789,7 +1822,6 @@
 
     document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
 
-    // MODIFIKASI: Kalkulasi toleransi waktu di Laporan Master (Agus)
     async function loadAgusData() {
         if (!isAgus) return;
         const tbody = document.getElementById('agusBody');
@@ -1866,6 +1898,23 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
+        // GANTI TEKS TOMBOL FILTER ADMIN
+        const btnEarly = document.querySelector('.admin-view[data-view="early"]');
+        if (btnEarly) btnEarly.textContent = 'Keluar Cepat';
+
+        // GANTI TEKS TOMBOL SEMESTER MENJADI SEMUA & UBAH VALUE DATA FILTER
+        const btnSem = document.querySelector('.rekap-filter[data-filter="semester"]');
+        if (btnSem) {
+            btnSem.textContent = 'Semua';
+            btnSem.dataset.filter = 'all';
+        }
+
+        // PERBAIKI HEADER TABEL ADMIN SECARA OTOMATIS
+        const adminThead = document.querySelector('#adminBody')?.parentElement?.querySelector('thead');
+        if (adminThead) {
+            adminThead.innerHTML = '<tr><th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Cepat</th></tr>';
+        }
+
         await openDB(); renderTeacherList(); document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
         document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); initAdminFilters();
         const savedUser = localStorage.getItem('absensi_user'); if (savedUser) { const t = TEACHERS.find(x => x.name === savedUser); if (t && !t.isAdmin) doLogin(savedUser, false, ''); }
