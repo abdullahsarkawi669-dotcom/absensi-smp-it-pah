@@ -387,19 +387,19 @@
                     <button class="btn btn-sm btn-primary rekap-filter active" data-filter="day">Hari</button>
                     <button class="btn btn-sm btn-outline rekap-filter" data-filter="week">Pekan</button>
                     <button class="btn btn-sm btn-outline rekap-filter" data-filter="month">Bulan</button>
-                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="semester">Semester</button>
+                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="semester">Semua</button>
                 </div>
 
                 <div class="report-summary" id="rekapSummary">
-                    <div class="stat"><div class="num text-primary" id="statTotal">0</div><div class="label">Total Absen</div></div>
-                    <div class="stat"><div class="num text-warning" id="statLate">0</div><div class="label">Terlambat</div></div>
-                    <div class="stat"><div class="num text-danger" id="statEarly">0</div><div class="label">Pulang Cepat</div></div>
+                    <div class="stat"><div class="num text-primary" id="statTotal">0</div><div class="label">Total Sesi</div></div>
+                    <div class="stat"><div class="num text-warning" id="statLate">0</div><div class="label">Mnt Telat</div></div>
+                    <div class="stat"><div class="num text-danger" id="statEarly">0</div><div class="label">Mnt Cepat</div></div>
                 </div>
 
                 <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
                     <table>
                         <thead>
-                            <tr><th>Tanggal</th><th>Kelas</th><th>Mapel</th><th>In</th><th>Out</th><th>Status</th><th>Ket</th></tr>
+                            <tr><th>Tgl</th><th>Kelas</th><th>Mapel</th><th>In</th><th>Out</th><th>Status</th><th>Ket</th></tr>
                         </thead>
                         <tbody id="rekapBody"></tbody>
                     </table>
@@ -422,7 +422,7 @@
                 <div class="flex gap-2 mb-4">
                     <button class="btn btn-sm btn-primary admin-view active" data-view="all">Semua</button>
                     <button class="btn btn-sm btn-outline admin-view" data-view="late">Terlambat</button>
-                    <button class="btn btn-sm btn-outline admin-view" data-view="early">Pulang Cepat</button>
+                    <button class="btn btn-sm btn-outline admin-view" data-view="early">Keluar Cepat</button>
                 </div>
 
                 <div class="input-group">
@@ -431,9 +431,9 @@
                 </div>
 
                 <div class="report-summary" id="adminSummary">
-                    <div class="stat"><div class="num text-primary" id="adminStatTotal">0</div><div class="label">Total</div></div>
-                    <div class="stat"><div class="num text-warning" id="adminStatLate">0</div><div class="label">Lambat</div></div>
-                    <div class="stat"><div class="num text-danger" id="adminStatEarly">0</div><div class="label">Cepat</div></div>
+                    <div class="stat"><div class="num text-primary" id="adminStatTotal">0</div><div class="label">Total Sesi</div></div>
+                    <div class="stat"><div class="num text-warning" id="adminStatLate">0</div><div class="label">Mnt Telat</div></div>
+                    <div class="stat"><div class="num text-danger" id="adminStatEarly">0</div><div class="label">Mnt Cepat</div></div>
                 </div>
 
                 <div class="input-group">
@@ -449,7 +449,7 @@
                 <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
                     <table>
                         <thead>
-                            <tr><th>Guru</th><th>Mapel</th><th>Kelas</th><th>In</th><th>Out</th><th>Status</th><th>Ket</th></tr>
+                            <tr><th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Cepat</th></tr>
                         </thead>
                         <tbody id="adminBody"></tbody>
                     </table>
@@ -515,7 +515,7 @@
                 <div class="table-wrap mt-4" style="max-height:350px;overflow-y:auto;">
                     <table>
                         <thead>
-                            <tr><th>Nama Guru</th><th>Mapel</th><th>Telat</th><th>Cepat</th><th>Total</th></tr>
+                            <tr><th>Nama Guru</th><th>Mapel</th><th>Mnt Telat</th><th>Mnt Cepat</th><th>Total Sesi</th></tr>
                         </thead>
                         <tbody id="agusBody"></tbody>
                     </table>
@@ -584,7 +584,7 @@
 
     const CLASSES = ['7A', '7B', '7C', '7D', '7E', '8A', '8B', '8C', '8D', '8E', '9A', '9B', '9C', '9D'];
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxV2GcDV9W7SJGZrijYW5wJUkuh2lqH-EizSprchY7_8LegPT38mEmOcf7QP0-CtZw5Mg/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzhOVwPKBnIWixrUj8HSuNm_8Cu9WuASVRhivgCj4gYp8uMqz_Rzj80JPPvL0FY_jTRHA/exec';
 
     const JADWAL_WAKTU = {
         reguler: {
@@ -1180,6 +1180,12 @@
         d.setHours(parseInt(pts[0],10), parseInt(pts[1],10), 0, 0);
         return d;
     }
+    
+    function parseTimeToMins(timeStr) {
+        if (!timeStr || timeStr === '-') return 0;
+        let p = timeStr.split(':');
+        return parseInt(p[0], 10)*60 + parseInt(p[1], 10);
+    }
 
     function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
     function getDayNameID() { return ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]; }
@@ -1535,18 +1541,91 @@
         const now = new Date();
         const dateStr = now.toISOString().split('T')[0];
         const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const timeMins = now.getHours() * 60 + now.getMinutes();
         
-        const jpSaatIni = getCurrentJPInfo(currentMode);
-        const mapel = getMapelForScan(classCode, currentUser, getDayName(), jpSaatIni);
+        const day = getDayName();
+        const isJumat = (day === 'jumat');
+        const jadwal = isJumat ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
         
-        const isJumat = (getDayName() === 'jumat');
-        const batasWaktu = (isJumat ? JADWAL_WAKTU.jumat[jpSaatIni] : JADWAL_WAKTU.reguler[jpSaatIni]) || { masuk: '00:00', keluar: '00:00' };
-        const subject = ket ? 'Kegiatan Lain' : (mapel || 'Di Luar Jadwal');
+        // --- LOGIKA DINAMIS PENCARIAN BLOK (Mendukung Sesi 1 JP atau Berurutan) ---
+        let myBlocks = [];
+        let currentBlock = null;
+
+        for (let i = 1; i <= 8; i++) {
+            let jp = 'JP ' + i;
+            if (!jadwal[jp]) continue; 
+            
+            let mapel = getMapelForScan(classCode, currentUser, day, jp);
+            if (mapel) {
+                let m = parseTimeToMins(jadwal[jp].masuk);
+                let k = parseTimeToMins(jadwal[jp].keluar);
+                
+                if (!currentBlock) {
+                    currentBlock = { jps: [jp], mapel: mapel, masuk: m, keluar: k, strMasuk: jadwal[jp].masuk, strKeluar: jadwal[jp].keluar };
+                } else {
+                    if (currentBlock.mapel === mapel) {
+                        currentBlock.jps.push(jp);
+                        currentBlock.keluar = k;
+                        currentBlock.strKeluar = jadwal[jp].keluar;
+                    } else {
+                        myBlocks.push(currentBlock);
+                        currentBlock = { jps: [jp], mapel: mapel, masuk: m, keluar: k, strMasuk: jadwal[jp].masuk, strKeluar: jadwal[jp].keluar };
+                    }
+                }
+            } else {
+                if (currentBlock) {
+                    myBlocks.push(currentBlock);
+                    currentBlock = null;
+                }
+            }
+        }
+        if (currentBlock) myBlocks.push(currentBlock);
+
+        let activeBlock = null;
+        let minDiff = 9999;
+        
+        // Mencari apakah waktu scan cocok dengan blok jadwal hari ini
+        for (let b of myBlocks) {
+            let m = b.masuk;
+            let k = b.keluar;
+            let isValid = false;
+            
+            if (currentMode === 'masuk') {
+                isValid = (timeMins >= (m - 10) && timeMins <= (k - 5)); 
+            } else if (currentMode === 'keluar') {
+                isValid = (timeMins >= (m + 5) && timeMins <= (k + 10));
+            } else {
+                isValid = (timeMins >= (m - 10) && timeMins <= (k + 10));
+            }
+            
+            if (isValid) {
+                let center = (m + k) / 2;
+                let diff = Math.abs(timeMins - center);
+                if (diff < minDiff) { minDiff = diff; activeBlock = b; }
+            }
+        }
+
+        let jpFinal, mapelFinal, jMasuk, jKeluar;
+
+        if (activeBlock) {
+            jpFinal = activeBlock.jps.length > 1 ? activeBlock.jps[0] + ' - ' + activeBlock.jps[activeBlock.jps.length-1] : activeBlock.jps[0];
+            mapelFinal = activeBlock.mapel;
+            jMasuk = activeBlock.strMasuk;
+            jKeluar = activeBlock.strKeluar;
+        } else {
+            jpFinal = getCurrentJPInfo(currentMode);
+            mapelFinal = getMapelForScan(classCode, currentUser, day, jpFinal);
+            let bWaktu = jadwal[jpFinal] || { masuk: '00:00', keluar: '00:00' };
+            jMasuk = bWaktu.masuk;
+            jKeluar = bWaktu.keluar;
+        }
+
+        const subject = ket ? 'Kegiatan Lain' : (mapelFinal || 'Di Luar Jadwal');
 
         const record = {
             teacher: currentUser, class: classCode, subject: subject, action: currentMode || 'masuk',
-            date: dateStr, time: timeStr, day: getDayNameID(), jp: jpSaatIni,
-            jadwal_masuk: batasWaktu.masuk, jadwal_keluar: batasWaktu.keluar,
+            date: dateStr, time: timeStr, day: getDayNameID(), jp: jpFinal,
+            jadwal_masuk: jMasuk, jadwal_keluar: jKeluar,
             timestamp: now.toISOString(), keterangan: ket, synced: false
         };
 
@@ -1645,7 +1724,6 @@
         });
     });
 
-    // MEMPERBARUI FUNGSI REKAP UNTUK MENARIK DATA DARI SERVER
     async function loadRekap() {
         if (!currentUser) return;
         const tbody = document.getElementById('rekapBody'); 
@@ -1664,7 +1742,7 @@
                 if(rekapFilter === 'day') return d.date === today;
                 if(rekapFilter === 'week') return d.date >= new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
                 if(rekapFilter === 'month') return d.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-                return true; // Untuk 'all' (semua)
+                return true; 
             });
 
             const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
@@ -1696,24 +1774,48 @@
             tbody.innerHTML = '';
             if (finalData.length === 0) {
                 document.getElementById('rekapEmpty').classList.remove('hidden');
+                document.getElementById('downloadArea').classList.add('hidden');
                 document.getElementById('rekapSummary').querySelectorAll('.num').forEach(el => el.textContent = '0'); 
                 return;
             }
             document.getElementById('rekapEmpty').classList.add('hidden');
+            document.getElementById('downloadArea').classList.remove('hidden');
 
             finalData.forEach(r => {
                 let isLate = false, isEarly = false;
+                let telatMenit = 0, cepatMenit = 0;
+                
                 let jM = parseTime(r.jadwal_masuk); let wM = parseTime(r.waktu_masuk);
-                if (jM && wM && Math.round((wM-jM)/60000) > tol) { lateCount++; isLate = true; }
+                if (jM && wM) {
+                    let diff = Math.round((wM - jM) / 60000);
+                    if (diff > tol) {
+                        telatMenit = diff - tol;
+                        lateCount += telatMenit;
+                        isLate = true;
+                    }
+                }
                 
                 let jK = parseTime(r.jadwal_keluar); let wK = parseTime(r.waktu_keluar);
-                if (jK && wK && Math.round((jK-wK)/60000) > tol) { earlyCount++; isEarly = true; }
+                if (jK && wK) {
+                    let diff = Math.round((jK - wK) / 60000);
+                    if (diff > tol) {
+                        cepatMenit = diff - tol;
+                        earlyCount += cepatMenit;
+                        isEarly = true;
+                    }
+                }
 
                 let statusHTML = '';
-                if (isLate && isEarly) statusHTML = '<span class="badge bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Telat & Cepat</span>';
-                else if (isLate) statusHTML = '<span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold">Telat</span>';
-                else if (isEarly) statusHTML = '<span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold">Cepat</span>';
-                else statusHTML = '<span class="badge bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">Tepat Waktu</span>';
+                if (r.waktu_masuk === '-' || r.waktu_keluar === '-') {
+                    statusHTML = '<span class="badge bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">Incomplete</span>';
+                    if (isLate) statusHTML += `<br><span class="badge bg-amber-100 text-amber-700 px-2 py-1 mt-1 rounded text-xs font-bold">Telat ${telatMenit}m</span>`;
+                    if (isEarly) statusHTML += `<br><span class="badge bg-amber-100 text-amber-700 px-2 py-1 mt-1 rounded text-xs font-bold">Cepat ${cepatMenit}m</span>`;
+                } else {
+                    if (isLate && isEarly) statusHTML = `<span class="badge bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Telat ${telatMenit}m & Cepat ${cepatMenit}m</span>`;
+                    else if (isLate) statusHTML = `<span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold">Telat ${telatMenit}m</span>`;
+                    else if (isEarly) statusHTML = `<span class="badge bg-amber-100 text-amber-700 px-2 py-1 rounded text-xs font-bold">Cepat ${cepatMenit}m</span>`;
+                    else statusHTML = '<span class="badge bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">Tepat Waktu</span>';
+                }
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${r.date}</td><td class="font-bold">${r.class}</td><td>${r.subject}</td>
@@ -1771,11 +1873,12 @@
             
             finalData.forEach(g => {
                 let telatMenit = 0, cepatMenit = 0;
+                
                 let jM = parseTime(g.jadwal_masuk), wM = parseTime(g.waktu_masuk);
-                if (jM && wM) { let diff = Math.round((wM - jM) / 60000); if (diff > tol) telatMenit = diff; }
+                if (jM && wM) { let diff = Math.round((wM - jM) / 60000); if (diff > tol) telatMenit = diff - tol; }
                 
                 let jK = parseTime(g.jadwal_keluar), wK = parseTime(g.waktu_keluar);
-                if (jK && wK) { let diff = Math.round((jK - wK) / 60000); if (diff > tol) cepatMenit = diff; }
+                if (jK && wK) { let diff = Math.round((jK - wK) / 60000); if (diff > tol) cepatMenit = diff - tol; }
                 
                 if (adminViewMode === 'late' && telatMenit === 0) return;
                 if (adminViewMode === 'early' && cepatMenit === 0) return;
@@ -1806,6 +1909,8 @@
         const blob = new Blob([template], { type: 'application/vnd.ms-excel' }); const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
     }
+    
+    document.getElementById('downloadRekapBtn').addEventListener('click', () => exportTableToExcel('rekapBody', 'Rekap_Pribadi.xls'));
 
     document.getElementById('adminTeacherFilter').addEventListener('change', loadAdminData);
     document.getElementById('adminPeriodFilter').addEventListener('change', loadAdminData);
@@ -1844,19 +1949,39 @@
                 if (period === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
                 return true;
             });
+            
+            const grouped = {};
+            filtered.forEach(d => {
+                if (!d.date || !d.teacher || !d.jp) return;
+                const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
+                if (!grouped[key]) grouped[key] = {
+                    date: d.date, teacher: d.teacher, mapel: d.subject || '-',
+                    jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
+                    waktu_masuk: '-', waktu_keluar: '-', action_masuk: false, action_keluar: false
+                };
+                if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; grouped[key].action_masuk = true; }
+                if (d.action === 'keluar') { grouped[key].waktu_keluar = d.time; grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; grouped[key].action_keluar = true; }
+                grouped[key].mapel = d.subject || grouped[key].mapel;
+            });
 
             const reportMap = {};
-            filtered.forEach(d => {
-                if (!reportMap[d.teacher]) reportMap[d.teacher] = { name: d.teacher, mapel: d.subject || '-', total: 0, telat: 0, cepat: 0 };
-                reportMap[d.teacher].total++;
+            Object.values(grouped).forEach(g => {
+                if (!reportMap[g.teacher]) reportMap[g.teacher] = { name: g.teacher, mapel: g.mapel, total_sesi: 0, telat: 0, cepat: 0 };
+                reportMap[g.teacher].total_sesi++;
                 
-                if (d.action === 'masuk' && d.jadwal_masuk) {
-                    let j = parseTime(d.jadwal_masuk); let w = parseTime(d.time);
-                    if (j && w && Math.round((w-j)/60000) > tol) reportMap[d.teacher].telat++;
+                if (g.action_masuk && g.jadwal_masuk !== '-') {
+                    let jM = parseTime(g.jadwal_masuk); let wM = parseTime(g.waktu_masuk);
+                    if (jM && wM) {
+                        let diff = Math.round((wM - jM) / 60000);
+                        if (diff > tol) reportMap[g.teacher].telat += (diff - tol);
+                    }
                 }
-                if (d.action === 'keluar' && d.jadwal_keluar) {
-                    let j = parseTime(d.jadwal_keluar); let w = parseTime(d.time);
-                    if (j && w && Math.round((j-w)/60000) > tol) reportMap[d.teacher].cepat++;
+                if (g.action_keluar && g.jadwal_keluar !== '-') {
+                    let jK = parseTime(g.jadwal_keluar); let wK = parseTime(g.waktu_keluar);
+                    if (jK && wK) {
+                        let diff = Math.round((jK - wK) / 60000);
+                        if (diff > tol) reportMap[g.teacher].cepat += (diff - tol);
+                    }
                 }
             });
 
@@ -1866,7 +1991,7 @@
                 tr.innerHTML = `<td class="font-bold">${item.name}</td><td>${item.mapel}</td>
                     <td class="${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
                     <td class="${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
-                    <td class="text-primary font-bold">${item.total}</td>`;
+                    <td class="text-primary font-bold">${item.total_sesi}</td>`;
                 tbody.appendChild(tr);
             });
             if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada data.</td></tr>';
