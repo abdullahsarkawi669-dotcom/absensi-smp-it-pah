@@ -120,7 +120,7 @@
         border-radius: var(--radius); padding: 40px 30px; max-width: 420px; width: 100%;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.3);
     }
-    #loginScreen .login-box h1 { font-size: 1.6rem; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 8px; line-height: 1.2; }
+    #loginScreen .login-box h1 { font-size: 1.5rem; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 8px; line-height: 1.2; }
     #loginScreen .login-box .sub { text-align: center; color: var(--text-light); font-size: 0.9rem; margin-bottom: 24px; font-weight: 500; }
     #loginScreen .login-box .logo {
         text-align: center; font-size: 3.5rem; margin-bottom: 16px;
@@ -163,7 +163,6 @@
     }
     #reader video { width: 100%; height: auto; display: block; border-radius: var(--radius-sm); }
     .scanner-overlay { position: relative; width: 100%; max-width: 400px; margin: 0 auto; }
-    .scanner-overlay .corner { display: none; }
 
     .scan-result {
         padding: 16px 20px; border-radius: var(--radius-sm); margin-top: 16px;
@@ -172,6 +171,7 @@
     .scan-result.success { background: #ecfdf5; border: 1px solid #a7f3d0; color: #065f46; }
     .scan-result.error { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; }
     .scan-result.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+    .scan-result.warning { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
 
     .tabs {
         display: flex; gap: 8px; background: #e2e8f0; border-radius: 16px;
@@ -280,11 +280,14 @@
 
         <div class="password-section hidden" id="passwordSection">
             <div class="input-group">
-                <label><i class="fa-solid fa-key mr-1"></i> Password Admin</label>
+                <label><i class="fa-solid fa-key mr-1"></i> Password Admin / Master</label>
                 <input type="password" id="adminPassword" placeholder="Masukkan password..." />
             </div>
-            <button class="btn btn-primary" id="adminLoginBtn"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login Admin</button>
-            <p class="text-xs text-muted mt-3 text-center">* Password sesuai hari login</p>
+            <div class="flex flex-col gap-2">
+                <button class="btn btn-primary" id="adminLoginBtn"><i class="fa-solid fa-shield-halved"></i> Login Admin / Master</button>
+                <button class="btn btn-outline" id="teacherOnlyLoginBtn"><i class="fa-solid fa-user-check"></i> Masuk Tanpa Password (Guru Biasa)</button>
+            </div>
+            <p class="text-xs text-muted mt-3 text-center">* Password khusus untuk membuka Dashboard Admin/Master</p>
         </div>
 
         <div class="mt-4 text-center text-xs text-muted font-bold">
@@ -346,13 +349,18 @@
                 </div>
 
                 <div class="flex gap-2 mt-4" id="manualScanContainer">
-                    <button class="btn btn-accent hidden" id="manualScanBtn"><i class="fa-solid fa-keyboard"></i> Input Manual</button>
+                    <button class="btn btn-accent hidden" id="manualScanBtn"><i class="fa-solid fa-keyboard"></i> Input Manual Kelas</button>
                     <button class="btn btn-success" id="syncNowBtn"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Data</button>
                 </div>
                 <div id="manualScanArea" class="mt-3 hidden p-4 bg-gray-50 rounded-xl border border-gray-200">
                     <div class="input-group">
-                        <label>Kode Kelas</label>
-                        <input type="text" id="manualClassInput" placeholder="Contoh: 7A, 8B, 9C ..." />
+                        <label>Pilih / Ketik Kode Kelas</label>
+                        <select id="manualClassSelect">
+                            <option value="">-- Pilih Kelas --</option>
+                            <option value="7A">7A</option><option value="7B">7B</option><option value="7C">7C</option><option value="7D">7D</option><option value="7E">7E</option>
+                            <option value="8A">8A</option><option value="8B">8B</option><option value="8C">8C</option><option value="8D">8D</option><option value="8E">8E</option>
+                            <option value="9A">9A</option><option value="9B">9B</option><option value="9C">9C</option><option value="9D">9D</option>
+                        </select>
                     </div>
                     <button class="btn btn-primary" id="manualProcessBtn"><i class="fa-solid fa-check-to-slot"></i> Proses Kelas</button>
                 </div>
@@ -387,7 +395,7 @@
                     <button class="btn btn-sm btn-primary rekap-filter active" data-filter="day">Hari</button>
                     <button class="btn btn-sm btn-outline rekap-filter" data-filter="week">Pekan</button>
                     <button class="btn btn-sm btn-outline rekap-filter" data-filter="month">Bulan</button>
-                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="semester">Semua</button>
+                    <button class="btn btn-sm btn-outline rekap-filter" data-filter="all">Semua</button>
                 </div>
 
                 <div class="report-summary" id="rekapSummary">
@@ -508,7 +516,7 @@
                 </div>
 
                 <button class="btn btn-primary" id="agusLoadReport"><i class="fa-solid fa-bolt"></i> Generate Rekap Guru</button>
-                <button class="btn btn-success mt-2" id="agusDownloadXls" onclick="exportTableToExcel('agusBody', 'Rekap_Agus.xls')">
+                <button class="btn btn-success mt-2" id="agusDownloadXls" onclick="exportTableToExcel('agusBody', 'Rekap_Master_Admin.xls')">
                     <i class="fa-solid fa-file-excel"></i> Download XLS
                 </button>
                 
@@ -584,7 +592,7 @@
 
     const CLASSES = ['7A', '7B', '7C', '7D', '7E', '8A', '8B', '8C', '8D', '8E', '9A', '9B', '9C', '9D'];
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzhOVwPKBnIWixrUj8HSuNm_8Cu9WuASVRhivgCj4gYp8uMqz_Rzj80JPPvL0FY_jTRHA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwQHROaCRFQBjS6obSzVCI9quY97sBqQTXPgTFUd7NaLhjRvLx3DSTLhv_Xx6nlYHfjZQ/exec';
 
     const JADWAL_WAKTU = {
         reguler: {
@@ -609,7 +617,16 @@
 
     let jadwalPelajaran = JSON.parse(localStorage.getItem('jadwal_cache')) || {};
     const allDays = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'ahad'];
-    const allJPs = ['JP 1', 'JP 2', 'JP 3', 'JP 4', 'JP 5', 'JP 6', 'JP 7', 'JP 8'];
+    
+    // PERBAIKAN INISIALISASI JP: MEMBUAT SELURUH KOMBINASI JP (JP 1, JP 1-2, JP 3-4, JP 5-6, dst)
+    const allJPs = [];
+    for (let i = 1; i <= 8; i++) {
+        allJPs.push('JP ' + i);
+        for (let j = i + 1; j <= 8; j++) {
+            allJPs.push('JP ' + i + '-' + j);
+        }
+    }
+
     allDays.forEach(d => {
         if (!jadwalPelajaran[d]) jadwalPelajaran[d] = {};
         allJPs.forEach(jp => {
@@ -617,531 +634,365 @@
         });
     });
 
-    // KELAS 7A
-    jadwalPelajaran['senin']['JP 2']['7A'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
-    jadwalPelajaran['senin']['JP 5']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['senin']['JP 6']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['senin']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['senin']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['selasa']['JP 1']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['selasa']['JP 2']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['selasa']['JP 5']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 8']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 1']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['rabu']['JP 2']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['rabu']['JP 3']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['rabu']['JP 6']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['kamis']['JP 1']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 2']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 5']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['kamis']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['jumat']['JP 3']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['jumat']['JP 4']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['jumat']['JP 5']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['jumat']['JP 6']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['sabtu']['JP 1']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['7A'] = 'SBDP / Informatika';
-    jadwalPelajaran['sabtu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 5']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 6']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 7']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['sabtu']['JP 8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	// KELAS 7A
+	jadwalPelajaran['senin']['JP 2']['7A'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+	jadwalPelajaran['senin']['JP 5-6']['7A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['senin']['JP 7-8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['selasa']['JP 1-2']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['selasa']['JP 5-6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 8']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 1-2']['7A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['rabu']['JP 3-4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['kamis']['JP 1-2']['7A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 5']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['kamis']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 7-8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['jumat']['JP 3-4']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3']['7A'] = 'SBDP / Informatika';
+	jadwalPelajaran['sabtu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 
-    // KELAS 7B
-    jadwalPelajaran['senin']['JP 2']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['senin']['JP 5']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['senin']['JP 7']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['senin']['JP 8']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 1']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 2']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 5']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['selasa']['JP 6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['selasa']['JP 7']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['selasa']['JP 8']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 1']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['rabu']['JP 2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['rabu']['JP 3']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 4']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['rabu']['JP 6']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['kamis']['JP 1']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 2']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 5']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['kamis']['JP 7']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 8']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['jumat']['JP 3']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['jumat']['JP 4']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['jumat']['JP 5']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 6']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 1']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['sabtu']['JP 2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-    jadwalPelajaran['sabtu']['JP 3']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 4']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 5']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 7']['7B'] = 'SBDP / Informatika';
-    jadwalPelajaran['sabtu']['JP 8']['7B'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+	// KELAS 7B
+	jadwalPelajaran['senin']['JP 2']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['senin']['JP 5-6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['senin']['JP 7-8']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 1-2']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 5-6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['selasa']['JP 7']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['selasa']['JP 8']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 1-2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['rabu']['JP 3-4']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['kamis']['JP 1-2']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 5']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['kamis']['JP 7-8']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['jumat']['JP 3-4']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['sabtu']['JP 7']['7B'] = 'SBDP / Informatika';
+	jadwalPelajaran['sabtu']['JP 8']['7B'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
 
-    // KELAS 7C
-    jadwalPelajaran['senin']['JP 2']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['senin']['JP 5']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['senin']['JP 7']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['senin']['JP 8']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['selasa']['JP 1']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['selasa']['JP 2']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['selasa']['JP 5']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 6']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['rabu']['JP 1']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 3']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['rabu']['JP 4']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['rabu']['JP 5']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['rabu']['JP 6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['kamis']['JP 1']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 5']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 6']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 7']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['kamis']['JP 8']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['jumat']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['jumat']['JP 2']['7C'] = 'SBDP / Informatika';
-    jadwalPelajaran['jumat']['JP 5']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['jumat']['JP 6']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 2']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 3']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 4']['7C'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
-    jadwalPelajaran['sabtu']['JP 5']['7C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 6']['7C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 7']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	// KELAS 7C
+	jadwalPelajaran['senin']['JP 2']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['senin']['JP 5-6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['senin']['JP 7-8']['7C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['selasa']['JP 1-2']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['selasa']['JP 5-6']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['7C'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['rabu']['JP 1']['7C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 3-6']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['kamis']['JP 1-2']['7C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 5-6']['7C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 7-8']['7C'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['jumat']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['jumat']['JP 2']['7C'] = 'SBDP / Informatika';
+	jadwalPelajaran['jumat']['JP 5-6']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['sabtu']['JP 3']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['sabtu']['JP 4']['7C'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['7C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['7C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
 
-    // KELAS 7D
-    jadwalPelajaran['senin']['JP 2']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['senin']['JP 3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['senin']['JP 4']['7D'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
-    jadwalPelajaran['senin']['JP 5']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['senin']['JP 6']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['senin']['JP 7']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['senin']['JP 8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['selasa']['JP 3']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['selasa']['JP 4']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['selasa']['JP 5']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['selasa']['JP 6']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['selasa']['JP 7']['7D'] = 'SBDP / Informatika';
-    jadwalPelajaran['selasa']['JP 8']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 2']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 6']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 7']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['rabu']['JP 8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['kamis']['JP 3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['kamis']['JP 4']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['kamis']['JP 5']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
-    jadwalPelajaran['jumat']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 2']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['jumat']['JP 5']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 6']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 1']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 4']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 5']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 6']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 7']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	// KELAS 7D
+	jadwalPelajaran['senin']['JP 2-3']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['senin']['JP 4']['7D'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+	jadwalPelajaran['senin']['JP 5-6']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 7-8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['selasa']['JP 3-4']['7D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['selasa']['JP 5-6']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['selasa']['JP 7']['7D'] = 'SBDP / Informatika';
+	jadwalPelajaran['selasa']['JP 8']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 1-2']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['7D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['rabu']['JP 7-8']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['kamis']['JP 3-4']['7D'] = 'Bahasa Arab (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['kamis']['JP 5-6']['7D'] = 'Kitabah & Khat (Taufiqurrahman, Lc.)';
+	jadwalPelajaran['jumat']['JP 1']['7D'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 2']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 1']['7D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 2']['7D'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['7D'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['7D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['7D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
 
-    // KELAS 7E
-    jadwalPelajaran['senin']['JP 2']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['senin']['JP 3']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['senin']['JP 4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['senin']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['senin']['JP 7']['7E'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
-    jadwalPelajaran['senin']['JP 8']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 3']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['selasa']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['selasa']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 8']['7E'] = 'SBDP / Informatika';
-    jadwalPelajaran['rabu']['JP 1']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['rabu']['JP 2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['rabu']['JP 5']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 6']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 8']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 3']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 4']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 5']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['jumat']['JP 1']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['jumat']['JP 2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['jumat']['JP 5']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['jumat']['JP 6']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 1']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 2']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 3']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 4']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 5']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['sabtu']['JP 6']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['sabtu']['JP 7']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-    jadwalPelajaran['sabtu']['JP 8']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
+	// KELAS 7E
+	jadwalPelajaran['senin']['JP 2-3']['7E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['senin']['JP 4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['senin']['JP 5-6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['senin']['JP 7']['7E'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
+	jadwalPelajaran['senin']['JP 8']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 3-4']['7E'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 5-6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['selasa']['JP 7']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 8']['7E'] = 'SBDP / Informatika';
+	jadwalPelajaran['rabu']['JP 1-2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['rabu']['JP 5-6']['7E'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 7-8']['7E'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 3-4']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
+	jadwalPelajaran['kamis']['JP 5-6']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['jumat']['JP 1-2']['7E'] = 'Bahasa Arab (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['7E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['7E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['7E'] = 'Kitabah & Khat (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['sabtu']['JP 7']['7E'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
+	jadwalPelajaran['sabtu']['JP 8']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
 
-    // KELAS 8A
-    jadwalPelajaran['senin']['JP 2']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['senin']['JP 3']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['senin']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['senin']['JP 5']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['senin']['JP 7']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['senin']['JP 8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 3']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 5']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 6']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['rabu']['JP 1']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 2']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 5']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['rabu']['JP 6']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['rabu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 8']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 1']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 2']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 5']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['jumat']['JP 1']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['jumat']['JP 2']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['jumat']['JP 5']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
-    jadwalPelajaran['jumat']['JP 6']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
-    jadwalPelajaran['sabtu']['JP 1']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 4']['8A'] = 'SBDP / Informatika';
-    jadwalPelajaran['sabtu']['JP 5']['8A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['sabtu']['JP 6']['8A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['sabtu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['8A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	// KELAS 8A
+	jadwalPelajaran['senin']['JP 2-3']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['senin']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 5-6']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['senin']['JP 7-8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['selasa']['JP 3-4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 5-6']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['rabu']['JP 1-2']['8A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['rabu']['JP 5-6']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['rabu']['JP 7-8']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 1-2']['8A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 5']['8A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['kamis']['JP 6']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['jumat']['JP 1-2']['8A'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['8A'] = "Ta'bir (Zulfi Farid, Lc.)";
+	jadwalPelajaran['sabtu']['JP 1-2']['8A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3']['8A'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 4']['8A'] = 'SBDP / Informatika';
+	jadwalPelajaran['sabtu']['JP 5-6']['8A'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['sabtu']['JP 7']['8A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 8']['8A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
 
-    // KELAS 8B
-    jadwalPelajaran['senin']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['senin']['JP 3']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['senin']['JP 4']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['senin']['JP 5']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['selasa']['JP 1']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 2']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 3']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 4']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['selasa']['JP 8']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 1']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 2']['8B'] = 'SBDP / Informatika';
-    jadwalPelajaran['rabu']['JP 3']['8B'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['rabu']['JP 4']['8B'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['rabu']['JP 5']['8B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 6']['8B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 7']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['rabu']['JP 8']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['kamis']['JP 5']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 7']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 1']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 3']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
-    jadwalPelajaran['jumat']['JP 4']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
-    jadwalPelajaran['sabtu']['JP 1']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['sabtu']['JP 2']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['sabtu']['JP 3']['8B'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 4']['8B'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 5']['8B'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 7']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['sabtu']['JP 8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	// KELAS 8B
+	jadwalPelajaran['senin']['JP 2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 3-4']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['senin']['JP 5-6']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['selasa']['JP 1-2']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['selasa']['JP 3-4']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['8B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['rabu']['JP 1']['8B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 2']['8B'] = 'SBDP / Informatika';
+	jadwalPelajaran['rabu']['JP 3-4']['8B'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['rabu']['JP 5-6']['8B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 7-8']['8B'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['kamis']['JP 5-6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 7-8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 1-2']['8B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 3-4']['8B'] = "Ta'bir (Zulfi Farid, Lc.)";
+	jadwalPelajaran['sabtu']['JP 1-2']['8B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['8B'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['sabtu']['JP 5']['8B'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 6']['8B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 7']['8B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['sabtu']['JP 8']['8B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
 
-    // KELAS 8C
-    jadwalPelajaran['senin']['JP 2']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['senin']['JP 5']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 1']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['selasa']['JP 2']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['selasa']['JP 3']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 4']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['selasa']['JP 7']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['rabu']['JP 1']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 2']['8C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 3']['8C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 4']['8C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 6']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 7']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['kamis']['JP 3']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['kamis']['JP 4']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['kamis']['JP 5']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 6']['8C'] = 'SBDP / Informatika';
-    jadwalPelajaran['kamis']['JP 7']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['kamis']['JP 8']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
-    jadwalPelajaran['jumat']['JP 1']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
-    jadwalPelajaran['jumat']['JP 2']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
-    jadwalPelajaran['jumat']['JP 3']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['jumat']['JP 4']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 1']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 4']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 5']['8C'] = 'Kitabah & Khat (Andri Jaelani, Lc., M. H.)';
-    jadwalPelajaran['sabtu']['JP 6']['8C'] = 'Kitabah & Khat (Andri Jaelani, Lc., M. H.)';
-    jadwalPelajaran['sabtu']['JP 7']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	// KELAS 8C
+	jadwalPelajaran['senin']['JP 2']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 5-6']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['selasa']['JP 1-2']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['selasa']['JP 3-4']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['selasa']['JP 7-8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['rabu']['JP 1']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 2']['8C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 3-4']['8C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 7']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 8']['8C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['kamis']['JP 3-4']['8C'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['kamis']['JP 5']['8C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['kamis']['JP 6']['8C'] = 'SBDP / Informatika';
+	jadwalPelajaran['kamis']['JP 7-8']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
+	jadwalPelajaran['jumat']['JP 1-2']['8C'] = "Ta'bir (Zulfi Farid, Lc.)";
+	jadwalPelajaran['jumat']['JP 3-4']['8C'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['8C'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['8C'] = 'Kitabah & Khat (Andri Jaelani, Lc., M. H.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['8C'] = 'Matematika (Haqikahurrahman, S. Pd.)';
 
-    // KELAS 8D
-    jadwalPelajaran['senin']['JP 2']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['senin']['JP 3']['8D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['senin']['JP 4']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['senin']['JP 5']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['senin']['JP 6']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['selasa']['JP 1']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 2']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 3']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['selasa']['JP 4']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['selasa']['JP 7']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['rabu']['JP 3']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 4']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 6']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 7']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['rabu']['JP 8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['kamis']['JP 3']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['kamis']['JP 4']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['kamis']['JP 5']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 6']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['kamis']['JP 7']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['kamis']['JP 8']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['jumat']['JP 1']['8D'] = 'SBDP / Informatika';
-    jadwalPelajaran['jumat']['JP 2']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 3']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['jumat']['JP 4']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['sabtu']['JP 1']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 2']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 3']['8D'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
-    jadwalPelajaran['sabtu']['JP 4']['8D'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
-    jadwalPelajaran['sabtu']['JP 5']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 6']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 7']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	// KELAS 8D
+	jadwalPelajaran['senin']['JP 2']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['senin']['JP 3']['8D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['senin']['JP 4']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['senin']['JP 5-6']['8D'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['selasa']['JP 1-2']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 3-4']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['selasa']['JP 7-8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['rabu']['JP 3-4']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 7-8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['kamis']['JP 3-4']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['kamis']['JP 5']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 6']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['kamis']['JP 7-8']['8D'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['jumat']['JP 1']['8D'] = 'SBDP / Informatika';
+	jadwalPelajaran['jumat']['JP 2']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 3-4']['8D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['8D'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['8D'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
+	jadwalPelajaran['sabtu']['JP 5-6']['8D'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['8D'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
 
-    // KELAS 8E
-    jadwalPelajaran['senin']['JP 2']['8E'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['senin']['JP 3']['8E'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['senin']['JP 4']['8E'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['senin']['JP 5']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['senin']['JP 6']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 1']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 2']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 3']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 4']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 8']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 1']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['rabu']['JP 2']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['rabu']['JP 3']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['rabu']['JP 4']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['rabu']['JP 5']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 6']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 7']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 8']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 3']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['kamis']['JP 4']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['kamis']['JP 5']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['kamis']['JP 7']['8E'] = 'SBDP / Informatika';
-    jadwalPelajaran['kamis']['JP 8']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['jumat']['JP 1']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['jumat']['JP 2']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
-    jadwalPelajaran['sabtu']['JP 1']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['sabtu']['JP 4']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-    jadwalPelajaran['sabtu']['JP 5']['8E'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 6']['8E'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['sabtu']['JP 7']['8E'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
-    jadwalPelajaran['sabtu']['JP 8']['8E'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
+	// KELAS 8E
+	jadwalPelajaran['senin']['JP 2']['8E'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['senin']['JP 3-4']['8E'] = 'Kitabah & Khat (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['senin']['JP 5-6']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['selasa']['JP 1']['8E'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['selasa']['JP 2']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 3-4']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['8E'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 1-2']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['rabu']['JP 3-4']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['rabu']['JP 5-6']['8E'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 7']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 8']['8E'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 3-4']['8E'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['kamis']['JP 5-6']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['kamis']['JP 7']['8E'] = 'SBDP / Informatika';
+	jadwalPelajaran['kamis']['JP 8']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['jumat']['JP 1-2']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['8E'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['8E'] = "Ta'bir (Andri Jaelani, Lc., M. H.)";
 
-    // KELAS 9A
-    jadwalPelajaran['senin']['JP 2']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['senin']['JP 3']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['senin']['JP 4']['9A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['senin']['JP 7']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['senin']['JP 8']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['selasa']['JP 3']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['selasa']['JP 4']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['selasa']['JP 5']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 6']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['rabu']['JP 3']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 4']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 6']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 7']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['rabu']['JP 8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['kamis']['JP 1']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['kamis']['JP 2']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['kamis']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['kamis']['JP 4']['9A'] = 'SBDP / Informatika';
-    jadwalPelajaran['kamis']['JP 5']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 6']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 7']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['kamis']['JP 8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['jumat']['JP 3']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 4']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 5']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 6']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 1']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['sabtu']['JP 2']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['sabtu']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['sabtu']['JP 4']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['sabtu']['JP 5']['9A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 6']['9A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 7']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    
-    // KELAS 9B
-    jadwalPelajaran['senin']['JP 2']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['senin']['JP 3']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['senin']['JP 4']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['senin']['JP 7']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['senin']['JP 8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 3']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 4']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 5']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 6']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['rabu']['JP 3']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 4']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['rabu']['JP 5']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['rabu']['JP 6']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['rabu']['JP 7']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 1']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['kamis']['JP 2']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['kamis']['JP 3']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['kamis']['JP 4']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
-    jadwalPelajaran['kamis']['JP 5']['9B'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['9B'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['kamis']['JP 7']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 8']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 3']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 4']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 5']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 6']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 1']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['9B'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['sabtu']['JP 4']['9B'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['sabtu']['JP 5']['9B'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['sabtu']['JP 6']['9B'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['sabtu']['JP 7']['9B'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 8']['9B'] = 'SBDP / Informatika';
-    
-    // KELAS 9C
-    jadwalPelajaran['senin']['JP 2']['9C'] = 'SBDP / Informatika';
-    jadwalPelajaran['senin']['JP 3']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['senin']['JP 4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['senin']['JP 7']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['senin']['JP 8']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 1']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 5']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['selasa']['JP 6']['9C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 7']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['selasa']['JP 8']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['rabu']['JP 3']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['rabu']['JP 4']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['rabu']['JP 5']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['rabu']['JP 6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['rabu']['JP 7']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['rabu']['JP 8']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 1']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['kamis']['JP 3']['9C'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['kamis']['JP 4']['9C'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['kamis']['JP 5']['9C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['kamis']['JP 6']['9C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['kamis']['JP 7']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 8']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 3']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 4']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 5']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['jumat']['JP 6']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 1']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['sabtu']['JP 2']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['sabtu']['JP 3']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 5']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['sabtu']['JP 6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['sabtu']['JP 7']['9C'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['sabtu']['JP 8']['9C'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+	// KELAS 9A
+	jadwalPelajaran['senin']['JP 2-3']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['senin']['JP 4']['9A'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['senin']['JP 7-8']['9A'] = 'Fiqih (Jamaluddin, Lc.)';
+	jadwalPelajaran['selasa']['JP 3-4']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['selasa']['JP 5-6']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['9A'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['rabu']['JP 3-4']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['9A'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 7-8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['kamis']['JP 1-2']['9A'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['kamis']['JP 3']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['kamis']['JP 4']['9A'] = 'SBDP / Informatika';
+	jadwalPelajaran['kamis']['JP 5-6']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 7-8']['9A'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['jumat']['JP 3-4']['9A'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 5-6']['9A'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['9A'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+	jadwalPelajaran['sabtu']['JP 3-4']['9A'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['9A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['9A'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
 
-    // KELAS 9D
-    jadwalPelajaran['senin']['JP 2']['9D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['senin']['JP 3']['9D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-    jadwalPelajaran['senin']['JP 4']['9D'] = 'SBDP / Informatika';
-    jadwalPelajaran['senin']['JP 7']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['senin']['JP 8']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
-    jadwalPelajaran['selasa']['JP 1']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 2']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 5']['9D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
-    jadwalPelajaran['selasa']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['selasa']['JP 7']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['selasa']['JP 8']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 3']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 4']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
-    jadwalPelajaran['rabu']['JP 5']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['rabu']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
-    jadwalPelajaran['rabu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['rabu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['kamis']['JP 1']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 2']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 3']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 4']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['kamis']['JP 5']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['kamis']['JP 6']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['kamis']['JP 7']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['kamis']['JP 8']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
-    jadwalPelajaran['jumat']['JP 3']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['jumat']['JP 4']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
-    jadwalPelajaran['jumat']['JP 5']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['jumat']['JP 6']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
-    jadwalPelajaran['sabtu']['JP 1']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 2']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 3']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 4']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 5']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 6']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
-    jadwalPelajaran['sabtu']['JP 7']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
-    jadwalPelajaran['sabtu']['JP 8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+	// KELAS 9B
+	jadwalPelajaran['senin']['JP 2-3']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['senin']['JP 4']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['senin']['JP 7-8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['selasa']['JP 3-4']['9B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 5-6']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['rabu']['JP 3-4']['9B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['rabu']['JP 5-6']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['rabu']['JP 7-8']['9B'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['kamis']['JP 1-2']['9B'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['kamis']['JP 3-4']['9B'] = 'Bahasa Arab (Syamsul Bahri, Lc.)';
+	jadwalPelajaran['kamis']['JP 5-6']['9B'] = 'Fiqih (Jamaluddin, Lc.)';
+	jadwalPelajaran['kamis']['JP 7-8']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 3-4']['9B'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 5-6']['9B'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['9B'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['9B'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['9B'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+	jadwalPelajaran['sabtu']['JP 7']['9B'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 8']['9B'] = 'SBDP / Informatika';
+
+	// KELAS 9C
+	jadwalPelajaran['senin']['JP 2']['9C'] = 'SBDP / Informatika';
+	jadwalPelajaran['senin']['JP 3-4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['senin']['JP 7-8']['9C'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 1-2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['selasa']['JP 5']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['selasa']['JP 6']['9C'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 7-8']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+	jadwalPelajaran['rabu']['JP 3-4']['9C'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['rabu']['JP 5-6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+	jadwalPelajaran['rabu']['JP 7-8']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 1-2']['9C'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['kamis']['JP 3-4']['9C'] = 'Fiqih (Jamaluddin, Lc.)';
+	jadwalPelajaran['kamis']['JP 5-6']['9C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['kamis']['JP 7-8']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 3-4']['9C'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['jumat']['JP 5-6']['9C'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['9C'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['9C'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['9C'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['9C'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+
+	// KELAS 9D
+	jadwalPelajaran['senin']['JP 2-3']['9D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
+	jadwalPelajaran['senin']['JP 4']['9D'] = 'SBDP / Informatika';
+	jadwalPelajaran['senin']['JP 7-8']['9D'] = 'Adab Akhlak (Salman, S. Pd. I.)';
+	jadwalPelajaran['selasa']['JP 1-2']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 5']['9D'] = 'IPS / Pancasila (Junaidi, S. Pd.)';
+	jadwalPelajaran['selasa']['JP 6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['selasa']['JP 7-8']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 3-4']['9D'] = 'IPA Terpadu (Adi Hardiyansyah, M. Pd.)';
+	jadwalPelajaran['rabu']['JP 5-6']['9D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
+	jadwalPelajaran['rabu']['JP 7-8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+	jadwalPelajaran['kamis']['JP 1-2']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 3-4']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 5-6']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+	jadwalPelajaran['kamis']['JP 7-8']['9D'] = 'Fiqih (Jamaluddin, Lc.)';
+	jadwalPelajaran['jumat']['JP 3-4']['9D'] = 'Qowaidul Lughoh (Ahmad Arroiyan, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['9D'] = "Ta'bir (Ahmad Mahsan Haikal, Lc.)";
+	jadwalPelajaran['sabtu']['JP 1-2']['9D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 3-4']['9D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 5-6']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
+
+    // EKSTRAK JP GABUNGAN (Misal JP 1-2 menjadi JP 1 dan JP 2 secara individual)
+    // Hal ini agar saat guru melakukan scan pada waktu JP 1, sistem akan berhasil menemukan mapelnya.
+    allDays.forEach(d => {
+        Object.keys(jadwalPelajaran[d]).forEach(jpKey => {
+            if (jpKey.includes('-')) {
+                let parts = jpKey.replace('JP ', '').split('-');
+                let start = parseInt(parts[0]);
+                let end = parseInt(parts[1]);
+                if (!isNaN(start) && !isNaN(end)) {
+                    Object.keys(jadwalPelajaran[d][jpKey]).forEach(kelas => {
+                        for(let i = start; i <= end; i++) {
+                            jadwalPelajaran[d]['JP ' + i][kelas] = jadwalPelajaran[d][jpKey][kelas];
+                        }
+                    });
+                }
+            }
+        });
+    });
+
+    // FUNGSI FORMAT KELAS KOPEL DENGAN TANDA KURUNG
+    function formatKopelClass(kelas, mapel) {
+        if (!kelas || !mapel) return kelas;
+        const normMapel = mapel.toLowerCase();
+        let group = null;
+
+        if (normMapel.includes('tahfiz')) {
+            if (['7A', '7B', '7C'].includes(kelas)) group = ['7A', '7B', '7C'];
+            else if (['7D', '7E', '8A'].includes(kelas)) group = ['7D', '7E', '8A'];
+            else if (['8B', '8C', '8D', '8E'].includes(kelas)) group = ['8B', '8C', '8D', '8E'];
+            else if (['9A', '9B', '9C', '9D'].includes(kelas)) group = ['9A', '9B', '9C', '9D'];
+        } else if (normMapel.includes('pjok') || normMapel.includes('olahraga')) {
+            if (['9A', '9B'].includes(kelas)) group = ['9A', '9B'];
+            else if (['9C', '9D'].includes(kelas)) group = ['9C', '9D'];
+            else if (['7D', '7E'].includes(kelas)) group = ['7D', '7E'];
+            else if (['7A', '7B'].includes(kelas)) group = ['7A', '7B'];
+        }
+
+        if (group) {
+            return group.map(c => c === kelas ? `(${c})` : c).join(',');
+        }
+        return kelas;
+    }
 
     function getMapelForScan(kelas, guruName, hari, jp) {
         hari = (hari || "").toLowerCase();
@@ -1175,16 +1026,29 @@
     }
 
     function parseTime(t) {
-        if(!t || t==='-') return null;
-        let pts = t.split(':'); let d = new Date();
-        d.setHours(parseInt(pts[0],10), parseInt(pts[1],10), 0, 0);
+        if (!t || t === '-' || t === '') return null;
+        let str = String(t).trim();
+        if (str.includes('T')) {
+            let d = new Date(str);
+            return isNaN(d.getTime()) ? null : d;
+        }
+        let pts = str.split(':');
+        if (pts.length < 2) return null;
+        let d = new Date();
+        d.setHours(parseInt(pts[0], 10), parseInt(pts[1], 10), pts[2] ? parseInt(pts[2], 10) : 0, 0);
         return d;
     }
-    
+
     function parseTimeToMins(timeStr) {
-        if (!timeStr || timeStr === '-') return 0;
-        let p = timeStr.split(':');
-        return parseInt(p[0], 10)*60 + parseInt(p[1], 10);
+        if (!timeStr || timeStr === '-' || timeStr === '') return 0;
+        let str = String(timeStr).trim();
+        if (str.includes('T')) {
+            let d = new Date(str);
+            return d.getHours() * 60 + d.getMinutes();
+        }
+        let p = str.split(':');
+        if (p.length < 2) return 0;
+        return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
     }
 
     function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
@@ -1464,6 +1328,13 @@
         else { showToast('Password Salah!', 'error'); document.getElementById('adminPassword').value = ''; }
     });
 
+    document.getElementById('teacherOnlyLoginBtn').addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = document.getElementById('passwordSection');
+        const teacherName = section.dataset.selectedTeacher;
+        doLogin(teacherName, false, ''); // Login sebagai Guru biasa tanpa password
+    });
+
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
     function doLogin(name, isAdminUser, adminType) {
@@ -1473,7 +1344,13 @@
         document.getElementById('userNameDisplay').textContent = name;
         document.getElementById('userMapelDisplay').textContent = (currentUserData.subjects || []).join(', ') || (isAdminUser ? 'Admin' : '-');
         document.getElementById('adminTab').classList.toggle('hidden', !isAdminUser); document.getElementById('agusTab').classList.toggle('hidden', !isAgus);
-        if (document.getElementById('manualScanBtn')) { document.getElementById('manualScanBtn').classList.toggle('hidden', !isAgus); if(!isAgus) document.getElementById('manualScanArea')?.classList.add('hidden'); }
+        
+        // Cek apakah user adalah M. Tahir atau Master Admin untuk memunculkan tombol Input Manual
+        const isMTahir = (name === 'M. Tahir, M. Pd.');
+        if (document.getElementById('manualScanBtn')) { 
+            document.getElementById('manualScanBtn').classList.toggle('hidden', !(isAgus || isMTahir)); 
+            if(!(isAgus || isMTahir)) document.getElementById('manualScanArea')?.classList.add('hidden'); 
+        }
 
         currentMode = null; updateScanModeUI(); stopScanner();
         loadHistory(); updateClock(); updateOfflineStatus();
@@ -1506,13 +1383,12 @@
     
     document.getElementById('manualScanBtn').addEventListener('click', () => {
         const area = document.getElementById('manualScanArea'); area.classList.toggle('hidden');
-        if (!area.classList.contains('hidden')) document.getElementById('manualClassInput').focus();
     });
     
     document.getElementById('manualProcessBtn').addEventListener('click', () => {
-        const val = document.getElementById('manualClassInput').value.trim().toUpperCase();
-        if (CLASSES.includes(val)) { processScan(val); document.getElementById('manualScanArea').classList.add('hidden'); document.getElementById('manualClassInput').value = ''; }
-        else { showToast('Kelas invalid', 'error'); }
+        const val = document.getElementById('manualClassSelect').value.trim().toUpperCase();
+        if (CLASSES.includes(val)) { processScan(val); document.getElementById('manualScanArea').classList.add('hidden'); }
+        else { showToast('Silakan pilih kelas yang valid', 'error'); }
     });
 
     document.getElementById('syncNowBtn').addEventListener('click', () => syncNow(true, true));
@@ -1547,7 +1423,6 @@
         const isJumat = (day === 'jumat');
         const jadwal = isJumat ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
         
-        // --- LOGIKA DINAMIS PENCARIAN BLOK (Mendukung Sesi 1 JP atau Berurutan) ---
         let myBlocks = [];
         let currentBlock = null;
 
@@ -1584,7 +1459,6 @@
         let activeBlock = null;
         let minDiff = 9999;
         
-        // Mencari apakah waktu scan cocok dengan blok jadwal hari ini
         for (let b of myBlocks) {
             let m = b.masuk;
             let k = b.keluar;
@@ -1621,9 +1495,12 @@
         }
 
         const subject = ket ? 'Kegiatan Lain' : (mapelFinal || 'Di Luar Jadwal');
+        
+        // FORMAT KELAS KOPEL AGAR MENAMPILKAN SEMUA KELAS KOPEL
+        const formattedClass = formatKopelClass(classCode, subject);
 
         const record = {
-            teacher: currentUser, class: classCode, subject: subject, action: currentMode || 'masuk',
+            teacher: currentUser, class: formattedClass, subject: subject, action: currentMode || 'masuk',
             date: dateStr, time: timeStr, day: getDayNameID(), jp: jpFinal,
             jadwal_masuk: jMasuk, jadwal_keluar: jKeluar,
             timestamp: now.toISOString(), keterangan: ket, synced: false
@@ -1631,7 +1508,7 @@
 
         saveAttendanceLocal(record).then(async (id) => {
             const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
-            showScanResult(ket ? `${actionIcon} ${classCode} (${ket})` : `${actionIcon} ${classCode} (${subject})`, 'success');
+            showScanResult(ket ? `${actionIcon} ${formattedClass} (${ket})` : `${actionIcon} ${formattedClass} (${subject})`, 'success');
             addHistoryRow({...record, id});
             
             if (navigator.onLine) {
@@ -1739,9 +1616,9 @@
             
             let filtered = res.data.filter(d => {
                 if (d.teacher !== currentUser) return false;
-                if(rekapFilter === 'day') return d.date === today;
-                if(rekapFilter === 'week') return d.date >= new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
-                if(rekapFilter === 'month') return d.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                if (rekapFilter === 'day') return d.date === today;
+                if (rekapFilter === 'week') return d.date >= new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
+                if (rekapFilter === 'month') return d.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
                 return true; 
             });
 
@@ -1785,9 +1662,9 @@
                 let isLate = false, isEarly = false;
                 let telatMenit = 0, cepatMenit = 0;
                 
-                let jM = parseTime(r.jadwal_masuk); let wM = parseTime(r.waktu_masuk);
-                if (jM && wM) {
-                    let diff = Math.round((wM - jM) / 60000);
+                let jM = parseTimeToMins(r.jadwal_masuk); let wM = parseTimeToMins(r.waktu_masuk);
+                if (jM > 0 && wM > 0) {
+                    let diff = wM - jM;
                     if (diff > tol) {
                         telatMenit = diff - tol;
                         lateCount += telatMenit;
@@ -1795,9 +1672,9 @@
                     }
                 }
                 
-                let jK = parseTime(r.jadwal_keluar); let wK = parseTime(r.waktu_keluar);
-                if (jK && wK) {
-                    let diff = Math.round((jK - wK) / 60000);
+                let jK = parseTimeToMins(r.jadwal_keluar); let wK = parseTimeToMins(r.waktu_keluar);
+                if (jK > 0 && wK > 0) {
+                    let diff = jK - wK;
                     if (diff > tol) {
                         cepatMenit = diff - tol;
                         earlyCount += cepatMenit;
@@ -1834,13 +1711,14 @@
 
     function initAdminFilters() {
         const filterSelect = document.getElementById('adminTeacherFilter');
+        filterSelect.innerHTML = '<option value="all">-- Semua Guru --</option>';
         TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
 	
     async function loadAdminData() {
         if (!isAdmin) return;
         const tbody = document.getElementById('adminBody');
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center">Memuat data dari Google Sheets...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
         
         try {
             const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
@@ -1869,19 +1747,20 @@
 
             let tLate = 0, tEarly = 0, visibleRecords = 0; 
             tbody.innerHTML = '';
-            const finalData = Object.values(grouped).sort((a,b) => a.date.localeCompare(b.date) || a.teacher.localeCompare(b.teacher));
+            const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || a.teacher.localeCompare(b.teacher));
             
             finalData.forEach(g => {
                 let telatMenit = 0, cepatMenit = 0;
                 
-                let jM = parseTime(g.jadwal_masuk), wM = parseTime(g.waktu_masuk);
-                if (jM && wM) { let diff = Math.round((wM - jM) / 60000); if (diff > tol) telatMenit = diff - tol; }
+                let jM = parseTimeToMins(g.jadwal_masuk), wM = parseTimeToMins(g.waktu_masuk);
+                if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tol) telatMenit = diff - tol; }
                 
-                let jK = parseTime(g.jadwal_keluar), wK = parseTime(g.waktu_keluar);
-                if (jK && wK) { let diff = Math.round((jK - wK) / 60000); if (diff > tol) cepatMenit = diff - tol; }
+                let jK = parseTimeToMins(g.jadwal_keluar), wK = parseTimeToMins(g.waktu_keluar);
+                if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tol) cepatMenit = diff - tol; }
                 
-                if (adminViewMode === 'late' && telatMenit === 0) return;
-                if (adminViewMode === 'early' && cepatMenit === 0) return;
+                // FILTER SESUAI TOMBOL FILTER (Semua / Terlambat / Keluar Cepat)
+                if (adminViewMode === 'late' && telatMenit <= 0) return;
+                if (adminViewMode === 'early' && cepatMenit <= 0) return;
                 
                 tLate += telatMenit; tEarly += cepatMenit; visibleRecords++;
 
@@ -1894,7 +1773,7 @@
             });
             
             if (visibleRecords === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center">Tidak ada data yang sesuai filter.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>';
             }
 
             document.getElementById('adminStatTotal').textContent = visibleRecords; 
@@ -1933,7 +1812,7 @@
         const period = document.getElementById('agusFilterPeriod').value;
         const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
         
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Mengambil data dari Google Sheet...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
         
         try {
             const response = await fetch(GAS_URL + '?action=getAbsensi');
@@ -1970,16 +1849,16 @@
                 reportMap[g.teacher].total_sesi++;
                 
                 if (g.action_masuk && g.jadwal_masuk !== '-') {
-                    let jM = parseTime(g.jadwal_masuk); let wM = parseTime(g.waktu_masuk);
-                    if (jM && wM) {
-                        let diff = Math.round((wM - jM) / 60000);
+                    let jM = parseTimeToMins(g.jadwal_masuk); let wM = parseTimeToMins(g.waktu_masuk);
+                    if (jM > 0 && wM > 0) {
+                        let diff = wM - jM;
                         if (diff > tol) reportMap[g.teacher].telat += (diff - tol);
                     }
                 }
                 if (g.action_keluar && g.jadwal_keluar !== '-') {
-                    let jK = parseTime(g.jadwal_keluar); let wK = parseTime(g.waktu_keluar);
-                    if (jK && wK) {
-                        let diff = Math.round((jK - wK) / 60000);
+                    let jK = parseTimeToMins(g.jadwal_keluar); let wK = parseTimeToMins(g.waktu_keluar);
+                    if (jK > 0 && wK > 0) {
+                        let diff = jK - wK;
                         if (diff > tol) reportMap[g.teacher].cepat += (diff - tol);
                     }
                 }
@@ -1994,8 +1873,8 @@
                     <td class="text-primary font-bold">${item.total_sesi}</td>`;
                 tbody.appendChild(tr);
             });
-            if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center">Tidak ada data.</td></tr>';
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger">Error: ${e.message}</td></tr>`; }
+            if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Tidak ada data.</td></tr>';
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
     }
 
     document.getElementById('agusEditLink').addEventListener('click', () => {
@@ -2023,26 +1902,17 @@
     }
 
     document.addEventListener('DOMContentLoaded', async () => {
-        // GANTI TEKS TOMBOL FILTER ADMIN
-        const btnEarly = document.querySelector('.admin-view[data-view="early"]');
-        if (btnEarly) btnEarly.textContent = 'Keluar Cepat';
-
-        // GANTI TEKS TOMBOL SEMESTER MENJADI SEMUA & UBAH VALUE DATA FILTER
-        const btnSem = document.querySelector('.rekap-filter[data-filter="semester"]');
-        if (btnSem) {
-            btnSem.textContent = 'Semua';
-            btnSem.dataset.filter = 'all';
+        await openDB(); 
+        renderTeacherList(); 
+        document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
+        document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); 
+        initAdminFilters();
+        
+        const savedUser = localStorage.getItem('absensi_user'); 
+        if (savedUser) { 
+            const t = TEACHERS.find(x => x.name === savedUser); 
+            if (t && !t.isAdmin) doLogin(savedUser, false, ''); 
         }
-
-        // PERBAIKI HEADER TABEL ADMIN SECARA OTOMATIS
-        const adminThead = document.querySelector('#adminBody')?.parentElement?.querySelector('thead');
-        if (adminThead) {
-            adminThead.innerHTML = '<tr><th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Cepat</th></tr>';
-        }
-
-        await openDB(); renderTeacherList(); document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
-        document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); initAdminFilters();
-        const savedUser = localStorage.getItem('absensi_user'); if (savedUser) { const t = TEACHERS.find(x => x.name === savedUser); if (t && !t.isAdmin) doLogin(savedUser, false, ''); }
         updateOfflineStatus();
     });
 </script>
