@@ -143,7 +143,7 @@
     .topbar {
         display: flex; align-items: center; justify-content: space-between;
         padding: 16px 20px; background: var(--primary); color: #fff;
-        border-radius: 20px; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+        border-radius: 20px; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;
         box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.4);
         background-image: url('https://www.transparenttextures.com/patterns/cubes.png');
     }
@@ -175,7 +175,7 @@
 
     .tabs {
         display: flex; gap: 8px; background: #e2e8f0; border-radius: 16px;
-        padding: 6px; margin-bottom: 24px; overflow-x: auto; flex-wrap: nowrap;
+        padding: 6px; margin-bottom: 16px; overflow-x: auto; flex-wrap: nowrap;
     }
     .tabs .tab {
         padding: 12px 16px; border: none; border-radius: 12px; font-weight: 600; font-size: 0.85rem;
@@ -262,6 +262,23 @@
     }
     .toast.success { background: var(--success); } .toast.error { background: var(--danger); } .toast.warning { background: var(--warning); }
     @keyframes slideUpToast { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .bg-blue-50 { background-color: #eff6ff; }
+    .border-blue-200 { border-color: #bfdbfe; }
+    .text-blue-800 { color: #1e40af; }
+    .text-blue-700 { color: #1d4ed8; }
+    
+    .bg-amber-50 { background-color: #fffbeb; }
+    .border-amber-200 { border-color: #fde68a; }
+    .text-amber-800 { color: #92400e; }
+    .text-amber-600 { color: #d97706; }
+    .text-red-600 { color: #dc2626; }
+    
+    .bg-red-50 { background-color: #fef2f2; }
+    .border-red-200 { border-color: #fecaca; }
+
+    @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    .blink-text { animation: blink 1.5s infinite; }
 </style>
 </head>
 <body>
@@ -316,6 +333,24 @@
                 <div class="jp" id="jpDisplay">JP -</div>
                 <div class="sync-status" id="syncStatus"><i class="fa-solid fa-rotate"></i> Sinkron: 0 pending</div>
             </div>
+        </div>
+        
+        <!-- NEXT CLASS INFO -->
+        <div id="nextClassCard" class="card hidden bg-blue-50 border-blue-200" style="padding: 16px; margin-bottom: 16px;">
+            <div class="text-sm font-bold text-blue-800"><i class="fa-solid fa-calendar-day"></i> Jadwal Berikutnya</div>
+            <div id="nextClassText" class="text-xs text-blue-700 mt-2"></div>
+        </div>
+
+        <!-- UPCOMING CLASS WARNING (5 MINS) -->
+        <div id="upcomingClassWarningCard" class="card hidden bg-red-50 border-red-200" style="padding: 16px; margin-bottom: 16px; border: 1px solid #fecaca; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
+            <div id="upcomingClassWarningText" class="text-sm font-bold text-red-600 text-center blink-text"></div>
+        </div>
+
+        <!-- ACTIVE TEACHING TIMER -->
+        <div id="activeClassTimerCard" class="card hidden bg-amber-50 border-amber-200" style="padding: 16px; margin-bottom: 16px;">
+            <div class="text-sm font-bold text-amber-800 text-center"><i class="fa-solid fa-stopwatch"></i> Sedang Mengajar: <span id="activeClassCode"></span></div>
+            <div class="text-3xl font-bold text-amber-600 mt-2 mb-1 text-center" style="font-family: monospace;" id="activeClassCountdown">00:00</div>
+            <div id="activeClassWarning" class="text-xs font-bold text-red-600 mt-2 text-center hidden"></div>
         </div>
 
         <div class="tabs" id="mainTabs">
@@ -483,9 +518,14 @@
                 </div>
 
                 <div class="input-group">
-                    <label><i class="fa-solid fa-stopwatch"></i> Toleransi Waktu (menit)</label>
-                    <input type="number" id="toleranceInput" value="3" min="0" max="30" />
+                    <label><i class="fa-solid fa-stopwatch"></i> Toleransi Telat Masuk (menit)</label>
+                    <input type="number" id="toleranceMasukInput" value="3" min="0" max="30" />
                 </div>
+                <div class="input-group">
+                    <label><i class="fa-solid fa-stopwatch"></i> Toleransi Cepat Keluar (menit)</label>
+                    <input type="number" id="toleranceKeluarInput" value="3" min="0" max="30" />
+                </div>
+                <button class="btn btn-primary btn-sm mb-4" id="saveToleranceBtn"><i class="fa-solid fa-save"></i> Simpan Toleransi</button>
 
                 <div class="admin-special-grid">
                     <button class="btn btn-primary" id="agusGenQR"><i class="fa-solid fa-qrcode"></i> Cetak QR</button>
@@ -618,7 +658,6 @@
     let jadwalPelajaran = JSON.parse(localStorage.getItem('jadwal_cache')) || {};
     const allDays = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'ahad'];
     
-    // PERBAIKAN INISIALISASI JP: MEMBUAT SELURUH KOMBINASI JP (JP 1, JP 1-2, JP 3-4, JP 5-6, dst)
     const allJPs = [];
     for (let i = 1; i <= 8; i++) {
         allJPs.push('JP ' + i);
@@ -951,8 +990,6 @@
 	jadwalPelajaran['sabtu']['JP 5-6']['9D'] = 'Matematika (Saifuddin Hidayat, S. Pd.)';
 	jadwalPelajaran['sabtu']['JP 7-8']['9D'] = 'Bahasa Arab (Muhammad Al Huraibi, Lc.)';
 
-    // EKSTRAK JP GABUNGAN (Misal JP 1-2 menjadi JP 1 dan JP 2 secara individual)
-    // Hal ini agar saat guru melakukan scan pada waktu JP 1, sistem akan berhasil menemukan mapelnya.
     allDays.forEach(d => {
         Object.keys(jadwalPelajaran[d]).forEach(jpKey => {
             if (jpKey.includes('-')) {
@@ -970,7 +1007,6 @@
         });
     });
 
-    // FUNGSI FORMAT KELAS KOPEL DENGAN TANDA KURUNG
     function formatKopelClass(kelas, mapel) {
         if (!kelas || !mapel) return kelas;
         const normMapel = mapel.toLowerCase();
@@ -1071,9 +1107,9 @@
             
             let isValid = false;
             if (mode === 'masuk') {
-                isValid = (totalMins >= (m - 10) && totalMins < (k - 5)); 
+                isValid = (totalMins >= (m - 10) && totalMins <= k); 
             } else if (mode === 'keluar') {
-                isValid = (totalMins >= (m + 5) && totalMins <= (k + 10));
+                isValid = (totalMins >= m && totalMins <= (k + 10));
             } else {
                 isValid = (totalMins >= (m - 10) && totalMins <= (k + 10));
             }
@@ -1332,10 +1368,84 @@
         e.preventDefault();
         const section = document.getElementById('passwordSection');
         const teacherName = section.dataset.selectedTeacher;
-        doLogin(teacherName, false, ''); // Login sebagai Guru biasa tanpa password
+        doLogin(teacherName, false, ''); 
     });
 
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
+
+    function getNextClass() {
+        if (!currentUser) return null;
+        const hari = getDayName();
+        const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+        const now = new Date();
+        const totalMins = now.getHours() * 60 + now.getMinutes();
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+
+        for (let i = 1; i <= 8; i++) {
+            let jp = 'JP ' + i;
+            if (!jadwal[jp]) continue;
+
+            let jMins = parseTimeToMins(jadwal[jp].masuk);
+            let kMins = parseTimeToMins(jadwal[jp].keluar);
+
+            if (kMins > totalMins) {
+                for (let c of CLASSES) {
+                    let mapel = getMapelForScan(c, currentUser, hari, jp);
+                    if (mapel) {
+                        let cFormatted = formatKopelClass(c, mapel);
+                        // Melewati kelas jika guru sudah memindai absensi (berstatus mengajar)
+                        if (activeTeaching && activeTeaching.class === cFormatted && activeTeaching.subject === mapel) {
+                            continue;
+                        }
+                        return { jp: jp, class: c, mapel: mapel, masuk: jadwal[jp].masuk, masukMins: jMins };
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    let lastNotifiedUpcoming = null;
+
+    function updateNextClassInfo() {
+        if (!currentUser) return;
+        const nextClass = getNextClass();
+        const infoCard = document.getElementById('nextClassCard');
+        const warnCard = document.getElementById('upcomingClassWarningCard');
+
+        if (nextClass) {
+            infoCard.classList.remove('hidden');
+            const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
+            document.getElementById('nextClassText').innerHTML =
+                `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
+
+            const now = new Date();
+            const totalMins = now.getHours() * 60 + now.getMinutes();
+            const diffMins = nextClass.masukMins - totalMins;
+
+            if (diffMins > 0 && diffMins <= 5) {
+                warnCard.classList.remove('hidden');
+                document.getElementById('upcomingClassWarningText').innerHTML =
+                    `<i class="fa-solid fa-bell fa-shake"></i> Segera Bersiap! ${diffMins} menit lagi jadwal mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b>.`;
+
+                let notifyKey = currentUser + '_' + nextClass.class + '_' + nextClass.jp;
+                if (lastNotifiedUpcoming !== notifyKey) {
+                    playBeepWarning();
+                    lastNotifiedUpcoming = notifyKey;
+                }
+            } else if (diffMins <= 0) {
+                 warnCard.classList.remove('hidden');
+                 document.getElementById('upcomingClassWarningText').innerHTML =
+                    `<i class="fa-solid fa-circle-exclamation fa-beat"></i> Jadwal mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> sudah dimulai sejak ${nextClass.masuk}!`;
+            } else {
+                warnCard.classList.add('hidden');
+                if (diffMins > 5) lastNotifiedUpcoming = null;
+            }
+        } else {
+            infoCard.classList.add('hidden');
+            warnCard.classList.add('hidden');
+        }
+    }
 
     function doLogin(name, isAdminUser, adminType) {
         currentUser = name; currentUserData = TEACHERS.find(t => t.name === name);
@@ -1345,7 +1455,6 @@
         document.getElementById('userMapelDisplay').textContent = (currentUserData.subjects || []).join(', ') || (isAdminUser ? 'Admin' : '-');
         document.getElementById('adminTab').classList.toggle('hidden', !isAdminUser); document.getElementById('agusTab').classList.toggle('hidden', !isAgus);
         
-        // Cek apakah user adalah M. Tahir atau Master Admin untuk memunculkan tombol Input Manual
         const isMTahir = (name === 'M. Tahir, M. Pd.');
         if (document.getElementById('manualScanBtn')) { 
             document.getElementById('manualScanBtn').classList.toggle('hidden', !(isAgus || isMTahir)); 
@@ -1354,6 +1463,8 @@
 
         currentMode = null; updateScanModeUI(); stopScanner();
         loadHistory(); updateClock(); updateOfflineStatus();
+        updateNextClassInfo(); 
+        
         if (navigator.onLine) syncNow(false, true); updateSyncStatus();
         showToast(`Assalamu'alaikum ustadz ${name}`, 'success');
         if (!isAdminUser) localStorage.setItem('absensi_user', name); else localStorage.removeItem('absensi_user');
@@ -1465,9 +1576,9 @@
             let isValid = false;
             
             if (currentMode === 'masuk') {
-                isValid = (timeMins >= (m - 10) && timeMins <= (k - 5)); 
+                isValid = (timeMins >= (m - 10) && timeMins <= k); 
             } else if (currentMode === 'keluar') {
-                isValid = (timeMins >= (m + 5) && timeMins <= (k + 10));
+                isValid = (timeMins >= m && timeMins <= (k + 10));
             } else {
                 isValid = (timeMins >= (m - 10) && timeMins <= (k + 10));
             }
@@ -1495,9 +1606,19 @@
         }
 
         const subject = ket ? 'Kegiatan Lain' : (mapelFinal || 'Di Luar Jadwal');
-        
-        // FORMAT KELAS KOPEL AGAR MENAMPILKAN SEMUA KELAS KOPEL
         const formattedClass = formatKopelClass(classCode, subject);
+
+        if (currentMode === 'masuk' && jKeluar !== '00:00') {
+            let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false };
+            localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
+            updateNextClassInfo(); // Memperbarui jadwal selanjutnya karena kelas ini sudah dimasuki
+        } else if (currentMode === 'keluar') {
+            let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+            if (activeTeaching && activeTeaching.class === formattedClass) {
+                localStorage.removeItem('activeTeaching_' + currentUser);
+                document.getElementById('activeClassTimerCard').classList.add('hidden');
+            }
+        }
 
         const record = {
             teacher: currentUser, class: formattedClass, subject: subject, action: currentMode || 'masuk',
@@ -1528,11 +1649,65 @@
         clearTimeout(el._hideTimer); el._hideTimer = setTimeout(() => el.classList.add('hidden'), 6000);
     }
 
+    function updateTeachingTimer() {
+        if (!currentUser) return;
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        const timerCard = document.getElementById('activeClassTimerCard');
+        
+        if (!activeTeaching) {
+            timerCard.classList.add('hidden');
+            return;
+        }
+
+        timerCard.classList.remove('hidden');
+        document.getElementById('activeClassCode').textContent = activeTeaching.class + ' (' + activeTeaching.subject + ')';
+
+        const now = new Date();
+        const endParts = activeTeaching.keluar.split(':');
+        const endDate = new Date();
+        endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+
+        const diffSeconds = Math.floor((endDate - now) / 1000);
+
+        if (diffSeconds > 0) {
+            const h = Math.floor(diffSeconds / 3600);
+            const m = Math.floor((diffSeconds % 3600) / 60);
+            const s = diffSeconds % 60;
+            
+            let timeStr = "";
+            if (h > 0) timeStr += String(h).padStart(2, '0') + ':';
+            timeStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            document.getElementById('activeClassCountdown').textContent = timeStr;
+
+            if (diffSeconds <= 180) { 
+                if (!activeTeaching.notified) {
+                    playBeep3x();
+                    activeTeaching.notified = true;
+                    localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
+                }
+                const warnEl = document.getElementById('activeClassWarning');
+                warnEl.classList.remove('hidden');
+                warnEl.textContent = `Waktu mengajar di kelas ini akan berakhir segera pukul ${activeTeaching.keluar}`;
+            } else {
+                document.getElementById('activeClassWarning').classList.add('hidden');
+            }
+        } else {
+            document.getElementById('activeClassCountdown').textContent = "00:00";
+            document.getElementById('activeClassWarning').classList.add('hidden');
+            if (diffSeconds < -900) { 
+                localStorage.removeItem('activeTeaching_' + currentUser);
+                timerCard.classList.add('hidden');
+            }
+        }
+    }
+
     function updateClock() {
         const now = new Date();
         document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('loginDayInfo').innerHTML = '<i class="fa-regular fa-calendar"></i> ' + getDayNameID() + ', ' + now.toLocaleDateString('id-ID');
         document.getElementById('jpDisplay').textContent = getCurrentJPInfo(currentMode || 'masuk');
+        updateTeachingTimer();
+        updateNextClassInfo();
     }
     setInterval(updateClock, 1000);
 
@@ -1559,7 +1734,35 @@
     }
 
     function playBeep() {
-        try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 1000; osc.type = 'sine'; gain.gain.value = 0.5; osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150); } catch (e) {}
+        try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 1000; osc.type = 'square'; gain.gain.value = 0.5; osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150); } catch (e) {}
+    }
+
+    function playBeep3x() {
+        let count = 0;
+        let intv = setInterval(() => {
+            playBeep();
+            count++;
+            if(count >= 3) clearInterval(intv);
+        }, 800);
+    }
+
+    function playBeepWarning() {
+        let count = 0;
+        let intv = setInterval(() => {
+            try {
+                const ctx = new(window.AudioContext || window.webkitAudioContext)();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = 800;
+                osc.type = 'triangle';
+                gain.gain.value = 0.5;
+                osc.start();
+                setTimeout(() => { osc.stop(); ctx.close(); }, 200);
+            } catch(e) {}
+            count++;
+            if(count >= 3) clearInterval(intv);
+        }, 400);
     }
 
     function updateOfflineStatus() {
@@ -1622,7 +1825,9 @@
                 return true; 
             });
 
-            const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
+            const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+            const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+
             let lateCount = 0; let earlyCount = 0;
 
             const grouped = {};
@@ -1665,8 +1870,8 @@
                 let jM = parseTimeToMins(r.jadwal_masuk); let wM = parseTimeToMins(r.waktu_masuk);
                 if (jM > 0 && wM > 0) {
                     let diff = wM - jM;
-                    if (diff > tol) {
-                        telatMenit = diff - tol;
+                    if (diff > tolMasuk) {
+                        telatMenit = diff - tolMasuk;
                         lateCount += telatMenit;
                         isLate = true;
                     }
@@ -1675,8 +1880,8 @@
                 let jK = parseTimeToMins(r.jadwal_keluar); let wK = parseTimeToMins(r.waktu_keluar);
                 if (jK > 0 && wK > 0) {
                     let diff = jK - wK;
-                    if (diff > tol) {
-                        cepatMenit = diff - tol;
+                    if (diff > tolKeluar) {
+                        cepatMenit = diff - tolKeluar;
                         earlyCount += cepatMenit;
                         isEarly = true;
                     }
@@ -1723,7 +1928,9 @@
         try {
             const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
             if (!res.success) throw new Error(res.error);
-            const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
+            const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+            const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+            
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
             const filterPeriod = document.getElementById('adminPeriodFilter').value;
             const todayStr = new Date().toISOString().split('T')[0];
@@ -1753,12 +1960,11 @@
                 let telatMenit = 0, cepatMenit = 0;
                 
                 let jM = parseTimeToMins(g.jadwal_masuk), wM = parseTimeToMins(g.waktu_masuk);
-                if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tol) telatMenit = diff - tol; }
+                if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tolMasuk) telatMenit = diff - tolMasuk; }
                 
                 let jK = parseTimeToMins(g.jadwal_keluar), wK = parseTimeToMins(g.waktu_keluar);
-                if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tol) cepatMenit = diff - tol; }
+                if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tolKeluar) cepatMenit = diff - tolKeluar; }
                 
-                // FILTER SESUAI TOMBOL FILTER (Semua / Terlambat / Keluar Cepat)
                 if (adminViewMode === 'late' && telatMenit <= 0) return;
                 if (adminViewMode === 'early' && cepatMenit <= 0) return;
                 
@@ -1795,6 +2001,16 @@
     document.getElementById('adminPeriodFilter').addEventListener('change', loadAdminData);
     document.getElementById('adminRefresh').addEventListener('click', loadAdminData);
 
+    document.getElementById('saveToleranceBtn').addEventListener('click', () => {
+        const m = document.getElementById('toleranceMasukInput').value;
+        const k = document.getElementById('toleranceKeluarInput').value;
+        localStorage.setItem('tolMasuk', m);
+        localStorage.setItem('tolKeluar', k);
+        showToast('Konfigurasi Toleransi Disimpan!', 'success');
+        if (isAdmin) loadAdminData();
+        if (isAgus) loadAgusData();
+    });
+
     document.getElementById('agusCheckConnection').addEventListener('click', async () => {
         addSyncLog('📡 Cek ping server...', 'info');
         try {
@@ -1810,7 +2026,8 @@
         if (!isAgus) return;
         const tbody = document.getElementById('agusBody');
         const period = document.getElementById('agusFilterPeriod').value;
-        const tol = parseInt(document.getElementById('toleranceInput').value) || 3;
+        const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+        const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
         
         tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
         
@@ -1852,14 +2069,14 @@
                     let jM = parseTimeToMins(g.jadwal_masuk); let wM = parseTimeToMins(g.waktu_masuk);
                     if (jM > 0 && wM > 0) {
                         let diff = wM - jM;
-                        if (diff > tol) reportMap[g.teacher].telat += (diff - tol);
+                        if (diff > tolMasuk) reportMap[g.teacher].telat += (diff - tolMasuk);
                     }
                 }
                 if (g.action_keluar && g.jadwal_keluar !== '-') {
                     let jK = parseTimeToMins(g.jadwal_keluar); let wK = parseTimeToMins(g.waktu_keluar);
                     if (jK > 0 && wK > 0) {
                         let diff = jK - wK;
-                        if (diff > tol) reportMap[g.teacher].cepat += (diff - tol);
+                        if (diff > tolKeluar) reportMap[g.teacher].cepat += (diff - tolKeluar);
                     }
                 }
             });
@@ -1904,6 +2121,10 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await openDB(); 
         renderTeacherList(); 
+        
+        document.getElementById('toleranceMasukInput').value = localStorage.getItem('tolMasuk') || 3;
+        document.getElementById('toleranceKeluarInput').value = localStorage.getItem('tolKeluar') || 3;
+
         document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
         document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); 
         initAdminFilters();
