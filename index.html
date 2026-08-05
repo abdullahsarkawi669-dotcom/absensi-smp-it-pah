@@ -99,7 +99,7 @@
     .btn-outline:hover { background: var(--primary); color: #fff; }
     .btn-sm { padding: 10px 16px; font-size: 0.85rem; }
 
-    .input-group { margin-bottom: 16px; }
+    .input-group { margin-bottom: 16px; position: relative; }
     .input-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-light); }
     .input-group input, .input-group select {
         width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0;
@@ -279,6 +279,15 @@
 
     @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     .blink-text { animation: blink 1.5s infinite; }
+
+    /* Styling untuk Floating Dropdown Santri Izin */
+    .floating-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+        border: 2px solid #2563eb; border-radius: 0 0 12px 12px; max-height: 200px;
+        overflow-y: auto; z-index: 99; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    }
+    .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
+    .dropdown-item:hover { background: #eff6ff; color: #2563eb; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -398,6 +407,52 @@
                         </select>
                     </div>
                     <button class="btn btn-primary" id="manualProcessBtn"><i class="fa-solid fa-check-to-slot"></i> Proses Kelas</button>
+                </div>
+
+                <!-- FITUR BARU: PENCATATAN SANTRI IZIN KELUAR KELAS -->
+                <div id="santriIzinContainer" class="card hidden mt-4" style="background: #f8fafc; border: 2px dashed #cbd5e1;">
+                    <div class="card-header" style="font-size: 1rem; margin-bottom: 12px;">
+                        <span><i class="fa-solid fa-user-clock text-primary"></i> Catat Santri Izin Keluar</span>
+                        <span class="badge" id="activeClassBadgeIzin">Kelas: -</span>
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>Cari Nama Santri</label>
+                        <input type="text" id="searchSantriInput" placeholder="Ketik sebagian nama santri..." autocomplete="off" />
+                        <div id="santriDropdown" class="floating-dropdown hidden"></div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Jenis Izin</label>
+                        <select id="jenisIzinSelect">
+                            <option value="Ke UKS (Sakit)">Ke UKS (Sakit)</option>
+                            <option value="Ke WC">Ke WC</option>
+                            <option value="Minum">Minum</option>
+                            <option value="Lainnya">Lainnya (...)</option>
+                        </select>
+                    </div>
+
+                    <div class="input-group hidden" id="keteranganLainGroup">
+                        <label>Keterangan Lainnya</label>
+                        <input type="text" id="keteranganLainInput" placeholder="Tuliskan keterangan..." />
+                    </div>
+
+                    <button class="btn btn-primary btn-sm" id="tambahSantriIzinBtn"><i class="fa-solid fa-plus"></i> Tambahkan ke Daftar Izin</button>
+
+                    <div class="mt-3">
+                        <div class="text-xs font-bold text-gray-700 mb-1">Daftar Santri Izin Sesi Ini:</div>
+                        <div class="table-wrap" style="max-height: 150px;">
+                            <table>
+                                <thead>
+                                    <tr><th>Nama Santri</th><th>Jenis Izin</th><th>Aksi</th></tr>
+                                </thead>
+                                <tbody id="santriIzinBody">
+                                    <tr><td colspan="3" class="text-center text-muted">Belum ada santri ditambahkan</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <button class="btn btn-success btn-sm mt-3 hidden" id="kirimSantriIzinBtn"><i class="fa-solid fa-paper-plane"></i> Kirim Data Izin ke Server</button>
+                    </div>
                 </div>
 
                 <div id="scanResult" class="scan-result hidden"></div>
@@ -632,7 +687,25 @@
 
     const CLASSES = ['7A', '7B', '7C', '7D', '7E', '8A', '8B', '8C', '8D', '8E', '9A', '9B', '9C', '9D'];
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwQHROaCRFQBjS6obSzVCI9quY97sBqQTXPgTFUd7NaLhjRvLx3DSTLhv_Xx6nlYHfjZQ/exec';
+    // DATABASE SANTRI PER KELAS
+    const DATA_SANTRI = {
+        "7A": ["ABDULLAH RASYIQUL AKRAM", "ABDUROHMAN KHOLIL", "ABDURROZZAQ", "ADRIAN FACHRY AS'ARY", "ALBY FACHRIE", "ALIF ZIYAD ZAEN", "ATHAR RIZKY YUDHISTIRA", "AUFA AL HAMIDI", "BINTANG JULIANT ALFARABI", "FADHIL NASHIR ALBANI", "FAIZ ARFAN HAIKAL", "FAYADH ELFATA", "HADZUKI ADITYA RAMADHAN", "HAFIDS AL GHAZALI", "HARITS ARKAAN", "HUSAIN ANAKI", "LALU IQRA ILYAS", "M. GHAISAN INDIKA HILMY", "MU'ADZ", "MUH. GHAFAR ARIEF SETIOBUDI", "MUHAMMAD ADIB", "MUHAMMAD AL FAIZ", "MUHAMMAD ALFIAN RIZQI", "MUHAMMAD AQIL", "MUHAMMAD AQIL ALMAIR RAMADHAN", "MUHAMMAD NAYAKA HAKAM", "MUHAMMAD TRISTAN ALIEF PRABOWO", "MUHAMMAD ZAKY AL HAFIZH FAUZAN", "NADYANDA MUCHALI AL MAJIID", "RESKI ARSY NEGARA", "SULTAN FAIZULLAH ATMIJOYO", "SYABANIN ALKAUTSAR IRAWAN", "SYAFIIQ AL-ATSARI", "UKASYAH ABDURROHMAN", "UWAIS", "YUSUF ABDURRAHMAN FANSURI"],
+        "7B": ["AHMAD KADHAFI BAFADHAL", "AHMAD QAIS ALHADI", "AKBAR MUHAMMAD FAISAL", "ALKA ZAHRAN SYAFIQ", "ANTO APANSA", "BISMA ABDILLAH SURA", "GIOFANDI AHNAF SYATIR", "IMRAN UMAR ALKATIRI", "JIKRAN ALFATIH MUDASIR", "KHANUKH MAHIR BAHASWAN", "LALU ABDURRAHMAN DZAKI KHAIRI", "LALU MUHAMMAD ISHAM HAWARI", "LALU TSAQIB AL MUHALY", "M. SHAFIQ MUBARAK", "M. SULTHAN HABIBULLAH", "M.IBAD FA'IQ ATHAR", "MIFZAL", "MUH.FAZRIL ILHAM", "MUHAMAD OZIL", "MUHAMMAD AIDIL GIFARI", "MUHAMMAD AKROM AL-FARUQ", "MUHAMMAD FAUZAN", "MUHAMMAD FAWWAZ ARRAYAN", "MUHAMMAD NABIIL SETIAWAN", "MUHAMMAD NAUFAL AL KHAIRY", "NAUFAL AL FAIZ", "PRANAJA AGHA SAFARAZ", "RADITYA NAUFAL ABIYYU", "RASYA MAULANA PRASETYO", "SAJID", "SYAFIQ ALBANY MUBARAK", "VIRZAN AL AZKA", "WAFI 'ABDULLOH", "YUSUF GIBRAN RAMADHAN", "ZAKI SALEH", "ZUBAIR AL FAYYAD"],
+        "7C": ["ABBASHY RIZQILLAH JULIANGKARA", "ABIDULLAH IBRAHIM HANIF", "ABRISAM FAQIH ABBASY", "ADHWA ASHAAD KAMIDIA", "AFKAR HAFIDZUL FAYYAD", "AHMAD AL GHAZALI", "AHSAN ABDULLAH", "ALI ABDULLAH AL BAKRI", "AMIR MUJAHID", "ANAS MUTTAQIN", "BAYU SAFA BUDI OZORA", "DANIL ZAKY AL HANIF", "FADHIL JAMAL HIZAM", "FATHIN ABDULLAH", "FATIH ARDIANSYAH MALIK", "HAIRUL AZZAM", "HAFIZ PRATAMA DINTAHA", "ISAM AL KHUSYAIRI", "KEENAN DANIAL ALFAREZEL", "KHAERUL HADI JAELANI", "MU'ADZ RIFKI AL BAKRI", "MUH. SHOLYHIN", "MUHAMMAD ABDURRAHMAN ABBASYI", "MUHAMMAD DHAFFA DZAKI PUTRA SANI", "MUHAMMAD EMIRSYAH SYAWAL", "MUHAMMAD FADLILLAH", "MUHAMMAD FAIZI ATHAR AL AYYUBI", "MUHAMMAD ILYAS", "MUHAMMAD QOIS FIRDAUS", "MUHAMMAD RUSYDI THALIB", "MUHAMMAD YAZID ALI", "NIZAR", "PATIH MUHAMMAD", "ZAIM MUBARAK IBNU RASYID"],
+        "7D": ["ABDURRAHMAN HALIM", "ABDURRAHMAN HANIF", "ABU DAFIF KHOLIS AR-ROTANIYY", "ADHITYA FATHAN NURRIZKILLAH", "AHMAD SULTAN NAZHIRUL ASROFI", "AINAN NEVAN INDRAJAYA", "ALBY RIEZKY RAMADHAN", "AMMAR", "DZAKY MAHESWARA", "FATHIAN AL AZZAM", "HAFUZA AGHANDHI ISPARWONO", "ILHAMY MUHAMMAD WAFI", "KHAIZURAN AZFARIL HAKIM", "KHALIL ABDUL JABBAR", "LALU MUHAMMAD FAWAAZ MUSTHOFA", "M. DHAFFA GIBRAN ARANTA", "M. HISYAM AL FATHIR", "M. SALMAN AZKAMIL", "M. AUFAR TRI IRZANI", "M. GIYAS AUFA", "MUHAMMAD AFIIF AL-HABSYI", "MUHAMMAD AHSAN ZAKI", "MUHAMMAD ALVIN FAIZ", "MUHAMMAD FALIH KASYFUL ISLAM", "MUHAMMAD FAQIH RIZQULLAH", "MUHAMMAD HAYYAN", "MUHAMMAD RAIHAN AL FATIH", "MUZAKKAR HALIM KHAIRI", "RAZA ARDYLAN AMIR", "SAMI", "SAMIR JAZLAN AL- HADI", "SULTAN MUHAMMAD ALFATI", "TIHAMI ABDUL MUZANNI A", "UBAIDURRAHMAN", "UMAR AL FARUQ"],
+        "7E": ["ABDURRAHMAN DIANUL GIBRAN", "ABIE ALFAYAD", "AHMAD DHANIS ALFARUQ", "AHMAD ZOFRAN JIHADI", "AHMAD ZUBAIR", "AZKA RAHARDHIAN ACHMAD", "AZKA ZAHRAN SYAFIQ", "DAFFA IBNU HAFIDZ", "DANIAL FARUQ ABDURROHMAN", "FARDAN FADLI", "FARUQ NABIL ARFADANA", "FATIR KAHFI RUMI", "HANIF ABDURRAHMAN", "HUSEIN ALI FARIS", "KHAIRIL INSANI RAMADHAN", "LALU APTA PAWANA SUPRON", "MUHAMAD ZIZFAN YADI MULIA", "MUHAMMAD ALGHAZALI SALMIN", "MUHAMMAD AMMAR", "MUHAMMAD ATAYA EL AZZAM", "MUHAMMAD BILAL HARYANTO", "MUHAMMAD FATHIIN RAMADHANI", "MUHAMMAD GALIH AS SAKHA", "MUHAMMAD KENZIE MAHIRA", "MUHAMMAD NAUFAL GHANI", "MUHAMMAD YUZARSIF", "MUHAMMAD ZAID ISA", "NIRHAM SAJIDAN", "RADEN ALI FIRAS RAHMATULLAH", "RAMBU RAYA RABBANI", "RIZKY RAMADHAN", "TARAGA PAMENGAS PIRATA", "THUFAIL ALBYAKSA DEBERNADI", "UMAR", "ZIYAN HAFIZURRAHMAN"],
+        "8A": ["ABDULLAH AZZAM AL MANAR", "ABDURRAHMAN AL FAYADH", "ABDURRAHMAN FAQIH ALBANY", "ABIL MAJDI", "ALIEF HAFEES DINATA", "ARIF ALFIAN", "AZKA SURYA LOGIKA", "AZMI SUHAIL HIDAYAT", "AZZAM FAISHAL", "DEDEN HARDIANTO", "DINAN HADYAN HANIF", "HANIF ALTHAF RAMADHANI", "ILYAS AL-HAKIM", "ISA FEHER BAGIS", "LALU DANISH MIRZA AL FATIH MARTADINATA", "LALU IYAS ALI AHMAD", "M. DETHA ALGHIFARY", "M. FATONI", "MUHAMMAD AL AFIIF MAULANA", "MUHAMMAD ALBIMAWY", "MUHAMMAD ALFA AL HAWARI", "MUHAMMAD BILAL", "MUHAMMAD DHORFAN FUADY", "MUHAMMAD IRSYAD HAFIDZ", "MUHAMMAD IZWAR RASYID", "MUHAMMAD LUTHFI APRIAN NABHAN", "MUHAMMAD NIZZAM KHARISMA", "MUHAMMAD SULTAN", "MUHAMMAD ZHAFIR ATZANY", "MUSTAGFIRI ASROR", "NABHAN KHALIL", "NIZAM", "TAMIM ABDILLAH", "THORIQ SALAM", "UMAIR AL JUNDI", "YAZID AWAD SEWET"],
+        "8B": ["ABBAS", "ABDUL AZIZULHAKIM", "ABDURRAHMAN KHADAFI", "ABDURROHMAN AR-ROSYAD WARDOYO", "AHMAD MUSAYYIB", "AHMAD NUBLI ALFATIH", "AZHALLAH ZAYAN AGHLA", "DHANIZAM AZ ZIKRI KASYAFANI AHMAD", "FIRAS FAWAZ FATIH", "FURQAN ALFATIR", "HISYAM RIZKI HIDAYAT", "KHALID ATTAURIQ", "KHAN KARTAWIJAYA MADANI", "MUHAMAD ILHAM BINTANG", "MUHAMAD REZKY AFKHAR", "MUHAMMAD AL FATIH", "MUHAMMAD AZAM FARZANA", "MUHAMMAD AZMI", "MUHAMMAD DINZA ALKHALIFI", "MUHAMMAD FACHRI EL FIRAZ", "MUHAMMAD FADHIL", "MUHAMMAD FARHAN FURQON", "MUHAMMAD FATHIN RIDWAN", "MUHAMMAD HAMIZ JAFAR", "MUHAMMAD IBNU FARIS", "MUHAMMAD RAYHAN RAFASYA AL ZHAFRAN", "MUHAMMAD SALEH", "NALA FAUZAN ADZIMA", "NARARYA AZKA RAMADHAN", "NIDZAM QOSIM", "SHALLBAR MALIK JABBAR ISMAIL", "SYAHIDURRAHMAN", "TYAZQIRO ALIF SURYADIN", "UNAIS HANIF BUDIMAN", "YAZID ABDURRAHMAN", "ZAIM OZIL SYAHMI"],
+        "8C": ["ABDURRAHMAN AL-FURQON", "AHDA SYAKIRUL AFKAR", "AINUL RIZKY", "ALI FAHREZA RAMADHAN", "AUFAR BILAL SYAFIQ", "BARIQ ABDUL AFIF", "DANARHADIYYA AGRI", "EMHA RAYYAN HAIKAL AL HAKIM", "FIRDAUSI NUZULA", "FITRAH KAMULA TALIANG", "HAQQY HAYAZA", "HASAN USMAN SEWET", "KHAIRUL MIZAN", "KINAN SAMAU'AL RAHMAN", "MUHAMMAD ABBAD", "MUHAMMAD ALVITO ATHARIZ BAYNUKHO", "MUHAMMAD ARFA AL FAWWAZI", "MUHAMMAD DIFA ELRAFIF", "MUHAMMAD FADHIL", "MUHAMMAD FAID ADLIHAQ", "MUHAMMAD HAFIDZ", "MUHAMMAD ILHAM BADRUSSALAM", "MUHAMMAD KHALIFA GHAISANI", "MUHAMMAD SALMAN AL FARISI", "MUSYARI ROSYID", "NAUFAL ADINURRAHMAN", "NAYIF ALQADRI", "QUSAY", "RASHA MUHAMMAD ATHAYA", "SALEM OSAMA MA'DAN", "SALIM ABDULLAH GUNAWAN", "SYAHMI ZABIR", "SYAKIR", "UWAYS ABDURRAHMAN", "WIFA ASYROFI"],
+        "8D": ["ALFATH BHUMI ARSAKHA", "ARSHALAN MUHAMMAD FERALVO", "ATAN ALFATIH TOSAMAN", "ATMADEVA HAYUMERTA", "AUFA IMADUDDIN", "BUMI ABDI NEGARA", "DZAKWAN TSAMIR ARRAHMAN", "FATHIR AKMAL RABBANI", "FATHIR ALI AL HUSSEINI", "FAWWAZ BADRUTAMAM", "FAYAD FADILAH FAIRUZ AMANULLAH", "HANIF HAWARI", "KHALID ALHUDRI", "LALU AKHTAR TSAQIF GUNAWAN", "LALU AZZAM ABDURRAASYID ROMADHONI", "LALU MUHAMMAD ZEVIAN ALTHAF", "M APRIANSYAH", "M. DZAKWAN KHAFADY", "M. SAYYID RAZIQ AL FATIH", "MAULANA KHALIL ACHMAD", "MUHAMAD RIZKY KATSIRO", "MUHAMMAD AFLAH KHALAF KASMAN", "MUHAMMAD FARID AZFAR", "MUHAMMAD HABIB ASLAM", "MUHAMMAD LUKMAN ALFAIQ", "MUHAMMAD NAYYIF", "MUHAMMAD RAIHAN PUTRA FIRMANDA", "MUHAMMAD RIZKI ANUGRAH", "MUHAMMAD RIZKY ALHAKIM", "MUHAMMAD SYAFIQ ARKAN", "MUHAMMAD SYAHRIZA RIVAI", "NIKO SATYA ATMAJA", "RIDHO MARTA DINATA", "YUSUF KAMIL", "ZAID UBAIDILLAH"],
+        "8E": ["ABDURRAHMAN AHMAD", "ABDURRAHMAN ZAYID", "ADITYA PUTRA WIDANI", "ADZKA INSANUL ARIF", "AMMAR ABDURRAZZAQ", "ANUGERAH RAZA KHASYI", "ATFAL RAMADHAN", "ATHIF", "AYMAN SULTAN AYUBI", "BILAL", "DEKA SAMUDERA", "FATHI AIMAN EL HARIS", "FATHIR DZAKWAN RAMADHAN", "FATIH EL ROZZA", "FI ZHILALIT TAUHID", "FURQON AZKA IBRAHIM", "IBNU NABIL MANULLANG", "JA'FAR ABDUL HALIM", "KAFKA APUILA", "LALU BASRI RAHMAN", "LALU SANDY AL FARISI", "M. ALI SAPUTRA HIDAYAT", "M. ALIF SIDIK", "M. RIZKY FANRI ADHA", "MOCHAMMAD RAYSHA OEMAR", "MUH.UWAIS AL QORNI", "MUHAMMAD ARSYAD AL BUKHORI", "MUHAMMAD FATHIH", "MUHAMMAD GHOFIQI ARRAYYAN", "MUHAMMAD RAFIE IBRAHIM", "MUHAMMAD UWAIS AL QORNY", "MUHAMMAD ZIBAN", "MUHAMMAD ZIDAN ALI AKBAR", "NAUFAL RIZKY ADZ-DZAKY", "NAVILA AL KAUSAR"],
+        "9A": ["ABDILLAH FAWAZ ADZZIKRY", "AHMAD ALIFADWAN DZAKIRMANSYAH", "AHZA IMTIAS", "ALTAIR FATIH MUHAMMAD", "AMIRUL SHOLEH", "ASLAM AROFI", "BAGAS ERVITO", "FARIS RAFIE AS'ARY", "FAYYADH IFAT ASSYARIF", "GHAISAN HARISANDY", "IYADH IBNU MUNAWAR", "KHAIRIL FAHMI HUDA", "L. FERDIANSYAH AMMAR AL-FATIH", "LALU EZRA RAFEE AL RASYID", "M. FADHIL ZAHRAN", "M. FIKRI AZHARI", "M. NAYAKA ABHIYANTA AL FAYYADH", "M. ZIYAN HALIM", "MOH. ZAKY FIRMANSYAH", "MUHAMMAD", "MUHAMMAD AHLAM DZULFADLI", "MUHAMMAD ARKHA IBRA SURYA", "MUHAMMAD BAGAS PRATAMA", "MUHAMMAD FATHIN", "MUHAMMAD ZAHY IZDIHAR SYARIEF", "MUHAMMAD ZHAFRAN ARKAN", "TEGUH LINGGA AZHARI", "UMAIR", "ZENITH ZETTA RINJANI"],
+        "9B": ["ABDULLAH FAWWAZ SALIM", "ABDURAHIM ZHORIF", "AFFAN EL RAFIF", "AHMAD ABAS", "ARIF RAHMAN", "DIHYAH AFNAN", "FATHIR MUBARAK BIN TAHIR", "HAIKAL KAMAL", "HUDZAIFAH AL GHAZWAN", "HUMAINI HANDREANANTO", "HUSAIN ABDURACHMAN SEWET", "IZAS MUHAMAD ALFATIH", "JIYAD MUNTASHIR", "M. FAHARIL", "M. RAYHAN AS-SYAWAL", "M. ZIYADFAIZAN ALFIJMI", "MOH AMIN ALKHOLIDIN", "MU'AFA KHOIR MIDROR", "MUHAMMAD ALFARIDZZY", "MUHAMMAD ALTAF", "MUHAMMAD FADIL AL FARISI", "MUHAMMAD ISA", "MUHAMMAD YUSUF MIRZA HIDAYATULLAH", "MUHAMMAD ZIAN ABDULLAH", "NADHIF SYAIKUL ISLAM", "NAUFAL FAUZI", "RAZZAN ABIYYU ASSABIL", "RIFQY HANIF MAULANA", "RIJAL AYMAN HASAN", "SALEH FATHY BOBSAID", "SYAMIL YASSIR BALBEID", "THORIQ MOHAMAD ZIYAD", "YAZID ACHMAD SYAFIQ BAGIS"],
+        "9C": ["ADZKA RAFA AL FATIH", "AFFAN KHATIBUL UMAM", "AHMAD FAWWAZ AFIFI", "AYYUB", "AZFARI AL BUKHARI", "DANIAL AZZAM ADYATMA", "FAHIM ABDULLOH", "FAHRI ZAFRAN KHAIRI", "FAIRUZ ALMA DZAKI", "FARZAN ALMER SHAKY", "FATHIR SAYYAF HAJID", "FAWWAZ SYAMIL GHIFARI", "HANIF RAZIN ATHALLAH", "IKHWAN ZHAFRAN ARIYANTONO", "ILYAS HELMI HIZAM", "ILYAS MUJAHID AKBAR", "JAVA RAJENDRA AL WAFI", "LALU MUHAMMAD YAZID MAULANA", "MUHAMAD RHEZA DWI PUTRA", "MUHAMMAD DAFFA AR RAYYAN", "MUHAMMAD FARRAS ALIMUDDIN", "MUHAMMAD JALILUDIN AL HAFIDZ", "MUHAMMAD MUSA", "MUHAMMAD RIFAL FADLAN", "MUHAMMAD RIFQI AKBAR", "MUHAMMAD YAFI' 'AMMAR Y.", "MUHAMMAD ZAIN", "MUJAHIDIN", "MUSH'AB RIFKI AL BAKRI", "SABIQ ELFATTAN KURNIAWAN", "UWAIS BIN LUTHFIE ABDAT", "YAZID ABDUL QODIR", "ZIYAN FAKHRI"],
+        "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
+    };
+
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycby05ph5mPLraQRtzGwcoHLmQO7krdQutbyTN6qZKQRhlvcCSgOP7kbeuTkzBdzJ8JShsw/exec';
 
     const JADWAL_WAKTU = {
         reguler: {
@@ -1393,7 +1466,6 @@
                     let mapel = getMapelForScan(c, currentUser, hari, jp);
                     if (mapel) {
                         let cFormatted = formatKopelClass(c, mapel);
-                        // Melewati kelas jika guru sudah memindai absensi (berstatus mengajar)
                         if (activeTeaching && activeTeaching.class === cFormatted && activeTeaching.subject === mapel) {
                             continue;
                         }
@@ -1464,6 +1536,7 @@
         currentMode = null; updateScanModeUI(); stopScanner();
         loadHistory(); updateClock(); updateOfflineStatus();
         updateNextClassInfo(); 
+        checkActiveTeachingForIzin();
         
         if (navigator.onLine) syncNow(false, true); updateSyncStatus();
         showToast(`Assalamu'alaikum ustadz ${name}`, 'success');
@@ -1609,14 +1682,16 @@
         const formattedClass = formatKopelClass(classCode, subject);
 
         if (currentMode === 'masuk' && jKeluar !== '00:00') {
-            let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false };
+            let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false, rawClass: classCode };
             localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-            updateNextClassInfo(); // Memperbarui jadwal selanjutnya karena kelas ini sudah dimasuki
+            updateNextClassInfo();
+            checkActiveTeachingForIzin();
         } else if (currentMode === 'keluar') {
             let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
             if (activeTeaching && activeTeaching.class === formattedClass) {
                 localStorage.removeItem('activeTeaching_' + currentUser);
                 document.getElementById('activeClassTimerCard').classList.add('hidden');
+                checkActiveTeachingForIzin();
             }
         }
 
@@ -1642,6 +1717,181 @@
             updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
         });
     }
+
+    // FITUR PENCATATAN SANTRI IZIN KELAS
+    let tempSantriIzinList = [];
+
+    function checkActiveTeachingForIzin() {
+        if (!currentUser) return;
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        const container = document.getElementById('santriIzinContainer');
+        if (activeTeaching) {
+            container.classList.remove('hidden');
+            document.getElementById('activeClassBadgeIzin').textContent = `Kelas: ${activeTeaching.class} (${activeTeaching.subject})`;
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+
+    document.getElementById('jenisIzinSelect').addEventListener('change', function() {
+        const lainGroup = document.getElementById('keteranganLainGroup');
+        if (this.value === 'Lainnya') {
+            lainGroup.classList.remove('hidden');
+        } else {
+            lainGroup.classList.add('hidden');
+            document.getElementById('keteranganLainInput').value = '';
+        }
+    });
+
+    const searchSantriInput = document.getElementById('searchSantriInput');
+    const santriDropdown = document.getElementById('santriDropdown');
+
+    searchSantriInput.addEventListener('input', function() {
+        let keyword = this.value.trim().toLowerCase();
+        santriDropdown.innerHTML = '';
+        if (!keyword) {
+            santriDropdown.classList.add('hidden');
+            return;
+        }
+
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        if (!activeTeaching) {
+            santriDropdown.classList.add('hidden');
+            return;
+        }
+
+        // Ambil list santri berdasarkan rawClass atau ekstrak dari format kopel
+        let targetClass = activeTeaching.rawClass;
+        if (!targetClass) {
+            // fallback pencarian kelas dari string
+            CLASSES.forEach(c => { if(activeTeaching.class.includes(c)) targetClass = c; });
+        }
+
+        let listSantriKelas = DATA_SANTRI[targetClass] || [];
+        let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
+
+        if (matched.length > 0) {
+            santriDropdown.classList.remove('hidden');
+            matched.forEach(nama => {
+                let div = document.createElement('div');
+                div.className = 'dropdown-item';
+                div.textContent = nama;
+                div.onclick = () => {
+                    searchSantriInput.value = nama;
+                    santriDropdown.classList.add('hidden');
+                };
+                santriDropdown.appendChild(div);
+            });
+        } else {
+            santriDropdown.classList.add('hidden');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!searchSantriInput.contains(e.target) && !santriDropdown.contains(e.target)) {
+            santriDropdown.classList.add('hidden');
+        }
+    });
+
+    document.getElementById('tambahSantriIzinBtn').addEventListener('click', () => {
+        const nama = searchSantriInput.value.trim();
+        const jenis = document.getElementById('jenisIzinSelect').value;
+        const ketLain = document.getElementById('keteranganLainInput').value.trim();
+
+        if (!nama) {
+            showToast('Pilih atau ketik nama santri terlebih dahulu', 'error');
+            return;
+        }
+
+        let jenisFinal = jenis === 'Lainnya' ? `Lainnya (${ketLain || '-'})` : jenis;
+
+        tempSantriIzinList.push({ nama: nama, jenis_izin: jenisFinal, keterangan_lain: ketLain });
+        renderSantriIzinTable();
+
+        searchSantriInput.value = '';
+        document.getElementById('jenisIzinSelect').value = 'Ke UKS (Sakit)';
+        document.getElementById('keteranganLainGroup').classList.add('hidden');
+        document.getElementById('keteranganLainInput').value = '';
+        showToast('Santri ditambahkan ke daftar izin', 'success');
+    });
+
+    function renderSantriIzinTable() {
+        const tbody = document.getElementById('santriIzinBody');
+        const kirimBtn = document.getElementById('kirimSantriIzinBtn');
+        tbody.innerHTML = '';
+
+        if (tempSantriIzinList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Belum ada santri ditambahkan</td></tr>';
+            kirimBtn.classList.add('hidden');
+            return;
+        }
+
+        kirimBtn.classList.remove('hidden');
+        tempSantriIzinList.forEach((item, index) => {
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="font-bold">${item.nama}</td>
+                <td><span class="badge bg-amber-100 text-amber-800">${item.jenis_izin}</span></td>
+                <td><button class="btn btn-sm btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="removeTempSantri(${index})"><i class="fa-solid fa-trash"></i></button></td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.removeTempSantri = function(index) {
+        tempSantriIzinList.splice(index, 1);
+        renderSantriIzinTable();
+    };
+
+    document.getElementById('kirimSantriIzinBtn').addEventListener('click', async () => {
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        if (!activeTeaching) {
+            showToast('Tidak ada kelas aktif saat ini', 'error');
+            return;
+        }
+
+        if (tempSantriIzinList.length === 0) return;
+
+        if (!navigator.onLine) {
+            showToast('Offline, gagal mengirim data izin', 'error');
+            return;
+        }
+
+        const now = new Date();
+        const payload = {
+            api_action: 'addSantriIzin',
+            teacher: currentUser,
+            class: activeTeaching.class,
+            subject: activeTeaching.subject,
+            date: now.toISOString().split('T')[0],
+            time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            timestamp: now.toISOString(),
+            santri_list: tempSantriIzinList
+        };
+
+        const btn = document.getElementById('kirimSantriIzinBtn');
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+
+        try {
+            const response = await fetch(GAS_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const res = await response.json();
+            if (res.success) {
+                showToast('✅ Data santri izin berhasil dikirim ke Spreadsheet!', 'success');
+                tempSantriIzinList = [];
+                renderSantriIzinTable();
+            } else {
+                throw new Error(res.error || 'Gagal menyimpan');
+            }
+        } catch (e) {
+            showToast('❌ Gagal kirim: ' + e.message, 'error');
+        } finally {
+            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Data Izin ke Server';
+        }
+    });
 
     function showScanResult(msg, type = 'info') {
         const el = document.getElementById('scanResult');
@@ -1697,6 +1947,7 @@
             if (diffSeconds < -900) { 
                 localStorage.removeItem('activeTeaching_' + currentUser);
                 timerCard.classList.add('hidden');
+                checkActiveTeachingForIzin();
             }
         }
     }
