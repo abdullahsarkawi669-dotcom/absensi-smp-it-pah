@@ -788,7 +788,7 @@
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbw2nWTqG8fx8pnkKAyyRVUQRhy1PNY8jFcEeAfBj6INzxA65g0nIbSwv7tTvzKrkEMVTA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxAq3eUP_z4lKPpj2SOUlAPS8ky32YEuyIWbfqpeCR4R40vsDfa5nX7K_CCfUx42QKDXA/exec';
 
     const JADWAL_WAKTU = {
         reguler: {
@@ -1224,6 +1224,8 @@
             let d = new Date(str);
             return isNaN(d.getTime()) ? null : d;
         }
+        // Normalisasi format id-ID (titik menjadi titik dua)
+        str = str.replace(/\./g, ':');
         let pts = str.split(':');
         if (pts.length < 2) return null;
         let d = new Date();
@@ -1234,13 +1236,22 @@
     function parseTimeToMins(timeStr) {
         if (!timeStr || timeStr === '-' || timeStr === '') return 0;
         let str = String(timeStr).trim();
+        
         if (str.includes('T')) {
             let d = new Date(str);
-            return d.getHours() * 60 + d.getMinutes();
+            if (!isNaN(d.getTime())) return d.getHours() * 60 + d.getMinutes();
         }
+        
+        // Normalisasi pemisah titik
+        str = str.replace(/\./g, ':');
         let p = str.split(':');
-        if (p.length < 2) return 0;
-        return parseInt(p[0], 10) * 60 + parseInt(p[1], 10);
+        
+        if (p.length >= 2) {
+            let h = parseInt(p[0], 10);
+            let m = parseInt(p[1], 10);
+            if (!isNaN(h) && !isNaN(m)) return (h * 60) + m;
+        }
+        return 0;
     }
 
     function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
