@@ -788,7 +788,7 @@
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycby2BDt5UlOy8PSl-aDjwqa4cKhoV_QWnZNJfS6FG0cUPPDRu_GwvDP4vYo7IzA_y1vBTQ/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbw2nWTqG8fx8pnkKAyyRVUQRhy1PNY8jFcEeAfBj6INzxA65g0nIbSwv7tTvzKrkEMVTA/exec';
 
     const JADWAL_WAKTU = {
         reguler: {
@@ -1379,12 +1379,19 @@
 
     function countPendingSync() { return getUnsynced().then(res => res.length).catch(() => 0); }
 
-    // FUNGSI UNTUK MERFRESH CACHE DATA SERVER (Memastikan sinkronisasi absen terlewat akurat)
+    // FUNGSI UNTUK MERFRESH CACHE DATA SERVER & NORMALISASI ZONA WAKTU
     async function refreshServerCache() {
         try {
             const response = await fetch(GAS_URL + '?action=getAbsensi');
             const res = await response.json();
             if (res.success) {
+                // NORMALISASI: Jika server masih memuntahkan ISO string UTC
+                res.data.forEach(d => {
+                    if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                        let dt = new Date(d.date);
+                        if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                    }
+                });
                 const todayStr = new Date().toISOString().split('T')[0];
                 serverDataCache = res.data.filter(d => d.date === todayStr);
             }
@@ -1470,7 +1477,7 @@
             }
             
             updateSyncStatus(); 
-            await refreshServerCache(); // update cache server data biar jadwal hari ini akurat lagi
+            await refreshServerCache();
             loadHistory(); 
             loadRekap(); 
             
@@ -1550,7 +1557,6 @@
 
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
-    // FUNGSI BANTUAN UNTUK MENGGABUNGKAN JADWAL
     function getGroupedSchedule(teacherName, hari, currentMins) {
         let blocks = [];
         let currentBlock = null;
@@ -1569,7 +1575,7 @@
                     if (currentBlock && currentBlock.class === formattedClass && currentBlock.mapel === mapel) {
                         currentBlock.jps.push(i);
                         currentBlock.keluar = jadwal[jp].keluar;
-                        currentBlock.kMins = k; // Perbarui batas akhir dgn jadwal kMins terbaru
+                        currentBlock.kMins = k; 
                     } else {
                         if (currentBlock) blocks.push(currentBlock);
                         currentBlock = {
@@ -1598,7 +1604,7 @@
         for (let b of blocks) {
             if (b.kMins > totalMins) {
                 if (activeTeaching && activeTeaching.class === b.class && activeTeaching.subject === b.mapel) {
-                    continue; // Sedang diajar
+                    continue; 
                 }
                 let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
                 let m = parseTimeToMins(b.masuk);
@@ -1669,7 +1675,6 @@
         updateNextClassInfo(); 
         checkActiveTeachingForIzinKasus();
         
-        // Refresh Server Data First! (Mencegah masalah "terlewat" salah di awal load)
         if (navigator.onLine) {
             await refreshServerCache();
             syncNow(false, true); 
@@ -1824,14 +1829,11 @@
 
         // -- PENCEGAHAN DUPLIKASI DATA --
         let isDuplicate = false;
-        
-        // Cek Local Data
         const localHist = await getLocalHistory(currentUser, dateStr);
         if (localHist.some(h => h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) {
             isDuplicate = true;
         }
         
-        // Cek Server Data (diambil saat terakhir kali refresh/login/sync)
         if (serverDataCache.some(h => h.teacher === currentUser && h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) {
             isDuplicate = true;
         }
@@ -1840,7 +1842,7 @@
             showScanResult(`⚠️ Anda sudah melakukan absen ${(currentMode || 'masuk').toUpperCase()} untuk kelas ini hari ini.`, 'warning');
             playBeepWarning();
             document.getElementById('keteranganInput').value = '';
-            return; // Batalkan penyimpanan karena duplikat
+            return; 
         }
 
         if (currentMode === 'masuk' && jKeluar !== '00:00') {
@@ -1877,8 +1879,6 @@
                 } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
             }
             updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
-            
-            // Re-render schedule after scanning
             renderMySchedule();
         });
     }
@@ -2173,7 +2173,6 @@
         }
     }
 
-    // FUNGSI JADWAL SAYA HARI INI - DENGAN GROUPING & SERVER CACHE
     async function renderMySchedule() {
         if (!currentUser) return;
         const hari = getDayName();
@@ -2184,10 +2183,7 @@
         let history = [];
         try { history = await getLocalHistory(currentUser, todayStr); } catch(e){}
         
-        // Gabungkan riwayat absen dari local db dan server cache (untuk pengecekan realita)
         const attendedList = [...history, ...serverDataCache.filter(d => d.teacher === currentUser && d.action === 'masuk')];
-        
-        // Grouping Jadwal berdasarkan kelas berurutan
         let blocks = getGroupedSchedule(currentUser, hari, currentMins);
         
         const card = document.getElementById('myScheduleCard');
@@ -2205,11 +2201,8 @@
             let isPassed = sch.kMins < currentMins;
             let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
             
-            // Pengecekan riwayat: Apakah ada block JP yang sesuai
             let hasClockedIn = attendedList.some(h => {
                 if (h.class !== sch.class) return false;
-                // Pastikan minimal salah satu JP-nya bersinggungan 
-                // misal diabsen tertulis "JP 1-2", jadwal bloknya "JP 1, JP 2"
                 let overlap = false;
                 sch.jps.forEach(j => {
                     if (h.jp && h.jp.includes(j.toString())) overlap = true;
@@ -2217,7 +2210,6 @@
                 return overlap;
             });
             
-            // Aturan Utama: Hapus baris jika jadwal lewat dan guru SUDAH melakukan absen masuk
             if (isPassed && hasClockedIn) return; 
             
             countDisplayed++;
@@ -2259,7 +2251,6 @@
     }
     setInterval(updateClock, 1000);
     
-    // Perbarui jadwal secara otomatis (sekarang cache sudah dikelola dari login)
     setInterval(() => { if (currentUser) renderMySchedule(); }, 60000);
 
     function addHistoryRow(record) {
@@ -2337,6 +2328,14 @@
             const response = await fetch(GAS_URL + '?action=getAbsensi');
             const res = await response.json();
             if (!res.success) throw new Error(res.error);
+
+            // NORMALISASI TANGGAL
+            res.data.forEach(d => {
+                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                    let dt = new Date(d.date);
+                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                }
+            });
 
             const now = new Date(); 
             const today = now.toISOString().split('T')[0];
@@ -2426,14 +2425,10 @@
         TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
 	
-    // FUNGSI UNTUK MERENDER REKAP GURU TIDAK MASUK KELAS (MISSED CLASSES) DENGAN FORMAT GROUPING JP BERURUTAN
     function buildAdminMissedClasses(allData) {
         const tbody = document.getElementById('missedClassesBody');
         const todayStr = new Date().toISOString().split('T')[0];
-        
-        // Ambil data absensi MASUK pada hari ini dari SERVER
         const serverDataToday = allData.filter(d => d.date === todayStr && d.action === 'masuk');
-        
         const hari = getDayName();
         const now = new Date();
         const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -2441,13 +2436,9 @@
         let missedList = [];
         
         TEACHERS.forEach(t => {
-            // Gunakan grup fungsi bantuan
             let blocks = getGroupedSchedule(t.name, hari, currentMins);
-            
             blocks.forEach(sch => {
-                // Hanya hitung kalau JAM KELUAR kelas ini sudah terlewat
                 if (sch.kMins < currentMins) {
-                    
                     let hasClockedIn = serverDataToday.some(h => {
                         if (h.teacher !== t.name || h.class !== sch.class) return false;
                         let overlap = false;
@@ -2493,6 +2484,14 @@
             if (!res.success) throw new Error(res.error);
             const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
             const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+            
+            // NORMALISASI TANGGAL
+            res.data.forEach(d => {
+                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                    let dt = new Date(d.date);
+                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                }
+            });
             
             buildAdminMissedClasses(res.data);
             
@@ -2598,6 +2597,14 @@
             const response = await fetch(GAS_URL + '?action=getAbsensi');
             const res = await response.json();
             if (!res.success) throw new Error(res.error);
+            
+            // NORMALISASI TANGGAL
+            res.data.forEach(d => {
+                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                    let dt = new Date(d.date);
+                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                }
+            });
             
             const now = new Date();
             let filtered = res.data.filter(d => {
