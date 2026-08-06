@@ -280,7 +280,6 @@
     @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
     .blink-text { animation: blink 1.5s infinite; }
 
-    /* Styling untuk Floating Dropdown Santri */
     .floating-dropdown {
         position: absolute; top: 100%; left: 0; right: 0; background: #fff;
         border: 2px solid #2563eb; border-radius: 0 0 12px 12px; max-height: 200px;
@@ -344,6 +343,23 @@
             </div>
         </div>
         
+        <!-- JADWAL SAYA HARI INI CARD -->
+        <div id="myScheduleCard" class="card hidden bg-white mb-4" style="padding: 16px; border: 1px solid #e2e8f0;">
+            <div class="card-header" style="margin-bottom: 12px; font-size: 0.95rem;">
+                <span><i class="fa-solid fa-list-check text-primary"></i> Jadwal Saya Hari Ini</span>
+            </div>
+            <div class="table-wrap" style="max-height: 220px; overflow-y: auto;">
+                <table id="myScheduleTable">
+                    <thead>
+                        <tr><th>JP</th><th>Waktu</th><th>Kls</th><th>Mapel</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="myScheduleBody">
+                        <!-- Baris tabel akan diisi via JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- NEXT CLASS INFO -->
         <div id="nextClassCard" class="card hidden bg-blue-50 border-blue-200" style="padding: 16px; margin-bottom: 16px;">
             <div class="text-sm font-bold text-blue-800"><i class="fa-solid fa-calendar-day"></i> Jadwal Berikutnya</div>
@@ -561,6 +577,23 @@
         </div>
 
         <div id="tabAdmin" class="tab-content hidden">
+            <!-- REKAP GURU TIDAK MASUK KELAS (MISSED CLASSES) CARD -->
+            <div class="card bg-red-50 border-red-200" id="adminMissedClassesCard">
+                <div class="card-header text-red-600" style="margin-bottom: 12px; font-size: 0.95rem;">
+                    <span><i class="fa-solid fa-user-xmark"></i> Rekap Guru Tidak Masuk (Hari Ini)</span>
+                </div>
+                <div class="table-wrap" style="max-height: 250px;">
+                    <table id="missedClassesTable">
+                        <thead>
+                            <tr><th>Guru</th><th>Kls</th><th>Mapel</th><th>JP</th><th>Waktu</th></tr>
+                        </thead>
+                        <tbody id="missedClassesBody">
+                            <tr><td colspan="5" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menghitung rekap...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <div class="card">
                 <div class="card-header">
                     <span><i class="fa-solid fa-clipboard-user"></i> Dashboard Admin</span>
@@ -1765,6 +1798,9 @@
                 } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
             }
             updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
+            
+            // Re-render schedule after scanning
+            renderMySchedule();
         });
     }
 
@@ -1799,7 +1835,6 @@
         }
     });
 
-    // FLOATING DROPDOWN PENCARIAN SANTRI IZIN
     const searchSantriIzinInput = document.getElementById('searchSantriIzinInput');
     const santriIzinDropdown = document.getElementById('santriIzinDropdown');
 
@@ -1842,7 +1877,6 @@
         }
     });
 
-    // FLOATING DROPDOWN PENCARIAN SANTRI KASUS
     const searchSantriKasusInput = document.getElementById('searchSantriKasusInput');
     const santriKasusDropdown = document.getElementById('santriKasusDropdown');
 
@@ -1894,19 +1928,14 @@
         }
     });
 
-    // TOMBOL TAMBAH IZIN
     document.getElementById('tambahSantriIzinBtn').addEventListener('click', () => {
         const nama = searchSantriIzinInput.value.trim();
         const jenis = document.getElementById('jenisIzinSelect').value;
         const ketLain = document.getElementById('keteranganLainInput').value.trim();
 
-        if (!nama) {
-            showToast('Pilih atau ketik nama santri terlebih dahulu', 'error');
-            return;
-        }
+        if (!nama) { showToast('Pilih atau ketik nama santri terlebih dahulu', 'error'); return; }
 
         let jenisFinal = jenis === 'Lainnya' ? `Lainnya (${ketLain || '-'})` : jenis;
-
         tempSantriIzinList.push({ nama: nama, jenis_izin: jenisFinal, keterangan_lain: ketLain });
         renderSantriIzinTable();
 
@@ -1924,8 +1953,7 @@
 
         if (tempSantriIzinList.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Belum ada santri ditambahkan</td></tr>';
-            kirimBtn.classList.add('hidden');
-            return;
+            kirimBtn.classList.add('hidden'); return;
         }
 
         kirimBtn.classList.remove('hidden');
@@ -1939,29 +1967,19 @@
             tbody.appendChild(tr);
         });
     }
+    window.removeTempSantriIzin = function(index) { tempSantriIzinList.splice(index, 1); renderSantriIzinTable(); };
 
-    window.removeTempSantriIzin = function(index) {
-        tempSantriIzinList.splice(index, 1);
-        renderSantriIzinTable();
-    };
-
-    // TOMBOL TAMBAH KASUS
     document.getElementById('tambahSantriKasusBtn').addEventListener('click', () => {
         const nama = searchSantriKasusInput.value.trim();
         const jenisKasus = document.getElementById('jenisKasusSelect').value;
         const ketKasus = document.getElementById('keteranganKasusInput').value.trim();
 
-        if (!nama) {
-            showToast('Pilih atau ketik nama santri terlebih dahulu', 'error');
-            return;
-        }
+        if (!nama) { showToast('Pilih atau ketik nama santri terlebih dahulu', 'error'); return; }
 
         tempSantriKasusList.push({ nama: nama, jenis_kasus: jenisKasus, keterangan_kasus: ketKasus });
         renderSantriKasusTable();
 
-        searchSantriKasusInput.value = '';
-        document.getElementById('jenisKasusSelect').value = 'Bolos';
-        document.getElementById('keteranganKasusInput').value = '';
+        searchSantriKasusInput.value = ''; document.getElementById('jenisKasusSelect').value = 'Bolos'; document.getElementById('keteranganKasusInput').value = '';
         showToast('Kasus santri ditambahkan ke daftar', 'success');
     });
 
@@ -1972,8 +1990,7 @@
 
         if (tempSantriKasusList.length === 0) {
             tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Belum ada kasus dicatat</td></tr>';
-            kirimBtn.classList.add('hidden');
-            return;
+            kirimBtn.classList.add('hidden'); return;
         }
 
         kirimBtn.classList.remove('hidden');
@@ -1987,13 +2004,8 @@
             tbody.appendChild(tr);
         });
     }
+    window.removeTempSantriKasus = function(index) { tempSantriKasusList.splice(index, 1); renderSantriKasusTable(); };
 
-    window.removeTempSantriKasus = function(index) {
-        tempSantriKasusList.splice(index, 1);
-        renderSantriKasusTable();
-    };
-
-    // KIRIM DATA IZIN KE SERVER
     document.getElementById('kirimSantriIzinBtn').addEventListener('click', async () => {
         let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
         if (!activeTeaching) { showToast('Tidak ada kelas aktif saat ini', 'error'); return; }
@@ -2002,39 +2014,23 @@
 
         const now = new Date();
         const payload = {
-            api_action: 'addSantriIzin',
-            teacher: currentUser,
-            class: activeTeaching.class,
-            subject: activeTeaching.subject,
-            date: now.toISOString().split('T')[0],
-            time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            timestamp: now.toISOString(),
-            santri_list: tempSantriIzinList
+            api_action: 'addSantriIzin', teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject,
+            date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            timestamp: now.toISOString(), santri_list: tempSantriIzinList
         };
 
-        const btn = document.getElementById('kirimSantriIzinBtn');
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+        const btn = document.getElementById('kirimSantriIzinBtn'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
 
         try {
-            const response = await fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
+            const response = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             const res = await response.json();
             if (res.success) {
                 showToast('✅ Data santri izin berhasil dikirim ke Spreadsheet!', 'success');
-                tempSantriIzinList = [];
-                renderSantriIzinTable();
+                tempSantriIzinList = []; renderSantriIzinTable();
             } else { throw new Error(res.error || 'Gagal menyimpan'); }
-        } catch (e) {
-            showToast('❌ Gagal kirim: ' + e.message, 'error');
-        } finally {
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Data Izin ke Server';
-        }
+        } catch (e) { showToast('❌ Gagal kirim: ' + e.message, 'error'); } finally { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Data Izin ke Server'; }
     });
 
-    // KIRIM DATA KASUS KE SERVER
     document.getElementById('kirimSantriKasusBtn').addEventListener('click', async () => {
         let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
         if (!activeTeaching) { showToast('Tidak ada kelas aktif saat ini', 'error'); return; }
@@ -2043,36 +2039,21 @@
 
         const now = new Date();
         const payload = {
-            api_action: 'addSantriKasus',
-            teacher: currentUser,
-            class: activeTeaching.class,
-            subject: activeTeaching.subject,
-            date: now.toISOString().split('T')[0],
-            time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-            timestamp: now.toISOString(),
-            kasus_list: tempSantriKasusList
+            api_action: 'addSantriKasus', teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject,
+            date: now.toISOString().split('T')[0], time: now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+            timestamp: now.toISOString(), kasus_list: tempSantriKasusList
         };
 
-        const btn = document.getElementById('kirimSantriKasusBtn');
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+        const btn = document.getElementById('kirimSantriKasusBtn'); btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
 
         try {
-            const response = await fetch(GAS_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify(payload)
-            });
+            const response = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
             const res = await response.json();
             if (res.success) {
                 showToast('✅ Data kasus santri berhasil dikirim ke Spreadsheet!', 'success');
-                tempSantriKasusList = [];
-                renderSantriKasusTable();
+                tempSantriKasusList = []; renderSantriKasusTable();
             } else { throw new Error(res.error || 'Gagal menyimpan'); }
-        } catch (e) {
-            showToast('❌ Gagal kirim: ' + e.message, 'error');
-        } finally {
-            btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Data Kasus ke Server';
-        }
+        } catch (e) { showToast('❌ Gagal kirim: ' + e.message, 'error'); } finally { btn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Kirim Data Kasus ke Server'; }
     });
 
     function showScanResult(msg, type = 'info') {
@@ -2086,51 +2067,112 @@
         let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
         const timerCard = document.getElementById('activeClassTimerCard');
         
-        if (!activeTeaching) {
-            timerCard.classList.add('hidden');
-            return;
-        }
+        if (!activeTeaching) { timerCard.classList.add('hidden'); return; }
 
         timerCard.classList.remove('hidden');
         document.getElementById('activeClassCode').textContent = activeTeaching.class + ' (' + activeTeaching.subject + ')';
 
-        const now = new Date();
-        const endParts = activeTeaching.keluar.split(':');
-        const endDate = new Date();
-        endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+        const now = new Date(); const endParts = activeTeaching.keluar.split(':');
+        const endDate = new Date(); endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
 
         const diffSeconds = Math.floor((endDate - now) / 1000);
 
         if (diffSeconds > 0) {
-            const h = Math.floor(diffSeconds / 3600);
-            const m = Math.floor((diffSeconds % 3600) / 60);
-            const s = diffSeconds % 60;
-            
-            let timeStr = "";
-            if (h > 0) timeStr += String(h).padStart(2, '0') + ':';
+            const h = Math.floor(diffSeconds / 3600); const m = Math.floor((diffSeconds % 3600) / 60); const s = diffSeconds % 60;
+            let timeStr = ""; if (h > 0) timeStr += String(h).padStart(2, '0') + ':';
             timeStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
             document.getElementById('activeClassCountdown').textContent = timeStr;
 
             if (diffSeconds <= 180) { 
-                if (!activeTeaching.notified) {
-                    playBeep3x();
-                    activeTeaching.notified = true;
-                    localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-                }
+                if (!activeTeaching.notified) { playBeep3x(); activeTeaching.notified = true; localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching)); }
                 const warnEl = document.getElementById('activeClassWarning');
-                warnEl.classList.remove('hidden');
-                warnEl.textContent = `Waktu mengajar di kelas ini akan berakhir segera pukul ${activeTeaching.keluar}`;
-            } else {
-                document.getElementById('activeClassWarning').classList.add('hidden');
-            }
+                warnEl.classList.remove('hidden'); warnEl.textContent = `Waktu mengajar di kelas ini akan berakhir segera pukul ${activeTeaching.keluar}`;
+            } else { document.getElementById('activeClassWarning').classList.add('hidden'); }
         } else {
-            document.getElementById('activeClassCountdown').textContent = "00:00";
-            document.getElementById('activeClassWarning').classList.add('hidden');
-            if (diffSeconds < -900) { 
-                localStorage.removeItem('activeTeaching_' + currentUser);
-                timerCard.classList.add('hidden');
-                checkActiveTeachingForIzinKasus();
+            document.getElementById('activeClassCountdown').textContent = "00:00"; document.getElementById('activeClassWarning').classList.add('hidden');
+            if (diffSeconds < -900) { localStorage.removeItem('activeTeaching_' + currentUser); timerCard.classList.add('hidden'); checkActiveTeachingForIzinKasus(); }
+        }
+    }
+
+    // FUNGSI JADWAL SAYA HARI INI
+    async function renderMySchedule() {
+        if (!currentUser) return;
+        const hari = getDayName();
+        const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        let history = [];
+        try { history = await getLocalHistory(currentUser, todayStr); } catch(e){}
+        
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        
+        let myClasses = [];
+        for (let i = 1; i <= 8; i++) {
+            let jp = 'JP ' + i;
+            if (!jadwal[jp]) continue;
+            for (let c of CLASSES) {
+                let mapel = getMapelForScan(c, currentUser, hari, jp);
+                if (mapel) {
+                    let formattedClass = formatKopelClass(c, mapel);
+                    // Hindari duplikasi jika formatnya jam ganda/kopel
+                    if (!myClasses.find(x => x.jp === jp && x.class === formattedClass)) {
+                        myClasses.push({
+                            jp: jp, class: formattedClass, mapel: mapel,
+                            masuk: jadwal[jp].masuk, keluar: jadwal[jp].keluar,
+                            kMins: parseTimeToMins(jadwal[jp].keluar)
+                        });
+                    }
+                }
             }
+        }
+        
+        const card = document.getElementById('myScheduleCard');
+        const tbody = document.getElementById('myScheduleBody');
+        tbody.innerHTML = '';
+        
+        if (myClasses.length === 0) {
+            card.classList.add('hidden'); // Sembunyikan tabel jika tidak ada jadwal hari ini
+            return;
+        }
+        card.classList.remove('hidden');
+        
+        let countDisplayed = 0;
+        myClasses.forEach(sch => {
+            let isPassed = sch.kMins < currentMins;
+            // Deteksi jika guru sudah login (scan absen) untuk jam/kelas tersebut
+            let hasClockedIn = history.some(h => h.action === 'masuk' && h.class === sch.class && h.jp.includes(sch.jp));
+            
+            // Aturan Utama: Hapus baris jika jadwal lewat dan guru SUDAH melakukan absen masuk
+            if (isPassed && hasClockedIn) return; 
+            
+            countDisplayed++;
+            const tr = document.createElement('tr');
+            
+            // Jika sudah lewat tapi BELUM absen masuk -> tandai merah
+            if (isPassed && !hasClockedIn) {
+                tr.className = "bg-red-50";
+                tr.innerHTML = `
+                    <td class="text-danger font-bold text-xs">${sch.jp}</td>
+                    <td class="text-danger text-xs">${sch.masuk}-${sch.keluar}</td>
+                    <td class="text-danger font-bold text-xs">${sch.class}</td>
+                    <td class="text-danger text-xs">${sch.mapel}</td>
+                    <td class="text-xs"><span class="badge bg-red-100 text-red-700 font-bold px-2 py-1">Terlewat</span></td>
+                `;
+            } else {
+                tr.innerHTML = `
+                    <td class="font-bold text-xs">${sch.jp}</td>
+                    <td class="text-xs">${sch.masuk}-${sch.keluar}</td>
+                    <td class="font-bold text-xs">${sch.class}</td>
+                    <td class="text-xs">${sch.mapel}</td>
+                    <td class="text-xs"><span class="badge bg-blue-100 text-blue-700 font-bold px-2 py-1">Akan Datang</span></td>
+                `;
+            }
+            tbody.appendChild(tr);
+        });
+        
+        if (countDisplayed === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-sm text-success font-bold py-3"><i class="fa-solid fa-check-circle"></i> Seluruh jadwal Anda hari ini telah dituntaskan.</td></tr>';
         }
     }
 
@@ -2143,6 +2185,9 @@
         updateNextClassInfo();
     }
     setInterval(updateClock, 1000);
+    
+    // Perbarui jadwal saya secara otomatis setiap menit (untuk mengecek jadwal yg terlewat)
+    setInterval(() => { if (currentUser) renderMySchedule(); }, 60000);
 
     function addHistoryRow(record) {
         const tbody = document.getElementById('historyBody');
@@ -2163,40 +2208,15 @@
                 tbody.appendChild(tr);
             });
             document.getElementById('historyCount').textContent = tbody.children.length;
+            
+            // Muat dan gambar ulang MySchedule setelah sejarah lokal termuat
+            renderMySchedule();
         });
     }
 
-    function playBeep() {
-        try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 1000; osc.type = 'square'; gain.gain.value = 0.5; osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150); } catch (e) {}
-    }
-
-    function playBeep3x() {
-        let count = 0;
-        let intv = setInterval(() => {
-            playBeep();
-            count++;
-            if(count >= 3) clearInterval(intv);
-        }, 800);
-    }
-
-    function playBeepWarning() {
-        let count = 0;
-        let intv = setInterval(() => {
-            try {
-                const ctx = new(window.AudioContext || window.webkitAudioContext)();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                osc.connect(gain); gain.connect(ctx.destination);
-                osc.frequency.value = 800;
-                osc.type = 'triangle';
-                gain.gain.value = 0.5;
-                osc.start();
-                setTimeout(() => { osc.stop(); ctx.close(); }, 200);
-            } catch(e) {}
-            count++;
-            if(count >= 3) clearInterval(intv);
-        }, 400);
-    }
+    function playBeep() { try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 1000; osc.type = 'square'; gain.gain.value = 0.5; osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 150); } catch (e) {} }
+    function playBeep3x() { let count = 0; let intv = setInterval(() => { playBeep(); count++; if(count >= 3) clearInterval(intv); }, 800); }
+    function playBeepWarning() { let count = 0; let intv = setInterval(() => { try { const ctx = new(window.AudioContext || window.webkitAudioContext)(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 800; osc.type = 'triangle'; gain.gain.value = 0.5; osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 200); } catch(e) {} count++; if(count >= 3) clearInterval(intv); }, 400); }
 
     function updateOfflineStatus() {
         const banner = document.getElementById('offlineBanner');
@@ -2301,24 +2321,10 @@
                 let telatMenit = 0, cepatMenit = 0;
                 
                 let jM = parseTimeToMins(r.jadwal_masuk); let wM = parseTimeToMins(r.waktu_masuk);
-                if (jM > 0 && wM > 0) {
-                    let diff = wM - jM;
-                    if (diff > tolMasuk) {
-                        telatMenit = diff - tolMasuk;
-                        lateCount += telatMenit;
-                        isLate = true;
-                    }
-                }
+                if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tolMasuk) { telatMenit = diff - tolMasuk; lateCount += telatMenit; isLate = true; } }
                 
                 let jK = parseTimeToMins(r.jadwal_keluar); let wK = parseTimeToMins(r.waktu_keluar);
-                if (jK > 0 && wK > 0) {
-                    let diff = jK - wK;
-                    if (diff > tolKeluar) {
-                        cepatMenit = diff - tolKeluar;
-                        earlyCount += cepatMenit;
-                        isEarly = true;
-                    }
-                }
+                if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tolKeluar) { cepatMenit = diff - tolKeluar; earlyCount += cepatMenit; isEarly = true; } }
 
                 let statusHTML = '';
                 if (r.waktu_masuk === '-' || r.waktu_keluar === '-') {
@@ -2340,11 +2346,7 @@
                 tbody.appendChild(tr);
             });
             document.getElementById('statTotal').textContent = finalData.length; document.getElementById('statLate').textContent = lateCount; document.getElementById('statEarly').textContent = earlyCount;
-        } catch (e) { 
-            tbody.innerHTML = ''; 
-            document.getElementById('rekapEmpty').classList.remove('hidden'); 
-            document.getElementById('rekapEmpty').textContent = 'Koneksi gagal saat memuat data server'; 
-        }
+        } catch (e) { tbody.innerHTML = ''; document.getElementById('rekapEmpty').classList.remove('hidden'); document.getElementById('rekapEmpty').textContent = 'Koneksi gagal saat memuat data server'; }
     }
 
     function initAdminFilters() {
@@ -2353,10 +2355,69 @@
         TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
 	
+    // FUNGSI UNTUK MERENDER REKAP GURU TIDAK MASUK (MISSED CLASSES)
+    function buildAdminMissedClasses(allData) {
+        const tbody = document.getElementById('missedClassesBody');
+        const todayStr = new Date().toISOString().split('T')[0];
+        
+        // Ambil data absensi MASUK pada hari ini saja
+        const serverDataToday = allData.filter(d => d.date === todayStr && d.action === 'masuk');
+        
+        const hari = getDayName();
+        const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+        const now = new Date();
+        const currentMins = now.getHours() * 60 + now.getMinutes();
+        
+        let missedList = [];
+        TEACHERS.forEach(t => {
+            let teacherName = t.name;
+            for (let i = 1; i <= 8; i++) {
+                let jp = 'JP ' + i;
+                if (!jadwal[jp]) continue;
+                
+                let kMins = parseTimeToMins(jadwal[jp].keluar);
+                if (kMins < currentMins) { // Hanya mengecek kelas/jadwal yang WAKTUNYA SUDAH LEWAT
+                    for (let c of CLASSES) {
+                        let mapel = getMapelForScan(c, teacherName, hari, jp);
+                        if (mapel) {
+                            let formattedClass = formatKopelClass(c, mapel);
+                            
+                            // Mencegah duplikasi data jadwal untuk kelas kopel/digabung
+                            if (!missedList.find(x => x.teacher === teacherName && x.jp === jp && x.class === formattedClass)) {
+                                // Pengecekan riwayat absensi: Apakah guru tersebut absen masuk ke kelas tsb hari ini?
+                                let attended = serverDataToday.some(d => d.teacher === teacherName && d.class === formattedClass && (d.jp.includes(jp) || jp.includes(d.jp.split('-')[0].trim())));
+                                
+                                if (!attended) {
+                                    missedList.push({ teacher: teacherName, class: formattedClass, mapel: mapel, jp: jp, waktu: jadwal[jp].masuk + ' - ' + jadwal[jp].keluar });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        
+        tbody.innerHTML = '';
+        if (missedList.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-success font-bold"><i class="fa-solid fa-check-double"></i> Alhamdulillah, seluruh jadwal kelas yang telah lewat berhasil diisi (Tidak ada yang absen).</td></tr>';
+            return;
+        }
+        
+        missedList.forEach(m => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="font-bold text-danger text-sm">${m.teacher}</td><td class="font-bold text-sm">${m.class}</td><td class="text-sm">${m.mapel}</td><td class="text-sm">${m.jp}</td><td class="text-sm">${m.waktu}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
     async function loadAdminData() {
         if (!isAdmin) return;
+        
+        // Setup Loading Status for both tables
         const tbody = document.getElementById('adminBody');
+        const missedTbody = document.getElementById('missedClassesBody');
         tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
+        missedTbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Mengecek rekap...</td></tr>';
         
         try {
             const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
@@ -2364,6 +2425,10 @@
             const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
             const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
             
+            // Build Admin Missed Classes (Tidak Masuk Kelas)
+            buildAdminMissedClasses(res.data);
+            
+            // Lanjut ke Master Filter Data seperti sebelumnya
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
             const filterPeriod = document.getElementById('adminPeriodFilter').value;
             const todayStr = new Date().toISOString().split('T')[0];
@@ -2411,9 +2476,7 @@
                 tbody.appendChild(tr);
             });
             
-            if (visibleRecords === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>';
-            }
+            if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
 
             document.getElementById('adminStatTotal').textContent = visibleRecords; 
             document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
@@ -2433,6 +2496,9 @@
     document.getElementById('adminTeacherFilter').addEventListener('change', loadAdminData);
     document.getElementById('adminPeriodFilter').addEventListener('change', loadAdminData);
     document.getElementById('adminRefresh').addEventListener('click', loadAdminData);
+
+    // Bind Button untuk Refesh Panel Guru Tidak Masuk
+    document.getElementById('btnRefreshMissed')?.addEventListener('click', loadAdminData);
 
     document.getElementById('saveToleranceBtn').addEventListener('click', () => {
         const m = document.getElementById('toleranceMasukInput').value;
