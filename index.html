@@ -2341,11 +2341,24 @@
             if (!res.success) throw new Error(res.error);
 
             // NORMALISASI TANGGAL
+            // NORMALISASI TANGGAL & WAKTU
             res.data.forEach(d => {
+                // 1. Normalisasi Tanggal
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                     let dt = new Date(d.date);
                     if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                 }
+                // 2. Normalisasi Waktu (Membersihkan T dan titik)
+                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                    if (d[k] && typeof d[k] === 'string') {
+                        if (d[k].includes('T')) {
+                            let dt = new Date(d[k]);
+                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                        } else {
+                            d[k] = d[k].replace(/\./g, ':'); // Mengatasi masalah lokal id-ID
+                        }
+                    }
+                });
             });
 
             const now = new Date(); 
@@ -2497,11 +2510,24 @@
             const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
             
             // NORMALISASI TANGGAL
+            // NORMALISASI TANGGAL & WAKTU
             res.data.forEach(d => {
+                // 1. Normalisasi Tanggal
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                     let dt = new Date(d.date);
                     if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                 }
+                // 2. Normalisasi Waktu (Membersihkan T dan titik)
+                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                    if (d[k] && typeof d[k] === 'string') {
+                        if (d[k].includes('T')) {
+                            let dt = new Date(d[k]);
+                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                        } else {
+                            d[k] = d[k].replace(/\./g, ':'); // Mengatasi masalah lokal id-ID
+                        }
+                    }
+                });
             });
             
             buildAdminMissedClasses(res.data);
@@ -2610,11 +2636,24 @@
             if (!res.success) throw new Error(res.error);
             
             // NORMALISASI TANGGAL
+            // NORMALISASI TANGGAL & WAKTU
             res.data.forEach(d => {
+                // 1. Normalisasi Tanggal
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                     let dt = new Date(d.date);
                     if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                 }
+                // 2. Normalisasi Waktu (Membersihkan T dan titik)
+                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                    if (d[k] && typeof d[k] === 'string') {
+                        if (d[k].includes('T')) {
+                            let dt = new Date(d[k]);
+                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                        } else {
+                            d[k] = d[k].replace(/\./g, ':'); // Mengatasi masalah lokal id-ID
+                        }
+                    }
+                });
             });
             
             const now = new Date();
