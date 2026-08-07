@@ -287,6 +287,21 @@
     }
     .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
     .dropdown-item:hover { background: #eff6ff; color: #2563eb; font-weight: 600; }
+	
+	/* Animasi border untuk alarm notifikasi kelas berikutnya */
+.pulse-alarm { 
+    animation: pulseGlow 1.5s infinite; 
+    border-color: #ef4444 !important; 
+}
+@keyframes pulseGlow { 
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); } 
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } 
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } 
+}
+/* Utilitas untuk mengunci tombol absen */
+.opacity-50 { opacity: 0.5; }
+.pointer-events-none { pointer-events: none; }
+
 </style>
 </head>
 <body>
@@ -369,6 +384,10 @@
         <!-- UPCOMING CLASS WARNING (5 MINS) -->
         <div id="upcomingClassWarningCard" class="card hidden bg-red-50 border-red-200" style="padding: 16px; margin-bottom: 16px; border: 1px solid #fecaca; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
             <div id="upcomingClassWarningText" class="text-sm font-bold text-red-600 text-center blink-text"></div>
+        </div>
+
+        <!-- TOMORROW SCHEDULE CARD (Notifikasi Sore Hari) -->
+        <div id="tomorrowScheduleCard" class="card hidden bg-indigo-50 border-indigo-200" style="padding: 16px; margin-bottom: 16px; border: 1px solid #c7d2fe;">
         </div>
 
         <!-- ACTIVE TEACHING TIMER -->
@@ -577,6 +596,28 @@
         </div>
 
         <div id="tabAdmin" class="tab-content hidden">
+		<!-- LIVE MONITOR CARD -->
+        <div class="card bg-indigo-50 border-indigo-200" id="adminLiveMonitorCard" style="margin-bottom: 16px;">
+            <div class="card-header text-indigo-700" style="margin-bottom: 12px; font-size: 0.95rem;">
+                <span><i class="fa-solid fa-tv"></i> Monitor Kelas (Live)</span>
+            </div>
+            
+            <div class="flex gap-2 mb-3">
+                <button class="btn btn-sm btn-primary live-toggle" data-mode="ongoing" style="flex:1"><i class="fa-solid fa-play"></i> Berlangsung</button>
+                <button class="btn btn-sm btn-outline live-toggle" data-mode="next" style="flex:1"><i class="fa-solid fa-forward-step"></i> JP Berikutnya</button>
+            </div>
+            <div class="text-xs text-indigo-800 font-bold mb-3 text-center" id="liveMonitorJpInfo">Memuat...</div>
+            <div class="table-wrap" style="max-height: 350px;">
+                <table id="liveMonitorTable">
+                    <thead>
+                        <tr><th>Kls</th><th>Mapel</th><th>Guru</th><th class="text-center">Status</th></tr>
+                    </thead>
+                    <tbody id="liveMonitorBody">
+                        <tr><td colspan="4" class="text-center text-muted">Memuat...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
             <!-- REKAP GURU TIDAK MASUK KELAS (MISSED CLASSES) CARD -->
             <div class="card bg-red-50 border-red-200" id="adminMissedClassesCard">
                 <div class="card-header text-red-600" style="margin-bottom: 12px; font-size: 0.95rem;">
@@ -789,6 +830,14 @@
     };
 
     let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxAq3eUP_z4lKPpj2SOUlAPS8ky32YEuyIWbfqpeCR4R40vsDfa5nX7K_CCfUx42QKDXA/exec';
+
+// Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
+function getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
 
     const JADWAL_WAKTU = {
         reguler: {
@@ -1403,7 +1452,7 @@
                         if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                     }
                 });
-                const todayStr = new Date().toISOString().split('T')[0];
+                const todayStr = getLocalDateString(new Date());
                 serverDataCache = res.data.filter(d => d.date === todayStr);
             }
         } catch (e) { console.error("Gagal update cache", e); }
@@ -1603,69 +1652,129 @@
         return blocks;
     }
 
-    function getNextClass() {
-        if (!currentUser) return null;
-        const hari = getDayName();
-        const now = new Date();
-        const totalMins = now.getHours() * 60 + now.getMinutes();
-        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-        
-        let blocks = getGroupedSchedule(currentUser, hari, totalMins);
+function getNextClass() {
+    if (!currentUser) return null;
+    const hari = getDayName();
+    const now = new Date();
+    const totalMins = now.getHours() * 60 + now.getMinutes();
+    
+    let blocks = getGroupedSchedule(currentUser, hari, totalMins);
 
-        for (let b of blocks) {
-            if (b.kMins > totalMins) {
-                if (activeTeaching && activeTeaching.class === b.class && activeTeaching.subject === b.mapel) {
-                    continue; 
-                }
-                let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
-                let m = parseTimeToMins(b.masuk);
-                return { jp: jpStr, class: b.class, mapel: b.mapel, masuk: b.masuk, masukMins: m };
-            }
+    for (let b of blocks) {
+        let mMins = parseTimeToMins(b.masuk);
+        // Mencari jadwal yang menit masuknya lebih besar dari waktu saat ini
+        if (mMins > totalMins) {
+            let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+            return { jp: jpStr, class: b.class, mapel: b.mapel, masuk: b.masuk, masukMins: mMins };
         }
-        return null;
     }
+    return null;
+}
 
     let lastNotifiedUpcoming = null;
 
-    function updateNextClassInfo() {
-        if (!currentUser) return;
-        const nextClass = getNextClass();
-        const infoCard = document.getElementById('nextClassCard');
-        const warnCard = document.getElementById('upcomingClassWarningCard');
+function updateNextClassInfo() {
+    if (!currentUser) return;
+    const nextClass = getNextClass();
+    const infoCard = document.getElementById('nextClassCard');
+    const warnCard = document.getElementById('upcomingClassWarningCard');
 
-        if (nextClass) {
-            infoCard.classList.remove('hidden');
-            const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
-            document.getElementById('nextClassText').innerHTML =
-                `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
+    // Selalu tampilkan kartu info card
+    infoCard.classList.remove('hidden');
 
-            const now = new Date();
-            const totalMins = now.getHours() * 60 + now.getMinutes();
-            const diffMins = nextClass.masukMins - totalMins;
+    if (nextClass) {
+        const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
+        document.getElementById('nextClassText').innerHTML =
+            `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
 
-            if (diffMins > 0 && diffMins <= 5) {
-                warnCard.classList.remove('hidden');
+        const now = new Date();
+        const totalMins = now.getHours() * 60 + now.getMinutes();
+        const diffMins = nextClass.masukMins - totalMins;
+
+        if (diffMins > 0 && diffMins <= 10) {
+            warnCard.classList.remove('hidden');
+            let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
+            
+            if (isCurrentlyTeaching) {
+                warnCard.classList.add('pulse-alarm');
+                document.getElementById('upcomingClassWarningText').innerHTML =
+                    `<i class="fa-solid fa-bell fa-shake"></i> <b>PERHATIAN!</b> ${diffMins} menit lagi Anda harus pindah mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b>.`;
+            } else {
+                warnCard.classList.remove('pulse-alarm');
                 document.getElementById('upcomingClassWarningText').innerHTML =
                     `<i class="fa-solid fa-bell fa-shake"></i> Segera Bersiap! ${diffMins} menit lagi jadwal mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b>.`;
+            }
 
-                let notifyKey = currentUser + '_' + nextClass.class + '_' + nextClass.jp;
-                if (lastNotifiedUpcoming !== notifyKey) {
-                    playBeepWarning();
-                    lastNotifiedUpcoming = notifyKey;
-                }
-            } else if (diffMins <= 0) {
-                 warnCard.classList.remove('hidden');
-                 document.getElementById('upcomingClassWarningText').innerHTML =
-                    `<i class="fa-solid fa-circle-exclamation fa-beat"></i> Jadwal mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> sudah dimulai sejak ${nextClass.masuk}!`;
-            } else {
-                warnCard.classList.add('hidden');
-                if (diffMins > 5) lastNotifiedUpcoming = null;
+            let notifyKey = currentUser + '_' + nextClass.class + '_' + nextClass.jp + '_10m';
+            if (lastNotifiedUpcoming !== notifyKey) {
+                if (!isCurrentlyTeaching && typeof playBeep4x === "function") playBeep4x(); 
+                lastNotifiedUpcoming = notifyKey;
             }
         } else {
-            infoCard.classList.add('hidden');
             warnCard.classList.add('hidden');
+            warnCard.classList.remove('pulse-alarm');
+            if (diffMins > 10) lastNotifiedUpcoming = null;
         }
+    } else {
+        // Jika tidak ada kelas berikutnya yang akan datang di hari ini
+        document.getElementById('nextClassText').innerHTML =
+            `Tidak ada jadwal setelah ini pada hari ini.`;
+        warnCard.classList.add('hidden');
     }
+}
+
+function playBeep4x() { 
+    let count = 0; 
+    let intv = setInterval(() => { 
+        try { 
+            const ctx = new(window.AudioContext || window.webkitAudioContext)(); 
+            const osc = ctx.createOscillator(); const gain = ctx.createGain(); 
+            osc.connect(gain); gain.connect(ctx.destination); 
+            osc.frequency.value = 800; osc.type = 'triangle'; gain.gain.value = 0.5; 
+            osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 200); 
+        } catch(e) {} 
+        count++; 
+        if(count >= 4) clearInterval(intv); 
+    }, 400); 
+}
+
+function checkTomorrowSchedule() {
+    if (!currentUser) return;
+    const now = new Date();
+    const card = document.getElementById('tomorrowScheduleCard');
+    
+    // Aktifkan card di sore hari (setelah jam 14:00 WITA)
+    if (now.getHours() >= 14) {
+        let tomorrowDate = new Date(now);
+        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const days = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+        const tomorrowDay = days[tomorrowDate.getDay()];
+        
+        if (tomorrowDay === 'ahad') { // Jika esok hari minggu (Ahad)
+            card.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
+                              <div class="text-sm text-indigo-800 font-bold text-center py-2">Besok anda libur, semoga Allah menjaga kita semua.</div>`;
+            card.classList.remove('hidden');
+        } else {
+            let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0);
+            if (blocks.length > 0) {
+                let html = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Esok Hari (${tomorrowDay.toUpperCase()})</div><ul class="text-xs text-indigo-800" style="padding-left:16px; margin-bottom: 0;">`;
+                blocks.forEach(b => {
+                    let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+                    html += `<li class="mb-1"><b>${jpStr}</b>: Kelas ${b.class} (${b.mapel}) - <b>${b.masuk}</b></li>`;
+                });
+                html += `</ul>`;
+                card.innerHTML = html;
+                card.classList.remove('hidden');
+            } else {
+                card.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
+                                  <div class="text-sm text-indigo-800 font-bold text-center py-2">Tidak ada jadwal mengajar besok.</div>`;
+                card.classList.remove('hidden');
+            }
+        }
+    } else {
+        card.classList.add('hidden');
+    }
+}
 
     async function doLogin(name, isAdminUser, adminType) {
         currentUser = name; currentUserData = TEACHERS.find(t => t.name === name);
@@ -1706,15 +1815,37 @@
     });
 
     function updateScanModeUI() {
-        if (!currentMode) {
-            document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
-            document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
-            document.getElementById('modeMasuk').className = 'btn btn-sm btn-outline'; document.getElementById('modeKeluar').className = 'btn btn-sm btn-outline';
-            return;
-        }
-        document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
-        document.getElementById('modeMasuk').className = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
-        document.getElementById('modeKeluar').className = currentMode === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    const btnMasuk = document.getElementById('modeMasuk');
+    const btnKeluar = document.getElementById('modeKeluar');
+
+    // Paksa mode berdasarkan status mengajar
+    if (activeTeaching) {
+        currentMode = 'keluar';
+    } else {
+        if (currentMode === 'keluar') currentMode = 'masuk';
+    }
+
+    if (!currentMode) {
+        document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
+        document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
+        btnMasuk.className = 'btn btn-sm btn-outline'; 
+        btnKeluar.className = 'btn btn-sm btn-outline';
+        return;
+    }
+
+    document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
+    
+    // Kunci tombol yang tidak relevan agar absen selalu berpasangan
+    if (activeTeaching) {
+        btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+        btnKeluar.className = 'btn btn-sm btn-primary';
+        document.getElementById('scanInstruction').innerHTML = `Silakan scan QR untuk <b>KELUAR</b> dari kelas <b>${activeTeaching.class}</b>`;
+    } else {
+        btnMasuk.className = 'btn btn-sm btn-primary';
+        btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+        document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
+    }
     }
 
     document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
@@ -1754,7 +1885,7 @@
 
         const ket = document.getElementById('keteranganInput').value.trim();
         const now = new Date();
-        const dateStr = now.toISOString().split('T')[0];
+        const dateStr = getLocalDateString(now);
         const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const timeMins = now.getHours() * 60 + now.getMinutes();
         
@@ -2152,105 +2283,130 @@
         clearTimeout(el._hideTimer); el._hideTimer = setTimeout(() => el.classList.add('hidden'), 6000);
     }
 
-    function updateTeachingTimer() {
-        if (!currentUser) return;
-        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-        const timerCard = document.getElementById('activeClassTimerCard');
-        
-        if (!activeTeaching) { timerCard.classList.add('hidden'); return; }
+function updateTeachingTimer() {
+    if (!currentUser) return;
+    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    const timerCard = document.getElementById('activeClassTimerCard');
+    
+    if (!activeTeaching) { timerCard.classList.add('hidden'); return; }
 
-        timerCard.classList.remove('hidden');
-        document.getElementById('activeClassCode').textContent = activeTeaching.class + ' (' + activeTeaching.subject + ')';
+    timerCard.classList.remove('hidden');
+    document.getElementById('activeClassCode').textContent = activeTeaching.class + ' (' + activeTeaching.subject + ')';
 
-        const now = new Date(); const endParts = activeTeaching.keluar.split(':');
-        const endDate = new Date(); endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+    const now = new Date(); const endParts = activeTeaching.keluar.split(':');
+    const endDate = new Date(); endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
 
-        const diffSeconds = Math.floor((endDate - now) / 1000);
+    const diffSeconds = Math.floor((endDate - now) / 1000);
 
-        if (diffSeconds > 0) {
-            const h = Math.floor(diffSeconds / 3600); const m = Math.floor((diffSeconds % 3600) / 60); const s = diffSeconds % 60;
-            let timeStr = ""; if (h > 0) timeStr += String(h).padStart(2, '0') + ':';
-            timeStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-            document.getElementById('activeClassCountdown').textContent = timeStr;
+    if (diffSeconds > 0) {
+        const h = Math.floor(diffSeconds / 3600); const m = Math.floor((diffSeconds % 3600) / 60); const s = diffSeconds % 60;
+        let timeStr = ""; if (h > 0) timeStr += String(h).padStart(2, '0') + ':';
+        timeStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        document.getElementById('activeClassCountdown').textContent = timeStr;
 
-            if (diffSeconds <= 180) { 
-                if (!activeTeaching.notified) { playBeep3x(); activeTeaching.notified = true; localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching)); }
-                const warnEl = document.getElementById('activeClassWarning');
-                warnEl.classList.remove('hidden'); warnEl.textContent = `Waktu mengajar di kelas ini akan berakhir segera pukul ${activeTeaching.keluar}`;
-            } else { document.getElementById('activeClassWarning').classList.add('hidden'); }
-        } else {
-            document.getElementById('activeClassCountdown').textContent = "00:00"; document.getElementById('activeClassWarning').classList.add('hidden');
-            if (diffSeconds < -900) { localStorage.removeItem('activeTeaching_' + currentUser); timerCard.classList.add('hidden'); checkActiveTeachingForIzinKasus(); }
-        }
-    }
-
-    async function renderMySchedule() {
-        if (!currentUser) return;
-        const hari = getDayName();
-        const todayStr = new Date().toISOString().split('T')[0];
-        const now = new Date();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        
-        let history = [];
-        try { history = await getLocalHistory(currentUser, todayStr); } catch(e){}
-        
-        const attendedList = [...history, ...serverDataCache.filter(d => d.teacher === currentUser && d.action === 'masuk')];
-        let blocks = getGroupedSchedule(currentUser, hari, currentMins);
-        
-        const card = document.getElementById('myScheduleCard');
-        const tbody = document.getElementById('myScheduleBody');
-        tbody.innerHTML = '';
-        
-        if (blocks.length === 0) {
-            card.classList.add('hidden'); 
-            return;
-        }
-        card.classList.remove('hidden');
-        
-        let countDisplayed = 0;
-        blocks.forEach(sch => {
-            let isPassed = sch.kMins < currentMins;
-            let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
-            
-            let hasClockedIn = attendedList.some(h => {
-                if (h.class !== sch.class) return false;
-                let overlap = false;
-                sch.jps.forEach(j => {
-                    if (h.jp && h.jp.includes(j.toString())) overlap = true;
-                });
-                return overlap;
-            });
-            
-            if (isPassed && hasClockedIn) return; 
-            
-            countDisplayed++;
-            const tr = document.createElement('tr');
-            
-            if (isPassed && !hasClockedIn) {
-                tr.className = "bg-red-50";
-                tr.innerHTML = `
-                    <td class="text-danger font-bold text-xs">${jpStr}</td>
-                    <td class="text-danger text-xs">${sch.masuk}-${sch.keluar}</td>
-                    <td class="text-danger font-bold text-xs">${sch.class}</td>
-                    <td class="text-danger text-xs">${sch.mapel}</td>
-                    <td class="text-xs"><span class="badge bg-red-100 text-red-700 font-bold px-2 py-1">Terlewat</span></td>
-                `;
-            } else {
-                tr.innerHTML = `
-                    <td class="font-bold text-xs">${jpStr}</td>
-                    <td class="text-xs">${sch.masuk}-${sch.keluar}</td>
-                    <td class="font-bold text-xs">${sch.class}</td>
-                    <td class="text-xs">${sch.mapel}</td>
-                    <td class="text-xs"><span class="badge bg-blue-100 text-blue-700 font-bold px-2 py-1">Akan Datang</span></td>
-                `;
+        if (diffSeconds <= 300) { // Berubah dari 180 (3 menit) menjadi 300 (5 menit)
+            if (!activeTeaching.notified) { 
+                playBeep3x(); 
+                activeTeaching.notified = true; 
+                localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching)); 
             }
-            tbody.appendChild(tr);
+            const warnEl = document.getElementById('activeClassWarning');
+            warnEl.classList.remove('hidden'); 
+            warnEl.textContent = `Waktu mengajar di kelas ini akan berakhir 5 menit lagi (pukul ${activeTeaching.keluar})`;
+        } else { 
+            document.getElementById('activeClassWarning').classList.add('hidden'); 
+        }
+    } else {
+        document.getElementById('activeClassCountdown').textContent = "00:00"; document.getElementById('activeClassWarning').classList.add('hidden');
+        if (diffSeconds < -900) { localStorage.removeItem('activeTeaching_' + currentUser); timerCard.classList.add('hidden'); checkActiveTeachingForIzinKasus(); updateScanModeUI(); }
+    }
+}
+
+async function renderMySchedule() {
+    if (!currentUser) return;
+    const hari = getDayName();
+    const todayStr = getLocalDateString(now);
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    
+    let history = [];
+    try { history = await getLocalHistory(currentUser, todayStr); } catch(e){}
+    
+    const attendedList = [...history, ...serverDataCache.filter(d => d.teacher === currentUser && d.action === 'masuk')];
+    let blocks = getGroupedSchedule(currentUser, hari, currentMins);
+    
+    const card = document.getElementById('myScheduleCard');
+    const tbody = document.getElementById('myScheduleBody');
+    tbody.innerHTML = '';
+    
+    if (blocks.length === 0) {
+        card.classList.add('hidden'); 
+        return;
+    }
+    card.classList.remove('hidden');
+    
+    let countDisplayed = 0;
+    blocks.forEach(sch => {
+        let isPassed = sch.kMins < currentMins;
+        let mMins = parseTimeToMins(sch.masuk);
+        // Cek apakah waktu saat ini berada di tengah-tengah jadwal
+        let isOngoing = currentMins >= mMins && currentMins <= sch.kMins;
+        
+        let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
+        
+        let hasClockedIn = attendedList.some(h => {
+            if (h.class !== sch.class) return false;
+            let overlap = false;
+            sch.jps.forEach(j => {
+                if (h.jp) {
+                    let hJps = h.jp.replace('JP ', '').split('-');
+                    let hStart = parseInt(hJps[0]);
+                    let hEnd = hJps.length > 1 ? parseInt(hJps[1]) : hStart;
+                    if (j >= hStart && j <= hEnd) overlap = true; 
+                }
+            });
+            return overlap;
         });
         
-        if (countDisplayed === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-sm text-success font-bold py-3"><i class="fa-solid fa-check-circle"></i> Seluruh jadwal Anda hari ini telah dituntaskan.</td></tr>';
+        if (isPassed && hasClockedIn) return; 
+        
+        countDisplayed++;
+        const tr = document.createElement('tr');
+        
+        if (isPassed && !hasClockedIn) {
+            tr.className = "bg-red-50";
+            tr.innerHTML = `
+                <td class="text-danger font-bold text-xs">${jpStr}</td>
+                <td class="text-danger text-xs">${sch.masuk}-${sch.keluar}</td>
+                <td class="text-danger font-bold text-xs">${sch.class}</td>
+                <td class="text-danger text-xs">${sch.mapel}</td>
+                <td class="text-xs"><span class="badge bg-red-100 text-red-700 font-bold px-2 py-1">Terlewat</span></td>
+            `;
+        } else if (isOngoing) {
+            tr.className = "bg-amber-50";
+            tr.innerHTML = `
+                <td class="font-bold text-amber-800 text-xs">${jpStr}</td>
+                <td class="text-amber-800 text-xs">${sch.masuk}-${sch.keluar}</td>
+                <td class="font-bold text-amber-800 text-xs">${sch.class}</td>
+                <td class="text-amber-800 text-xs">${sch.mapel}</td>
+                <td class="text-xs"><span class="badge bg-amber-100 text-amber-700 font-bold px-2 py-1"><i class="fa-solid fa-spinner fa-spin"></i> Berlangsung</span></td>
+            `;
+        } else {
+            tr.innerHTML = `
+                <td class="font-bold text-xs">${jpStr}</td>
+                <td class="text-xs">${sch.masuk}-${sch.keluar}</td>
+                <td class="font-bold text-xs">${sch.class}</td>
+                <td class="text-xs">${sch.mapel}</td>
+                <td class="text-xs"><span class="badge bg-blue-100 text-blue-700 font-bold px-2 py-1">Akan Datang</span></td>
+            `;
         }
+        tbody.appendChild(tr);
+    });
+    
+    if (countDisplayed === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-sm text-success font-bold py-3"><i class="fa-solid fa-check-circle"></i> Seluruh jadwal Anda hari ini telah dituntaskan.</td></tr>';
     }
+}
 
     function updateClock() {
         const now = new Date();
@@ -2259,6 +2415,7 @@
         document.getElementById('jpDisplay').textContent = getCurrentJPInfo(currentMode || 'masuk');
         updateTeachingTimer();
         updateNextClassInfo();
+		checkTomorrowSchedule(); // <--- TAMBAHAN BARU
     }
     setInterval(updateClock, 1000);
     
@@ -2275,7 +2432,7 @@
 
     function loadHistory() {
         if (!currentUser) return;
-        getLocalHistory(currentUser, new Date().toISOString().split('T')[0]).then((data) => {
+        getLocalHistory(currentUser, getLocalDateString(new Date())).then((data) => {
             const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
             data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(record => {
                 const tr = document.createElement('tr');
@@ -2449,9 +2606,9 @@
         TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
 	
-    function buildAdminMissedClasses(allData) {
+function buildAdminMissedClasses(allData) {
         const tbody = document.getElementById('missedClassesBody');
-        const todayStr = new Date().toISOString().split('T')[0];
+        const todayStr = getLocalDateString(new Date()); 
         const serverDataToday = allData.filter(d => d.date === todayStr && d.action === 'masuk');
         const hari = getDayName();
         const now = new Date();
@@ -2463,11 +2620,19 @@
             let blocks = getGroupedSchedule(t.name, hari, currentMins);
             blocks.forEach(sch => {
                 if (sch.kMins < currentMins) {
+                    // PERBAIKAN BUG: Gunakan serverDataToday, bukan attendedList
                     let hasClockedIn = serverDataToday.some(h => {
-                        if (h.teacher !== t.name || h.class !== sch.class) return false;
+                        if (h.teacher !== t.name) return false;
+                        if (h.class !== sch.class) return false;
+
                         let overlap = false;
                         sch.jps.forEach(j => {
-                            if (h.jp && h.jp.includes(j.toString())) overlap = true;
+                            if (h.jp) {
+                                let hJps = h.jp.replace('JP ', '').split('-');
+                                let hStart = parseInt(hJps[0]);
+                                let hEnd = hJps.length > 1 ? parseInt(hJps[1]) : hStart;
+                                if (j >= hStart && j <= hEnd) overlap = true; 
+                            }
                         });
                         return overlap;
                     });
@@ -2495,6 +2660,116 @@
         });
     }
 
+// === FITUR LIVE MONITOR ADMIN ===
+    let liveMonitorMode = 'ongoing';
+    let currentServerDataCacheAdmin = [];
+
+    function getOngoingAndNextJP() {
+        const now = new Date();
+        const totalMins = now.getHours() * 60 + now.getMinutes();
+        const day = getDayName();
+        const jadwal = (day === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+        
+        let ongoing = null, next = null;
+        let jps = Object.keys(jadwal).sort();
+        for (let i = 0; i < jps.length; i++) {
+            let m = parseTimeToMins(jadwal[jps[i]].masuk);
+            let k = parseTimeToMins(jadwal[jps[i]].keluar);
+            if (totalMins >= m && totalMins <= k) {
+                ongoing = jps[i];
+                if (i + 1 < jps.length) next = jps[i+1];
+                break;
+            } else if (totalMins < m) {
+                if (!next) next = jps[i];
+                break;
+            }
+        }
+        return { ongoing, next };
+    }
+
+    function renderLiveMonitor() {
+        const tbody = document.getElementById('liveMonitorBody');
+        const info = document.getElementById('liveMonitorJpInfo');
+        
+        if (currentServerDataCacheAdmin.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada data dari server...</td></tr>'; return;
+        }
+
+        const todayStr = getLocalDateString(new Date());
+        const serverDataToday = currentServerDataCacheAdmin.filter(d => d.date === todayStr && d.action === 'masuk');
+        const day = getDayName();
+        const jpInfo = getOngoingAndNextJP();
+        
+        const targetJp = liveMonitorMode === 'ongoing' ? jpInfo.ongoing : jpInfo.next;
+        
+        if (!targetJp) {
+            info.textContent = liveMonitorMode === 'ongoing' ? 'Tidak ada kelas yang sedang berlangsung saat ini.' : 'Tidak ada jadwal kelas berikutnya hari ini.';
+            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted font-bold">${info.textContent}</td></tr>`; return;
+        }
+        
+        const jadwal = (day === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+        info.innerHTML = `<span class="badge bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs">${targetJp} (${jadwal[targetJp].masuk} - ${jadwal[targetJp].keluar})</span>`;
+
+        let rowsHTML = '';
+        CLASSES.forEach(cls => {
+            let teachers = []; let mapel = '-';
+            TEACHERS.forEach(t => {
+                let m = getMapelForScan(cls, t.name, day, targetJp);
+                if (m) { teachers.push(t.name); mapel = m; }
+            });
+
+            if (teachers.length > 0) {
+                let formattedClass = formatKopelClass(cls, mapel);
+                let isTahfizh = mapel.toLowerCase().includes('tahfiz');
+                let teacherDisplay = isTahfizh ? '<span class="font-bold text-indigo-700">Tim Tahfizh</span>' : teachers.join(', ');
+
+                let hasClockedIn = false;
+                const isOverlap = (recordJp, checkJp) => {
+                    if (!recordJp || !checkJp) return false;
+                    let rJps = recordJp.replace('JP ', '').split('-');
+                    let cJps = checkJp.replace('JP ', '').split('-');
+                    return (parseInt(rJps[0]) <= (cJps.length > 1 ? parseInt(cJps[1]) : parseInt(cJps[0])) && 
+                           (rJps.length > 1 ? parseInt(rJps[1]) : parseInt(rJps[0])) >= parseInt(cJps[0]));
+                };
+
+                hasClockedIn = serverDataToday.some(d => {
+                    if (d.class !== formattedClass) return false;
+                    if (!isOverlap(d.jp, targetJp)) return false;
+                    if (isTahfizh) return d.subject && d.subject.toLowerCase().includes('tahfiz');
+                    return teachers.includes(d.teacher);
+                });
+
+                let statusBadge = hasClockedIn 
+                    ? '<span class="text-success text-lg" title="Sudah Masuk"><i class="fa-solid fa-circle-check"></i></span>'
+                    : '<span class="text-warning text-lg" title="Belum Masuk/Menunggu"><i class="fa-solid fa-clock"></i></span>';
+
+                rowsHTML += `<tr>
+                    <td class="font-bold text-xs">${cls}</td>
+                    <td class="text-xs">${mapel}</td>
+                    <td class="text-xs">${teacherDisplay}</td>
+                    <td class="text-center">${statusBadge}</td>
+                </tr>`;
+            }
+        });
+
+        tbody.innerHTML = rowsHTML || '<tr><td colspan="4" class="text-center text-muted">Tidak ada jadwal pada JP ini</td></tr>';
+    }
+    
+    // Event listener untuk tombol toggle JP Live Monitor
+    document.addEventListener('click', function(e) {
+        if(e.target && e.target.closest('.live-toggle')) {
+            const btn = e.target.closest('.live-toggle');
+            document.querySelectorAll('.live-toggle').forEach(b => {
+                b.classList.remove('btn-primary');
+                b.classList.add('btn-outline');
+            });
+            btn.classList.remove('btn-outline');
+            btn.classList.add('btn-primary');
+            liveMonitorMode = btn.dataset.mode;
+            renderLiveMonitor();
+        }
+    });
+	
     async function loadAdminData() {
         if (!isAdmin) return;
         
@@ -2530,6 +2805,11 @@
                 });
             });
             
+			// ==== TAMBAHKAN 2 BARIS INI ====
+            currentServerDataCacheAdmin = res.data;
+            renderLiveMonitor(); 
+            // ===============================
+			
             buildAdminMissedClasses(res.data);
             
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
