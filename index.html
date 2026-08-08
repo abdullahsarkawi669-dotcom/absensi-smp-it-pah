@@ -378,12 +378,19 @@
         <!-- NEXT CLASS INFO -->
         <div id="nextClassCard" class="card hidden bg-blue-50 border-blue-200" style="padding: 16px; margin-bottom: 16px;">
             <div class="text-sm font-bold text-blue-800"><i class="fa-solid fa-calendar-day"></i> Jadwal Berikutnya</div>
-            <div id="nextClassText" class="text-xs text-blue-700 mt-2"></div>
+            <div id="nextClassText" class="text-sm text-blue-700 mt-2 mb-2"></div>
+            <!-- TAMBAHAN TIMER JADWAL BERIKUTNYA -->
+            <div class="text-center border-t border-blue-200 pt-3 mt-2">
+                <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Waktu Menuju Kelas:</span>
+                <div id="nextClassTimer" class="font-black text-blue-800 mt-1" style="font-size: 2.5rem; font-family: monospace; line-height: 1;">--:--:--</div>
+            </div>
         </div>
 
-        <!-- UPCOMING CLASS WARNING (5 MINS) -->
-        <div id="upcomingClassWarningCard" class="card hidden bg-red-50 border-red-200" style="padding: 16px; margin-bottom: 16px; border: 1px solid #fecaca; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);">
-            <div id="upcomingClassWarningText" class="text-sm font-bold text-red-600 text-center blink-text"></div>
+		<!-- UPCOMING CLASS WARNING (5 MINS) -->
+        <div id="upcomingClassWarningCard" class="card hidden bg-red-50 border-red-200" style="padding: 16px; margin-bottom: 16px; border: 2px solid #ef4444; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.5);">
+            <div id="upcomingClassWarningText" class="text-xl font-black text-red-600 text-center uppercase blink-text" style="line-height:1.4;"></div>
+            <div id="upcomingTimer" class="font-black text-red-700 mt-4 mb-4 text-center" style="font-family: monospace; font-size: 4rem; line-height: 1;">05:00</div>
+            <button id="muteAlarmBtn" class="btn btn-danger hidden w-full font-bold text-lg py-3 mt-2" onclick="stopContinuousAlarm()"><i class="fa-solid fa-bell-slash"></i> MATIKAN BEL</button>
         </div>
 
         <!-- TOMORROW SCHEDULE CARD (Notifikasi Sore Hari) -->
@@ -894,12 +901,12 @@ function getLocalDateString(d = new Date()) {
 	jadwalPelajaran['kamis']['JP 6']['7A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
 	jadwalPelajaran['kamis']['JP 7-8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['jumat']['JP 3-4']['7A'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
-	jadwalPelajaran['jumat']['JP 5-6']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['jumat']['JP 5-6']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['sabtu']['JP 1-2']['7A'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
 	jadwalPelajaran['sabtu']['JP 3']['7A'] = 'SBDP / Informatika';
 	jadwalPelajaran['sabtu']['JP 4']['7A'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
 	jadwalPelajaran['sabtu']['JP 5-6']['7A'] = 'Bahasa Indonesia (Firman, S. Pd.)';
-	jadwalPelajaran['sabtu']['JP 7-8']['7A'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['sabtu']['JP 7-8']['7A'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
 
 	// KELAS 7B
 	jadwalPelajaran['senin']['JP 2']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
@@ -916,9 +923,9 @@ function getLocalDateString(d = new Date()) {
 	jadwalPelajaran['kamis']['JP 5']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
 	jadwalPelajaran['kamis']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
 	jadwalPelajaran['kamis']['JP 7-8']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
-	jadwalPelajaran['jumat']['JP 3-4']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['jumat']['JP 3-4']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['jumat']['JP 5-6']['7B'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
-	jadwalPelajaran['sabtu']['JP 1-2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
+	jadwalPelajaran['sabtu']['JP 1-2']['7B'] = 'Kitabah & Khat (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['sabtu']['JP 3-4']['7B'] = 'Adab Akhlak (Salman, S. Pd. I.)';
 	jadwalPelajaran['sabtu']['JP 5-6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
 	jadwalPelajaran['sabtu']['JP 7']['7B'] = 'SBDP / Informatika';
@@ -1671,72 +1678,123 @@ function getNextClass() {
     return null;
 }
 
-    let lastNotifiedUpcoming = null;
+	window.lastKnownJP = undefined;
+    window.isAlarmMuted = false;
+    window.continuousAlarmInterval = null;
+    window.nextClassNotifiedTeaching = false;
 
-function updateNextClassInfo() {
-    if (!currentUser) return;
-    const nextClass = getNextClass();
-    const infoCard = document.getElementById('nextClassCard');
-    const warnCard = document.getElementById('upcomingClassWarningCard');
+    // Fungsi utama pembuat suara via HTML5 AudioContext
+    function playTone(freq, type, duration) {
+        try {
+            const ctx = new(window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain); gain.connect(ctx.destination);
+            osc.frequency.value = freq; osc.type = type;
+            gain.gain.setValueAtTime(0.5, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + duration);
+        } catch(e) {}
+    }
 
-    // Selalu tampilkan kartu info card
-    infoCard.classList.remove('hidden');
+    function playJpChangeAlarm() { 
+        playTone(500, 'sine', 0.5); 
+        setTimeout(()=>playTone(700, 'sine', 1), 600); 
+    }
+    
+    function playContinuousBeep() { playTone(900, 'square', 0.5); }
+    
+    function playShortBeep3x() {
+        playTone(1000, 'triangle', 0.2);
+        setTimeout(()=>playTone(1000, 'triangle', 0.2), 300);
+        setTimeout(()=>playTone(1000, 'triangle', 0.2), 600);
+    }
+    
+    // Fungsi untuk mematikan bel
+    window.stopContinuousAlarm = function() {
+        if(window.continuousAlarmInterval) clearInterval(window.continuousAlarmInterval);
+        window.continuousAlarmInterval = null;
+        window.isAlarmMuted = true;
+        document.getElementById('muteAlarmBtn').classList.add('hidden');
+    }
 
-    if (nextClass) {
-        const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
-        document.getElementById('nextClassText').innerHTML =
-            `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
+    function updateNextClassInfo() {
+        if (!currentUser) return;
+        const nextClass = getNextClass();
+        const infoCard = document.getElementById('nextClassCard');
+        const warnCard = document.getElementById('upcomingClassWarningCard');
 
-        const now = new Date();
-        const totalMins = now.getHours() * 60 + now.getMinutes();
-        const diffMins = nextClass.masukMins - totalMins;
+        infoCard.classList.remove('hidden');
 
-        if (diffMins > 0 && diffMins <= 10) {
-            warnCard.classList.remove('hidden');
-            let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
+        if (nextClass) {
+            const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
+            document.getElementById('nextClassText').innerHTML =
+                `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
+
+            const now = new Date();
+            const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
+            const diffSeconds = masukSeconds - totalSeconds;
             
-            if (isCurrentlyTeaching) {
-                warnCard.classList.add('pulse-alarm');
-                document.getElementById('upcomingClassWarningText').innerHTML =
-                    `<i class="fa-solid fa-bell fa-shake"></i> <b>PERHATIAN!</b> ${diffMins} menit lagi Anda harus pindah mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b>.`;
+            // UPDATE TIMER BESAR (Berjalan terus selama belum masuk)
+            if (diffSeconds > 0) {
+                const h = Math.floor(diffSeconds / 3600);
+                const m = Math.floor((diffSeconds % 3600) / 60);
+                const s = diffSeconds % 60;
+                let timerStr = "";
+                if (h > 0) timerStr += String(h).padStart(2, '0') + ':';
+                timerStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+                document.getElementById('nextClassTimer').textContent = timerStr;
             } else {
-                warnCard.classList.remove('pulse-alarm');
-                document.getElementById('upcomingClassWarningText').innerHTML =
-                    `<i class="fa-solid fa-bell fa-shake"></i> Segera Bersiap! ${diffMins} menit lagi jadwal mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b>.`;
+                document.getElementById('nextClassTimer').textContent = "SEKARANG";
             }
 
-            let notifyKey = currentUser + '_' + nextClass.class + '_' + nextClass.jp + '_10m';
-            if (lastNotifiedUpcoming !== notifyKey) {
-                if (!isCurrentlyTeaching && typeof playBeep4x === "function") playBeep4x(); 
-                lastNotifiedUpcoming = notifyKey;
+            // Alarm 5 Menit (300 Detik) di Kartu Merah
+            if (diffSeconds > 0 && diffSeconds <= 300) { 
+                warnCard.classList.remove('hidden');
+                
+                const m = Math.floor(diffSeconds / 60);
+                const s = diffSeconds % 60;
+                document.getElementById('upcomingTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+
+                let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
+                
+                if (isCurrentlyTeaching) {
+                    warnCard.classList.add('pulse-alarm');
+                    document.getElementById('upcomingClassWarningText').innerHTML =
+                        `<i class="fa-solid fa-bell fa-shake"></i> PERHATIAN!<br>SEGERA PINDAH KE KELAS ${cFormatted} UNTUK MENGAJAR ${nextClass.mapel}!`;
+                    
+                    if (!window.nextClassNotifiedTeaching) {
+                        playShortBeep3x(); 
+                        window.nextClassNotifiedTeaching = true;
+                    }
+                    stopContinuousAlarm();
+                    document.getElementById('muteAlarmBtn').classList.add('hidden');
+                } else {
+                    warnCard.classList.remove('pulse-alarm');
+                    document.getElementById('upcomingClassWarningText').innerHTML =
+                        `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+                    
+                    if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
+                        window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500); 
+                        document.getElementById('muteAlarmBtn').classList.remove('hidden');
+                    }
+                }
+            } else {
+                warnCard.classList.add('hidden');
+                warnCard.classList.remove('pulse-alarm');
+                window.nextClassNotifiedTeaching = false;
+                if(diffSeconds > 300) window.isAlarmMuted = false;
+                stopContinuousAlarm();
             }
         } else {
+            document.getElementById('nextClassText').innerHTML = `Tidak ada jadwal setelah ini pada hari ini.`;
+            document.getElementById('nextClassTimer').textContent = "--:--:--";
             warnCard.classList.add('hidden');
-            warnCard.classList.remove('pulse-alarm');
-            if (diffMins > 10) lastNotifiedUpcoming = null;
+            stopContinuousAlarm();
         }
-    } else {
-        // Jika tidak ada kelas berikutnya yang akan datang di hari ini
-        document.getElementById('nextClassText').innerHTML =
-            `Tidak ada jadwal setelah ini pada hari ini.`;
-        warnCard.classList.add('hidden');
     }
-}
-
-function playBeep4x() { 
-    let count = 0; 
-    let intv = setInterval(() => { 
-        try { 
-            const ctx = new(window.AudioContext || window.webkitAudioContext)(); 
-            const osc = ctx.createOscillator(); const gain = ctx.createGain(); 
-            osc.connect(gain); gain.connect(ctx.destination); 
-            osc.frequency.value = 800; osc.type = 'triangle'; gain.gain.value = 0.5; 
-            osc.start(); setTimeout(() => { osc.stop(); ctx.close(); }, 200); 
-        } catch(e) {} 
-        count++; 
-        if(count >= 4) clearInterval(intv); 
-    }, 400); 
-}
 
 function checkTomorrowSchedule() {
     if (!currentUser) return;
@@ -1804,7 +1862,16 @@ function checkTomorrowSchedule() {
         loadHistory(); 
         
         showToast(`Assalamu'alaikum ustadz ${name}`, 'success');
-        if (!isAdminUser) localStorage.setItem('absensi_user', name); else localStorage.removeItem('absensi_user');
+        
+        // FIX ANTI-LOGOUT ANDROID: Simpan semua sesi termasuk akun Master/Admin
+        localStorage.setItem('absensi_user', name);
+        if (isAdminUser) {
+            localStorage.setItem('absensi_admin', 'true');
+            localStorage.setItem('absensi_admin_type', adminType || '');
+        } else {
+            localStorage.removeItem('absensi_admin');
+            localStorage.removeItem('absensi_admin_type');
+        }
     }
 
     document.getElementById('switchUserBtn').addEventListener('click', () => {
@@ -1812,6 +1879,11 @@ function checkTomorrowSchedule() {
         document.getElementById('passwordSection').classList.add('hidden');
         document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
         currentUser = null; currentUserData = null; isAdmin = false; isAgus = false;
+        
+        // Hapus memori browser agar benar-benar logout jika tombol ditekan
+        localStorage.removeItem('absensi_user');
+        localStorage.removeItem('absensi_admin');
+        localStorage.removeItem('absensi_admin_type');
     });
 
     function updateScanModeUI() {
@@ -2408,14 +2480,27 @@ async function renderMySchedule() {
     }
 }
 
-    function updateClock() {
+	function updateClock() {
         const now = new Date();
         document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('loginDayInfo').innerHTML = '<i class="fa-regular fa-calendar"></i> ' + getDayNameID() + ', ' + now.toLocaleDateString('id-ID');
-        document.getElementById('jpDisplay').textContent = getCurrentJPInfo(currentMode || 'masuk');
+        
+        const currentJP = getCurrentJPInfo(currentMode || 'masuk');
+        document.getElementById('jpDisplay').textContent = currentJP;
+        
+        // Pengecekan pergantian Jam Pelajaran (JP) untuk notifikasi
+        if (currentUser && window.lastKnownJP !== undefined && window.lastKnownJP !== currentJP) {
+            let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
+            // Hanya bunyikan nada ganti jam jika guru sedang tidak mengajar dan sedang berada di rentang JP
+            if (!isCurrentlyTeaching && currentJP !== 'Di luar JP') {
+                playJpChangeAlarm();
+            }
+        }
+        window.lastKnownJP = currentJP;
+
         updateTeachingTimer();
         updateNextClassInfo();
-		checkTomorrowSchedule(); // <--- TAMBAHAN BARU
+        checkTomorrowSchedule(); 
     }
     setInterval(updateClock, 1000);
     
@@ -3032,8 +3117,22 @@ function buildAdminMissedClasses(allData) {
         const savedUser = localStorage.getItem('absensi_user'); 
         if (savedUser) { 
             const t = TEACHERS.find(x => x.name === savedUser); 
-            if (t && !t.isAdmin) doLogin(savedUser, false, ''); 
+            if (t) {
+                // Tarik kembali status admin agar langsung login saat browser me-reload halaman
+                const isAdm = localStorage.getItem('absensi_admin') === 'true';
+                const admType = localStorage.getItem('absensi_admin_type') || '';
+                doLogin(savedUser, isAdm, admType);
+            }
         }
+
+        // VISIBILITY API: Mencegah timer mati saat guru pindah ke aplikasi lain (seperti WhatsApp)
+        document.addEventListener('visibilitychange', () => {
+            // Saat guru kembali membuka halaman absensi ini
+            if (document.visibilityState === 'visible' && currentUser) {
+                updateClock(); // Langsung perbarui Timer (mencegah lag)
+                renderMySchedule(); // Segarkan jadwal
+            }
+        });
         updateOfflineStatus();
     });
 </script>
