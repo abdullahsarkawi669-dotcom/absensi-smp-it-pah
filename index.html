@@ -93,6 +93,8 @@
     .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3); }
     .btn-accent { background: var(--accent); color: #fff; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2); }
     .btn-accent:hover { background: #d97706; transform: translateY(-1px); }
+    .btn-warning { background: var(--warning); color: #fff; }
+    .btn-warning:hover { background: #d97706; }
     .btn-success { background: var(--success); color: #fff; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2); }
     .btn-danger { background: var(--danger); color: #fff; }
     .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
@@ -288,7 +290,7 @@
     .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
     .dropdown-item:hover { background: #eff6ff; color: #2563eb; font-weight: 600; }
 	
-	/* Animasi border untuk alarm notifikasi kelas berikutnya */
+/* Animasi border untuk alarm notifikasi kelas berikutnya */
 .pulse-alarm { 
     animation: pulseGlow 1.5s infinite; 
     border-color: #ef4444 !important; 
@@ -309,7 +311,7 @@
 <div id="loginScreen">
     <div class="login-box">
         <div class="logo"><i class="fa-solid fa-graduation-cap"></i></div>
-        <h1>SMP Islam Terpadu Putra Abu Hurairah Mataram</h1>
+        <h1>SMP islam terpadu putra abu Hurairah mataram</h1>
         <p class="sub">Sistem Absensi Guru Berbasis QR Code</p>
         <hr class="divider" />
 
@@ -380,7 +382,7 @@
             <div class="text-sm font-bold text-blue-800"><i class="fa-solid fa-calendar-day"></i> Jadwal Berikutnya</div>
             <div id="nextClassText" class="text-sm text-blue-700 mt-2 mb-2"></div>
             <!-- TAMBAHAN TIMER JADWAL BERIKUTNYA -->
-            <div class="text-center border-t border-blue-200 pt-3 mt-2">
+            <div class="text-center border-t border-blue-200 pt-3 mt-2" id="timerContainer">
                 <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Waktu Menuju Kelas:</span>
                 <div id="nextClassTimer" class="font-black text-blue-800 mt-1" style="font-size: 2.5rem; font-family: monospace; line-height: 1;">--:--:--</div>
             </div>
@@ -846,6 +848,16 @@ function getLocalDateString(d = new Date()) {
     return `${year}-${month}-${day}`;
 }
 
+// FUNGSI CEK PEKAN GANJIL / GENAP
+function isEvenWeek(d = new Date()) {
+    const date = new Date(d.getTime());
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + 3 - (date.getDay() + 6) % 7);
+    const week1 = new Date(date.getFullYear(), 0, 4);
+    const weekNumber = 1 + Math.round(((date.getTime() - week1.getTime()) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+    return weekNumber % 2 === 0;
+}
+
     const JADWAL_WAKTU = {
         reguler: {
             'JP 1': { masuk: '07:30', keluar: '08:10' },
@@ -1264,9 +1276,12 @@ function getLocalDateString(d = new Date()) {
 
         if (jadwalPelajaran[hari] && jadwalPelajaran[hari][jp] && jadwalPelajaran[hari][jp][kelas]) {
             const jadwalRaw = jadwalPelajaran[hari][jp][kelas];
+            // LOGIKA INFORMATIKA PEKAN GENAP & SBDP PEKAN GANJIL
             if (jadwalRaw.includes('SBDP') || jadwalRaw.includes('Informatika')) {
-                if (guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
-                if (guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+                const genap = isEvenWeek();
+                if (!genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
+                if (genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+                return null; 
             }
             if (jadwalRaw.includes(guruName)) return jadwalRaw.split('(')[0].trim();
         }
@@ -1412,22 +1427,43 @@ function getLocalDateString(d = new Date()) {
         });
     }
 
-    function markSynced(ids) {
-        return new Promise((resolve, reject) => {
-            if (!db) { reject(new Error('DB not open')); return; }
-            if (!ids || ids.length === 0) { resolve(); return; }
-            try {
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                let done = 0;
-                ids.forEach(id => {
-                    const req = store.delete(id); 
-                    req.onsuccess = () => { done++; if (done === ids.length) resolve(); };
-                    req.onerror = () => reject(req.error);
-                });
-            } catch (e) { reject(e); }
-        });
-    }
+    function processSyncedItem(item) {
+    return new Promise((resolve, reject) => {
+        if (!db) { reject(new Error('DB not open')); return; }
+        try {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+
+            if (item.action === 'masuk') {
+                // Jangan hapus! Cukup tandai bahwa sudah sinkron
+                item.synced = true;
+                const req = store.put(item); 
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            } else if (item.action === 'keluar') {
+                // Hapus data keluar ini dari memori HP
+                store.delete(item.id);
+                
+                // Cari data 'masuk' pasangannya dan hapus juga (karena keduanya sudah aman di server)
+                const index = store.index('teacher');
+                const reqAll = index.getAll(IDBKeyRange.only(item.teacher));
+                reqAll.onsuccess = () => {
+                    const records = reqAll.result || [];
+                    records.forEach(r => {
+                        if (r.action === 'masuk' && r.class === item.class && r.date === item.date && r.jp === item.jp) {
+                            store.delete(r.id);
+                        }
+                    });
+                    resolve();
+                };
+                reqAll.onerror = () => reject(reqAll.error);
+            } else {
+                store.delete(item.id);
+                resolve();
+            }
+        } catch (e) { reject(e); }
+    });
+	}
 
     function getLocalHistory(teacher, date) {
         return new Promise((resolve, reject) => {
@@ -1452,7 +1488,6 @@ function getLocalDateString(d = new Date()) {
             const response = await fetch(GAS_URL + '?action=getAbsensi');
             const res = await response.json();
             if (res.success) {
-                // NORMALISASI: Jika server masih memuntahkan ISO string UTC
                 res.data.forEach(d => {
                     if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                         let dt = new Date(d.date);
@@ -1526,13 +1561,30 @@ function getLocalDateString(d = new Date()) {
             if (showLog) addSyncLog(`📤 Pushing ${unsynced.length} data...`, 'info');
             if (showToastMsg) showToast(`🔄 Pushing ${unsynced.length} data...`, 'info');
             
-            let successCount = 0, failCount = 0, successIds = [];
+            let successCount = 0, failCount = 0;
             for (const item of unsynced) {
                 const result = await sendToGoogleSheet(item);
-                if (result.success) { successCount++; successIds.push(item.id); if (showLog) addSyncLog(`✅ Item ${item.id} terkirim`, 'success'); } 
+                if (result.success) { 
+                    successCount++; 
+                    if (showLog) addSyncLog(`✅ Item ${item.id} terkirim`, 'success'); 
+                    
+                    // EKSEKUSI PENYIMPANAN ATAU PENGHAPUSAN PAIRING
+                    await processSyncedItem(item);
+                    
+                    if (item.action === 'keluar') {
+                        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + item.teacher) || "null");
+                        if (activeTeaching && activeTeaching.class === item.class && activeTeaching.keluarScanned) {
+                            localStorage.removeItem('activeTeaching_' + item.teacher);
+                            document.getElementById('activeClassTimerCard').classList.add('hidden');
+                            checkActiveTeachingForIzinKasus();
+                            updateScanModeUI();
+                        }
+                    }
+                } 
                 else { failCount++; if (showLog) addSyncLog(`❌ Item ${item.id} gagal: ${result.error}`, 'error'); }
             }
-            if (successIds.length > 0) await markSynced(successIds);
+            
+            // HAPUS BARIS INI: if (successIds.length > 0) await markSynced(successIds);
             
             const msg = `Sync selesai: ${successCount} berhasil, ${failCount} gagal.`;
             if (failCount === 0) {
@@ -1721,39 +1773,36 @@ function getNextClass() {
 
     function updateNextClassInfo() {
         if (!currentUser) return;
-        const nextClass = getNextClass();
+        const now = new Date();
+        const hour = now.getHours();
         const infoCard = document.getElementById('nextClassCard');
         const warnCard = document.getElementById('upcomingClassWarningCard');
-
-        infoCard.classList.remove('hidden');
+        const nextClass = getNextClass();
+        
+        // Logika Waktu: Hilangkan pada jam 13.00 ke atas (Requirement 5 & 6)
+        if (hour >= 13) {
+            infoCard.classList.add('hidden');
+            warnCard.classList.add('hidden');
+            return;
+        }
 
         if (nextClass) {
+            infoCard.classList.remove('hidden');
             const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
             document.getElementById('nextClassText').innerHTML =
                 `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
 
-            const now = new Date();
             const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
             const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
             const diffSeconds = masukSeconds - totalSeconds;
             
-            // UPDATE TIMER BESAR (Berjalan terus selama belum masuk)
-            if (diffSeconds > 0) {
-                const h = Math.floor(diffSeconds / 3600);
-                const m = Math.floor((diffSeconds % 3600) / 60);
-                const s = diffSeconds % 60;
-                let timerStr = "";
-                if (h > 0) timerStr += String(h).padStart(2, '0') + ':';
-                timerStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
-                document.getElementById('nextClassTimer').textContent = timerStr;
-            } else {
-                document.getElementById('nextClassTimer').textContent = "SEKARANG";
-            }
+            // TIMER BESAR DIHILANGKAN JIKA ADA PERMINTAAN
+            // Tetap diproses untuk Alarm 5 Menit di Kartu Merah
+            document.getElementById('timerContainer').classList.add('hidden');
 
             // Alarm 5 Menit (300 Detik) di Kartu Merah
             if (diffSeconds > 0 && diffSeconds <= 300) { 
                 warnCard.classList.remove('hidden');
-                
                 const m = Math.floor(diffSeconds / 60);
                 const s = diffSeconds % 60;
                 document.getElementById('upcomingTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
@@ -1766,8 +1815,7 @@ function getNextClass() {
                         `<i class="fa-solid fa-bell fa-shake"></i> PERHATIAN!<br>SEGERA PINDAH KE KELAS ${cFormatted} UNTUK MENGAJAR ${nextClass.mapel}!`;
                     
                     if (!window.nextClassNotifiedTeaching) {
-                        playShortBeep3x(); 
-                        window.nextClassNotifiedTeaching = true;
+                        playShortBeep3x(); window.nextClassNotifiedTeaching = true;
                     }
                     stopContinuousAlarm();
                     document.getElementById('muteAlarmBtn').classList.add('hidden');
@@ -1782,15 +1830,14 @@ function getNextClass() {
                     }
                 }
             } else {
-                warnCard.classList.add('hidden');
-                warnCard.classList.remove('pulse-alarm');
+                warnCard.classList.add('hidden'); warnCard.classList.remove('pulse-alarm');
                 window.nextClassNotifiedTeaching = false;
                 if(diffSeconds > 300) window.isAlarmMuted = false;
                 stopContinuousAlarm();
             }
         } else {
-            document.getElementById('nextClassText').innerHTML = `Tidak ada jadwal setelah ini pada hari ini.`;
-            document.getElementById('nextClassTimer').textContent = "--:--:--";
+            // Hilangkan jika tidak ada pelajaran lagi
+            infoCard.classList.add('hidden');
             warnCard.classList.add('hidden');
             stopContinuousAlarm();
         }
@@ -1799,19 +1846,26 @@ function getNextClass() {
 function checkTomorrowSchedule() {
     if (!currentUser) return;
     const now = new Date();
-    const card = document.getElementById('tomorrowScheduleCard');
+    const hour = now.getHours();
+    const myScheduleCard = document.getElementById('myScheduleCard');
+    const tomorrowScheduleCard = document.getElementById('tomorrowScheduleCard');
     
-    // Aktifkan card di sore hari (setelah jam 14:00 WITA)
-    if (now.getHours() >= 14) {
+    // Logika 00.00-13.00 & 13.00-00.00 (Requirement 4 & 5)
+    if (hour < 13) {
+        myScheduleCard.classList.remove('hidden');
+        tomorrowScheduleCard.classList.add('hidden');
+    } else {
+        myScheduleCard.classList.add('hidden');
+        tomorrowScheduleCard.classList.remove('hidden');
+
         let tomorrowDate = new Date(now);
         tomorrowDate.setDate(tomorrowDate.getDate() + 1);
         const days = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
         const tomorrowDay = days[tomorrowDate.getDay()];
         
-        if (tomorrowDay === 'ahad') { // Jika esok hari minggu (Ahad)
-            card.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
+        if (tomorrowDay === 'ahad') {
+            tomorrowScheduleCard.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
                               <div class="text-sm text-indigo-800 font-bold text-center py-2">Besok anda libur, semoga Allah menjaga kita semua.</div>`;
-            card.classList.remove('hidden');
         } else {
             let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0);
             if (blocks.length > 0) {
@@ -1821,16 +1875,12 @@ function checkTomorrowSchedule() {
                     html += `<li class="mb-1"><b>${jpStr}</b>: Kelas ${b.class} (${b.mapel}) - <b>${b.masuk}</b></li>`;
                 });
                 html += `</ul>`;
-                card.innerHTML = html;
-                card.classList.remove('hidden');
+                tomorrowScheduleCard.innerHTML = html;
             } else {
-                card.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
+                tomorrowScheduleCard.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
                                   <div class="text-sm text-indigo-800 font-bold text-center py-2">Tidak ada jadwal mengajar besok.</div>`;
-                card.classList.remove('hidden');
             }
         }
-    } else {
-        card.classList.add('hidden');
     }
 }
 
@@ -1887,37 +1937,43 @@ function checkTomorrowSchedule() {
     });
 
     function updateScanModeUI() {
-    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-    const btnMasuk = document.getElementById('modeMasuk');
-    const btnKeluar = document.getElementById('modeKeluar');
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        const btnMasuk = document.getElementById('modeMasuk');
+        const btnKeluar = document.getElementById('modeKeluar');
 
-    // Paksa mode berdasarkan status mengajar
-    if (activeTeaching) {
-        currentMode = 'keluar';
-    } else {
-        if (currentMode === 'keluar') currentMode = 'masuk';
-    }
+        if (activeTeaching) {
+            currentMode = 'keluar';
+        } else {
+            if (currentMode === 'keluar') currentMode = 'masuk';
+        }
 
-    if (!currentMode) {
-        document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
-        document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
-        btnMasuk.className = 'btn btn-sm btn-outline'; 
-        btnKeluar.className = 'btn btn-sm btn-outline';
-        return;
-    }
+        if (!currentMode) {
+            document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
+            document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
+            btnMasuk.className = 'btn btn-sm btn-outline'; btnKeluar.className = 'btn btn-sm btn-outline';
+            return;
+        }
 
-    document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
-    
-    // Kunci tombol yang tidak relevan agar absen selalu berpasangan
-    if (activeTeaching) {
-        btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-        btnKeluar.className = 'btn btn-sm btn-primary';
-        document.getElementById('scanInstruction').innerHTML = `Silakan scan QR untuk <b>KELUAR</b> dari kelas <b>${activeTeaching.class}</b>`;
-    } else {
-        btnMasuk.className = 'btn btn-sm btn-primary';
-        btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-        document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
-    }
+        document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
+        
+        // Kunci tombol - Pairing Logika (Requirement 2)
+        if (activeTeaching) {
+            if (activeTeaching.keluarScanned) {
+                btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+                btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+                document.getElementById('scanInstruction').innerHTML = `Menunggu sinkronisasi absen <b>KELUAR</b> untuk kelas <b>${activeTeaching.class}</b> agar dapat terselesaikan...`;
+                document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sync Keluar...';
+                currentMode = null; // Kunci akses kamera
+            } else {
+                btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+                btnKeluar.className = 'btn btn-sm btn-primary';
+                document.getElementById('scanInstruction').innerHTML = `Silakan scan QR untuk <b>KELUAR</b> dari kelas <b>${activeTeaching.class}</b>`;
+            }
+        } else {
+            btnMasuk.className = 'btn btn-sm btn-primary';
+            btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+            document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
+        }
     }
 
     document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
@@ -2002,17 +2058,10 @@ function checkTomorrowSchedule() {
         let minDiff = 9999;
         
         for (let b of myBlocks) {
-            let m = b.masuk;
-            let k = b.keluar;
-            let isValid = false;
-            
-            if (currentMode === 'masuk') {
-                isValid = (timeMins >= (m - 10) && timeMins <= k); 
-            } else if (currentMode === 'keluar') {
-                isValid = (timeMins >= m && timeMins <= (k + 10));
-            } else {
-                isValid = (timeMins >= (m - 10) && timeMins <= (k + 10));
-            }
+            let m = b.masuk; let k = b.keluar; let isValid = false;
+            if (currentMode === 'masuk') { isValid = (timeMins >= (m - 10) && timeMins <= k); } 
+            else if (currentMode === 'keluar') { isValid = (timeMins >= m && timeMins <= (k + 10)); } 
+            else { isValid = (timeMins >= (m - 10) && timeMins <= (k + 10)); }
             
             if (isValid) {
                 let center = (m + k) / 2;
@@ -2022,7 +2071,6 @@ function checkTomorrowSchedule() {
         }
 
         let jpFinal, mapelFinal, jMasuk, jKeluar;
-
         if (activeBlock) {
             let start = activeBlock.jps[0].replace('JP ', '');
             let end = activeBlock.jps[activeBlock.jps.length-1].replace('JP ', '');
@@ -2034,41 +2082,59 @@ function checkTomorrowSchedule() {
             jpFinal = getCurrentJPInfo(currentMode);
             mapelFinal = getMapelForScan(classCode, currentUser, day, jpFinal);
             let bWaktu = jadwal[jpFinal] || { masuk: '00:00', keluar: '00:00' };
-            jMasuk = bWaktu.masuk;
-            jKeluar = bWaktu.keluar;
+            jMasuk = bWaktu.masuk; jKeluar = bWaktu.keluar;
         }
 
-        const subject = ket ? 'Kegiatan Lain' : (mapelFinal || 'Di Luar Jadwal');
+        let isWrongClass = (!mapelFinal || mapelFinal === 'Di Luar Jadwal');
+
+        // Logika Peringatan Salah Kelas / Guru Pengganti (Requirement 3)
+        if (isWrongClass && currentMode === 'masuk') {
+            document.getElementById('modalContent').innerHTML = `
+                <div class="text-center p-4">
+                    <i class="fa-solid fa-triangle-exclamation text-warning mb-4" style="font-size: 3rem;"></i>
+                    <h3 class="font-bold text-lg mb-2">Peringatan Salah Ruangan</h3>
+                    <p class="text-sm mb-4 text-muted">Guru atas nama <b>${currentUser}</b> tidak terdeteksi memiliki jadwal di kelas <b>${classCode}</b> pada jam ini.</p>
+                    <p class="text-xs mb-4 text-gray-500">Jika Anda adalah guru yang menggantikan, silakan gunakan tombol di bawah.</p>
+                    <button class="btn btn-warning w-full" id="btnGuruPengganti"><i class="fa-solid fa-user-plus"></i> Masuk sebagai Guru Pengganti</button>
+                </div>
+            `;
+            document.getElementById('modalOverlay').classList.remove('hidden');
+            document.getElementById('btnGuruPengganti').onclick = () => {
+                document.getElementById('modalOverlay').classList.add('hidden');
+                document.getElementById('keteranganInput').value = "Guru Pengganti";
+                executeFinalScanRecord(classCode, "Guru Pengganti", 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
+            };
+            return;
+        }
+
+        executeFinalScanRecord(classCode, ket, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
+    }
+
+    async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now) {
         const formattedClass = formatKopelClass(classCode, subject);
 
         // -- PENCEGAHAN DUPLIKASI DATA --
         let isDuplicate = false;
         const localHist = await getLocalHistory(currentUser, dateStr);
-        if (localHist.some(h => h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) {
-            isDuplicate = true;
-        }
-        
-        if (serverDataCache.some(h => h.teacher === currentUser && h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) {
-            isDuplicate = true;
-        }
+        if (localHist.some(h => h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
+        if (serverDataCache.some(h => h.teacher === currentUser && h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
 
         if (isDuplicate) {
             showScanResult(`⚠️ Anda sudah melakukan absen ${(currentMode || 'masuk').toUpperCase()} untuk kelas ini hari ini.`, 'warning');
-            playBeepWarning();
-            document.getElementById('keteranganInput').value = '';
-            return; 
+            playBeepWarning(); document.getElementById('keteranganInput').value = ''; return; 
         }
 
         if (currentMode === 'masuk' && jKeluar !== '00:00') {
-            let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false, rawClass: classCode };
+            let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false, rawClass: classCode, keluarScanned: false };
             localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-            updateNextClassInfo();
-            checkActiveTeachingForIzinKasus();
+            updateNextClassInfo(); checkActiveTeachingForIzinKasus();
         } else if (currentMode === 'keluar') {
             let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
             if (activeTeaching && activeTeaching.class === formattedClass) {
-                localStorage.removeItem('activeTeaching_' + currentUser);
-                document.getElementById('activeClassTimerCard').classList.add('hidden');
+                // Tahan agar tidak langsung hilang sampai tersinkron
+                activeTeaching.keluarScanned = true;
+                localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
+                updateScanModeUI();
                 checkActiveTeachingForIzinKasus();
             }
         }
@@ -2083,13 +2149,28 @@ function checkTomorrowSchedule() {
         saveAttendanceLocal(record).then(async (id) => {
             const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
             showScanResult(ket ? `${actionIcon} ${formattedClass} (${ket})` : `${actionIcon} ${formattedClass} (${subject})`, 'success');
+            
+            record.id = id; // TAMBAHKAN BARIS INI (Sisipkan ID dari IndexedDB)
             addHistoryRow({...record, id});
             
             if (navigator.onLine) {
                 try {
                     const res = await sendToGoogleSheet(record);
-                    if (res.success) { await markSynced([id]); showScanResult(`✅ Data terkirim ke Server!`, 'success'); }
-                    else { showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning'); }
+                    if (res.success) { 
+                        await processSyncedItem(record); // UBAH markSynced MENJADI processSyncedItem
+                        showScanResult(`✅ Data terkirim ke Server!`, 'success');
+                        
+                        // Eksekusi pembersihan Active Teaching jika status keluar berhasil sinkron
+                        if (record.action === 'keluar') {
+                            let actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+                            if (actTeach && actTeach.class === formattedClass && actTeach.keluarScanned) {
+                                localStorage.removeItem('activeTeaching_' + currentUser);
+                                document.getElementById('activeClassTimerCard').classList.add('hidden');
+                                checkActiveTeachingForIzinKasus();
+                                updateScanModeUI();
+                            }
+                        }
+                    } else { showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning'); }
                 } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
             }
             updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
@@ -2107,7 +2188,7 @@ function checkTomorrowSchedule() {
         const containerIzin = document.getElementById('santriIzinContainer');
         const containerKasus = document.getElementById('santriKasusContainer');
         
-        if (activeTeaching) {
+        if (activeTeaching && !activeTeaching.keluarScanned) {
             containerIzin.classList.remove('hidden');
             containerKasus.classList.remove('hidden');
             document.getElementById('activeClassBadgeIzin').textContent = `Kelas: ${activeTeaching.class} (${activeTeaching.subject})`;
@@ -2376,7 +2457,7 @@ function updateTeachingTimer() {
         timeStr += String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
         document.getElementById('activeClassCountdown').textContent = timeStr;
 
-        if (diffSeconds <= 300) { // Berubah dari 180 (3 menit) menjadi 300 (5 menit)
+        if (diffSeconds <= 300) { 
             if (!activeTeaching.notified) { 
                 playBeep3x(); 
                 activeTeaching.notified = true; 
@@ -2390,15 +2471,22 @@ function updateTeachingTimer() {
         }
     } else {
         document.getElementById('activeClassCountdown').textContent = "00:00"; document.getElementById('activeClassWarning').classList.add('hidden');
-        if (diffSeconds < -900) { localStorage.removeItem('activeTeaching_' + currentUser); timerCard.classList.add('hidden'); checkActiveTeachingForIzinKasus(); updateScanModeUI(); }
+        
+        // Hapus jika sudah kedaluwarsa 15 menit dan bukan status menunggu sinkronisasi keluar
+        if (diffSeconds < -900 && !activeTeaching.keluarScanned) { 
+            localStorage.removeItem('activeTeaching_' + currentUser); 
+            timerCard.classList.add('hidden'); 
+            checkActiveTeachingForIzinKasus(); 
+            updateScanModeUI(); 
+        }
     }
 }
 
 async function renderMySchedule() {
     if (!currentUser) return;
+    const now = new Date();
     const hari = getDayName();
     const todayStr = getLocalDateString(now);
-    const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
     let history = [];
@@ -2411,7 +2499,8 @@ async function renderMySchedule() {
     const tbody = document.getElementById('myScheduleBody');
     tbody.innerHTML = '';
     
-    if (blocks.length === 0) {
+    // Sesuai requirement, pada jam 13.00 ke atas, card ini disembunyikan
+    if (blocks.length === 0 || now.getHours() >= 13) {
         card.classList.add('hidden'); 
         return;
     }
@@ -2440,12 +2529,14 @@ async function renderMySchedule() {
             return overlap;
         });
         
+        // Hapus baris yang waktunya sudah lewat dan di-scan (Requirement 4)
         if (isPassed && hasClockedIn) return; 
         
         countDisplayed++;
         const tr = document.createElement('tr');
         
         if (isPassed && !hasClockedIn) {
+            // Tandai merah untuk kelas yang terlewatkan
             tr.className = "bg-red-50";
             tr.innerHTML = `
                 <td class="text-danger font-bold text-xs">${jpStr}</td>
@@ -2491,7 +2582,6 @@ async function renderMySchedule() {
         // Pengecekan pergantian Jam Pelajaran (JP) untuk notifikasi
         if (currentUser && window.lastKnownJP !== undefined && window.lastKnownJP !== currentJP) {
             let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
-            // Hanya bunyikan nada ganti jam jika guru sedang tidak mengajar dan sedang berada di rentang JP
             if (!isCurrentlyTeaching && currentJP !== 'Di luar JP') {
                 playJpChangeAlarm();
             }
@@ -2517,9 +2607,25 @@ async function renderMySchedule() {
 
     function loadHistory() {
         if (!currentUser) return;
-        getLocalHistory(currentUser, getLocalDateString(new Date())).then((data) => {
+        getLocalHistory(currentUser, getLocalDateString(new Date())).then((localData) => {
+            // Gabung data lokal dan data server agar riwayat tidak hilang saat dipasangkan
+            const todayStr = getLocalDateString(new Date());
+            const serverData = serverDataCache.filter(d => d.teacher === currentUser && d.date === todayStr);
+
+            const mergedMap = new Map();
+            serverData.forEach(d => {
+                const key = `${d.class}_${d.subject}_${d.action}_${d.jp}`;
+                mergedMap.set(key, { ...d, timestamp: d.timestamp || d.date + 'T' + d.time }); 
+            });
+            localData.forEach(d => {
+                const key = `${d.class}_${d.subject}_${d.action}_${d.jp}`;
+                mergedMap.set(key, d); // Lokal override server
+            });
+
+            const mergedData = Array.from(mergedMap.values());
             const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
-            data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(record => {
+            
+            mergedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(record => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${record.time}</td><td class="font-bold">${record.class}</td><td>${record.subject}</td><td>${record.action === 'masuk' ? '✅ In' : '🚪 Out'}</td><td class="text-xs">${record.keterangan || '-'}</td>`;
                 tbody.appendChild(tr);
@@ -2705,7 +2811,6 @@ function buildAdminMissedClasses(allData) {
             let blocks = getGroupedSchedule(t.name, hari, currentMins);
             blocks.forEach(sch => {
                 if (sch.kMins < currentMins) {
-                    // PERBAIKAN BUG: Gunakan serverDataToday, bukan attendedList
                     let hasClockedIn = serverDataToday.some(h => {
                         if (h.teacher !== t.name) return false;
                         if (h.class !== sch.class) return false;
