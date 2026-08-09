@@ -1254,7 +1254,7 @@ function isEvenWeek(d = new Date()) {
         return kelas;
     }
 
-    function getMapelForScan(kelas, guruName, hari, jp) {
+    function getMapelForScan(kelas, guruName, hari, jp, targetDate) {
         hari = (hari || "").toLowerCase();
         
         const isGuruTahfizh = TEACHERS.some(t => t.name === guruName && t.subjects.includes("Tahfizhul Qur'an"));
@@ -1278,9 +1278,9 @@ function isEvenWeek(d = new Date()) {
             const jadwalRaw = jadwalPelajaran[hari][jp][kelas];
             // LOGIKA INFORMATIKA PEKAN GENAP & SBDP PEKAN GANJIL
             if (jadwalRaw.includes('SBDP') || jadwalRaw.includes('Informatika')) {
-                const genap = isEvenWeek();
-                if (!genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
-                if (genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+                const genap = isEvenWeek(targetDate); // <--- PERUBAHAN DI SINI
+                if (genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
+                if (!genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
                 return null; 
             }
             if (jadwalRaw.includes(guruName)) return jadwalRaw.split('(')[0].trim();
@@ -1676,7 +1676,7 @@ function isEvenWeek(d = new Date()) {
 
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
-    function getGroupedSchedule(teacherName, hari, currentMins) {
+    function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Date()) { // <--- TAMBAH targetDate
         let blocks = [];
         let currentBlock = null;
         const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
@@ -1686,7 +1686,7 @@ function isEvenWeek(d = new Date()) {
             if (!jadwal[jp]) continue;
             
             for (let c of CLASSES) {
-                let mapel = getMapelForScan(c, teacherName, hari, jp);
+                let mapel = getMapelForScan(c, teacherName, hari, jp, targetDate); // <--- TERUSKAN targetDate DI SINI
                 if (mapel) {
                     let formattedClass = formatKopelClass(c, mapel);
                     let k = parseTimeToMins(jadwal[jp].keluar);
@@ -1867,7 +1867,7 @@ function checkTomorrowSchedule() {
             tomorrowScheduleCard.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
                               <div class="text-sm text-indigo-800 font-bold text-center py-2">Besok anda libur, semoga Allah menjaga kita semua.</div>`;
         } else {
-            let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0);
+            let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0, tomorrowDate);
             if (blocks.length > 0) {
                 let html = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Esok Hari (${tomorrowDay.toUpperCase()})</div><ul class="text-xs text-indigo-800" style="padding-left:16px; margin-bottom: 0;">`;
                 blocks.forEach(b => {
