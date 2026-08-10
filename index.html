@@ -715,22 +715,24 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                     <span class="badge">Semua Guru</span>
                 </div>
 
-                <div class="flex gap-2 mb-4">
-                    <button class="btn btn-sm btn-primary admin-view active" data-view="all">Semua</button>
-                    <button class="btn btn-sm btn-outline admin-view" data-view="late">Terlambat</button>
-                    <button class="btn btn-sm btn-outline admin-view" data-view="early">Keluar Cepat</button>
-                </div>
-
-                <div class="input-group">
-                    <label>Filter Nama Guru</label>
-                    <select id="adminTeacherFilter"><option value="all">-- Semua Guru --</option></select>
-                </div>
-
-                <div class="report-summary" id="adminSummary">
-                    <div class="stat"><div class="num text-primary" id="adminStatTotal">0</div><div class="label">Total Sesi</div></div>
-                    <div class="stat"><div class="num text-warning" id="adminStatLate">0</div><div class="label">Mnt Telat</div></div>
-                    <div class="stat"><div class="num text-danger" id="adminStatEarly">0</div><div class="label">Mnt Cepat</div></div>
-                </div>
+				<div class="flex gap-2 mb-4 overflow-x-auto">
+					<button class="btn btn-sm btn-primary admin-view active" data-view="all">Semua</button>
+					<button class="btn btn-sm btn-outline admin-view" data-view="late">Terlambat</button>
+					<button class="btn btn-sm btn-outline admin-view" data-view="early">Keluar Cepat</button>
+					<button class="btn btn-sm btn-outline admin-view" data-view="lupa">Lupa Keluar</button>
+				</div>
+			
+				<div class="input-group">
+					<label>Filter Nama Guru</label>
+					<select id="adminTeacherFilter"><option value="all">-- Semua Guru --</option></select>
+				</div>
+			
+				<div class="report-summary" id="adminSummary" style="grid-template-columns: repeat(4, 1fr);">
+					<div class="stat"><div class="num text-primary" id="adminStatTotal">0</div><div class="label">Total Sesi</div></div>
+					<div class="stat"><div class="num text-warning" id="adminStatLate">0</div><div class="label">Mnt Telat</div></div>
+					<div class="stat"><div class="num text-danger" id="adminStatEarly">0</div><div class="label">Mnt Cepat</div></div>
+					<div class="stat"><div class="num" style="color: #9333ea;" id="adminStatLupa">0</div><div class="label">Lupa Out</div></div>
+				</div>
 
                 <div class="input-group">
                     <label>Filter Periode</label>
@@ -1627,6 +1629,21 @@ function isEvenWeek(d = new Date()) {
                 updateSyncStatus(); 
                 await refreshServerCache();
                 renderMySchedule();
+                
+                // --- PERBAIKAN: Buka kunci otomatis jika tidak ada antrean data ---
+                if (currentUser) {
+                    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+                    if (activeTeaching && activeTeaching.keluarScanned) {
+                        localStorage.removeItem('activeTeaching_' + currentUser);
+                        const timerCard = document.getElementById('activeClassTimerCard');
+                        if (timerCard) timerCard.classList.add('hidden');
+                        checkActiveTeachingForIzinKasus();
+                        currentMode = null;
+                        updateScanModeUI();
+                    }
+                }
+                // ------------------------------------------------------------------
+                
                 return { success: true, message: 'Tidak ada data' };
             }
             if (showLog) addSyncLog(`📤 Pushing ${unsynced.length} data...`, 'info');
@@ -1639,7 +1656,6 @@ function isEvenWeek(d = new Date()) {
                     successCount++; 
                     if (showLog) addSyncLog(`✅ Item ${item.id} terkirim`, 'success'); 
                     
-                    // EKSEKUSI PENYIMPANAN ATAU PENGHAPUSAN PAIRING
                     await processSyncedItem(item);
                     
                     if (item.action === 'keluar') {
@@ -1655,12 +1671,24 @@ function isEvenWeek(d = new Date()) {
                 else { failCount++; if (showLog) addSyncLog(`❌ Item ${item.id} gagal: ${result.error}`, 'error'); }
             }
             
-            // HAPUS BARIS INI: if (successIds.length > 0) await markSynced(successIds);
-            
             const msg = `Sync selesai: ${successCount} berhasil, ${failCount} gagal.`;
             if (failCount === 0) {
                 if (showLog) addSyncLog(`✅ ${msg}`, 'success');
                 if (showToastMsg) showToast('✅ Semua data sukses terkirim!', 'success');
+
+                // --- PERBAIKAN: Buka kunci paksa jika semua data sukses terkirim ---
+                if (currentUser) {
+                    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+                    if (activeTeaching && activeTeaching.keluarScanned) {
+                        localStorage.removeItem('activeTeaching_' + currentUser);
+                        const timerCard = document.getElementById('activeClassTimerCard');
+                        if (timerCard) timerCard.classList.add('hidden');
+                        checkActiveTeachingForIzinKasus();
+                        currentMode = null;
+                        updateScanModeUI();
+                    }
+                }
+                // --------------------------------------------------------------------
             } else {
                 if (showLog) addSyncLog(`⚠️ ${msg}`, 'error');
                 if (showToastMsg) showToast(`⚠️ ${failCount} gagal. Cek log Admin.`, 'error');
@@ -2006,44 +2034,73 @@ function checkTomorrowSchedule() {
     });
 
     function updateScanModeUI() {
-        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-        const btnMasuk = document.getElementById('modeMasuk');
-        const btnKeluar = document.getElementById('modeKeluar');
+    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    const btnMasuk = document.getElementById('modeMasuk');
+    const btnKeluar = document.getElementById('modeKeluar');
 
-        if (activeTeaching) {
-            currentMode = 'keluar';
+    // Cek apakah waktu kelas sudah berakhir
+    let isPastEndTime = false;
+    if (activeTeaching && activeTeaching.keluar) {
+        const now = new Date();
+        const endParts = activeTeaching.keluar.split(':');
+        const endDate = new Date(); 
+        endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+        if (now > endDate) isPastEndTime = true;
+    }
+
+    if (activeTeaching && !isPastEndTime) {
+        currentMode = 'keluar';
+    } else if (!activeTeaching) {
+        if (currentMode === 'keluar') currentMode = 'masuk';
+    }
+
+    if (!currentMode) {
+        document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
+        document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
+        btnMasuk.className = 'btn btn-sm btn-outline'; btnKeluar.className = 'btn btn-sm btn-outline';
+        return;
+    }
+
+    document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
+    
+    if (activeTeaching) {
+        if (activeTeaching.keluarScanned) {
+            btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+            btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+            document.getElementById('scanInstruction').innerHTML = `Menunggu sinkronisasi absen <b>KELUAR</b> untuk kelas <b>${activeTeaching.class}</b>...<br><button class="btn btn-sm btn-warning mt-3 w-full" onclick="forceUnlock()" style="pointer-events: auto;"><i class="fa-solid fa-unlock-keyhole"></i> Lepaskan Kunci Manual</button>`;
+            document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sync Keluar...';
+            currentMode = null; 
         } else {
-            if (currentMode === 'keluar') currentMode = 'masuk';
-        }
-
-        if (!currentMode) {
-            document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
-            document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
-            btnMasuk.className = 'btn btn-sm btn-outline'; btnKeluar.className = 'btn btn-sm btn-outline';
-            return;
-        }
-
-        document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
-        
-        // Kunci tombol - Pairing Logika (Requirement 2)
-        if (activeTeaching) {
-            if (activeTeaching.keluarScanned) {
-                btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-                btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-                document.getElementById('scanInstruction').innerHTML = `Menunggu sinkronisasi absen <b>KELUAR</b> untuk kelas <b>${activeTeaching.class}</b> agar dapat terselesaikan...`;
-                document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sync Keluar...';
-                currentMode = null; // Kunci akses kamera
+            if (isPastEndTime) {
+                // Tombol Masuk otomatis aktif jika jam mengajar telah lewat
+                btnMasuk.className = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+                btnKeluar.className = currentMode === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+                document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> telah habis. Anda bisa scan <b>KELUAR</b>, atau langsung tekan <b>MASUK</b> untuk jam mengajar berikutnya.`;
             } else {
                 btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
                 btnKeluar.className = 'btn btn-sm btn-primary';
                 document.getElementById('scanInstruction').innerHTML = `Silakan scan QR untuk <b>KELUAR</b> dari kelas <b>${activeTeaching.class}</b>`;
             }
-        } else {
-            btnMasuk.className = 'btn btn-sm btn-primary';
-            btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-            document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
         }
+    } else {
+        btnMasuk.className = 'btn btn-sm btn-primary';
+        btnKeluar.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+        document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
     }
+}
+
+    // --- PERBAIKAN: Fungsi Eksekusi Buka Kunci Paksa ---
+    window.forceUnlock = function() {
+        if (currentUser) {
+            localStorage.removeItem('activeTeaching_' + currentUser);
+            const timerCard = document.getElementById('activeClassTimerCard');
+            if (timerCard) timerCard.classList.add('hidden');
+            if (typeof checkActiveTeachingForIzinKasus === 'function') checkActiveTeachingForIzinKasus();
+            currentMode = 'masuk';
+            updateScanModeUI();
+            showToast('Kunci kelas berhasil dilepas!', 'success');
+        }
+    };
 
     document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
     document.getElementById('modeKeluar').addEventListener('click', () => { currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
@@ -2185,7 +2242,31 @@ function checkTomorrowSchedule() {
     }
 
     async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now) {
-        const formattedClass = formatKopelClass(classCode, subject);
+    const formattedClass = formatKopelClass(classCode, subject);
+
+    // -- CEK LUPA SCAN KELUAR PADA KELAS SEBELUMNYA --
+    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    if (currentMode === 'masuk' && activeTeaching && !activeTeaching.keluarScanned) {
+        const recordLupa = {
+            teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject, action: 'keluar',
+            date: dateStr, time: timeStr, day: getDayNameID(), jp: '-',
+            jadwal_masuk: '-', jadwal_keluar: activeTeaching.keluar,
+            timestamp: now.toISOString(), keterangan: 'Lupa scan keluar pada riwayat kelas sebelumnya', synced: false
+        };
+        
+        await saveAttendanceLocal(recordLupa).then(async (id) => {
+            recordLupa.id = id; addHistoryRow({...recordLupa, id});
+            if (navigator.onLine) {
+                try {
+                    const res = await sendToGoogleSheet(recordLupa);
+                    if (res.success) await processSyncedItem(recordLupa);
+                } catch(e) {}
+            }
+        });
+        showToast(`Sistem menutup kelas ${activeTeaching.class} karena Anda lupa absen keluar.`, 'warning');
+        localStorage.removeItem('activeTeaching_' + currentUser);
+        document.getElementById('activeClassTimerCard').classList.add('hidden');
+    }
 
         // -- PENCEGAHAN DUPLIKASI DATA --
         let isDuplicate = false;
@@ -2559,36 +2640,11 @@ function updateTeachingTimer() {
             document.getElementById('activeClassWarning').classList.add('hidden'); 
         }
     } else {
-        document.getElementById('activeClassCountdown').textContent = "00:00"; document.getElementById('activeClassWarning').classList.add('hidden');
+        document.getElementById('activeClassCountdown').textContent = "00:00"; 
+        document.getElementById('activeClassWarning').classList.add('hidden');
         
-        // Pengecekan otomatis > 3 menit setelah kelas usai
-        if (diffSeconds < -180 && !activeTeaching.keluarScanned) { 
-            const dateStr = getLocalDateString(now);
-            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const record = {
-                teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject, action: 'keluar',
-                date: dateStr, time: timeStr, day: getDayNameID(), jp: '-',
-                jadwal_masuk: '-', jadwal_keluar: activeTeaching.keluar,
-                timestamp: now.toISOString(), keterangan: 'Otomatis Keluar', synced: false
-            };
-            
-            saveAttendanceLocal(record).then(async (id) => {
-                record.id = id; addHistoryRow({...record, id});
-                if (navigator.onLine) {
-                    try {
-                        const res = await sendToGoogleSheet(record);
-                        if (res.success) await processSyncedItem(record);
-                    } catch(e) {}
-                }
-                syncNow(false, false);
-            });
-
-            localStorage.removeItem('activeTeaching_' + currentUser); 
-            timerCard.classList.add('hidden'); 
-            checkActiveTeachingForIzinKasus(); 
-            updateScanModeUI(); 
-            showToast(`Sistem otomatis checkout dari kelas ${activeTeaching.class} karena melebihi 3 menit.`, 'info');
-        }
+        // Pengecekan otomatis > 3 menit DIHAPUS agar bisa direkam manual dengan 
+        // timestamp yang sama dengan waktu masuk kelas kedua sesuai permintaan.
     }
 }
 
@@ -2622,13 +2678,12 @@ async function renderMySchedule() {
     blocks.forEach(sch => {
         let isPassed = sch.kMins < currentMins;
         let mMins = parseTimeToMins(sch.masuk);
-        // Cek apakah waktu saat ini berada di tengah-tengah jadwal
         let isOngoing = currentMins >= mMins && currentMins <= sch.kMins;
         
         let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
         
+        // --- PERBAIKAN: Deteksi Fleksibel untuk Guru Tahfizh / Kelas Kopel ---
         let hasClockedIn = attendedList.some(h => {
-            if (h.class !== sch.class) return false;
             let overlap = false;
             sch.jps.forEach(j => {
                 if (h.jp) {
@@ -2638,17 +2693,42 @@ async function renderMySchedule() {
                     if (j >= hStart && j <= hEnd) overlap = true; 
                 }
             });
-            return overlap;
+            if (!overlap) return false;
+
+            // Jika kelas sama persis, anggap cocok
+            if (h.class === sch.class) return true;
+
+            // Jika mengajar kelas kopel (misal format (7A),7B,7C atau sejenisnya)
+            const isGuruTahfizh = TEACHERS.some(t => t.name === currentUser && t.subjects.includes("Tahfizhul Qur'an"));
+            if (isGuruTahfizh) {
+                // Ekstrak semua kode kelas dalam string kelas history maupun jadwal
+                const cleanSchClass = sch.class.replace(/[()]/g, '');
+                const cleanHClass = h.class.replace(/[()]/g, '');
+                
+                const kopelGroups = [
+                    ['7A', '7B', '7C'],
+                    ['7D', '7E', '8A'],
+                    ['8B', '8C', '8D', '8E'],
+                    ['9A', '9B', '9C', '9D']
+                ];
+
+                for (let group of kopelGroups) {
+                    // Jika jadwal dan history berada dalam satu grup kopel tahfizh yang sama, anggap sudah diabsen
+                    if (group.some(c => cleanSchClass.includes(c)) && group.some(c => cleanHClass.includes(c))) {
+                        return true;
+                    }
+                }
+            }
+            return false;
         });
+        // ------------------------------------------------------------------
         
-        // Hapus baris yang waktunya sudah lewat dan di-scan
         if (isPassed && hasClockedIn) return; 
         
         countDisplayed++;
         const tr = document.createElement('tr');
         
         if (isPassed && !hasClockedIn) {
-            // Tandai merah untuk kelas yang terlewatkan
             tr.className = "bg-red-50";
             tr.innerHTML = `
                 <td class="text-danger font-bold text-xs">${jpStr}</td>
@@ -3116,45 +3196,55 @@ function buildAdminMissedClasses(allData) {
             });
 
             const grouped = {};
-            filtered.forEach(d => {
-                if (!d.date || !d.teacher || !d.jp) return;
-                const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
-                if (!grouped[key]) grouped[key] = { date: d.date, teacher: d.teacher, subject: d.subject, class: d.class, jp: d.jp, jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-', waktu_masuk: '-', waktu_keluar: '-' };
-                if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; }
-                if (d.action === 'keluar') { grouped[key].waktu_keluar = d.time; grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; }
-            });
+        filtered.forEach(d => {
+            if (!d.date || !d.teacher || !d.jp) return;
+            const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
+            if (!grouped[key]) grouped[key] = { date: d.date, teacher: d.teacher, subject: d.subject, class: d.class, jp: d.jp, jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-', waktu_masuk: '-', waktu_keluar: '-', isLupa: false };
+            if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; }
+            if (d.action === 'keluar') { 
+                grouped[key].waktu_keluar = d.time; 
+                grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
+                if (d.keterangan === 'Lupa scan keluar pada riwayat kelas sebelumnya') {
+                    grouped[key].isLupa = true;
+                }
+            }
+        });
 
-            let tLate = 0, tEarly = 0, visibleRecords = 0; 
-            tbody.innerHTML = '';
-            const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || a.teacher.localeCompare(b.teacher));
+        let tLate = 0, tEarly = 0, tLupa = 0, visibleRecords = 0; 
+        tbody.innerHTML = '';
+        const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || a.teacher.localeCompare(b.teacher));
+        
+        finalData.forEach(g => {
+            let telatMenit = 0, cepatMenit = 0;
+            let jM = parseTimeToMins(g.jadwal_masuk), wM = parseTimeToMins(g.waktu_masuk);
+            if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tolMasuk) telatMenit = diff - tolMasuk; }
+            let jK = parseTimeToMins(g.jadwal_keluar), wK = parseTimeToMins(g.waktu_keluar);
+            if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tolKeluar) cepatMenit = diff - tolKeluar; }
             
-            finalData.forEach(g => {
-                let telatMenit = 0, cepatMenit = 0;
-                
-                let jM = parseTimeToMins(g.jadwal_masuk), wM = parseTimeToMins(g.waktu_masuk);
-                if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tolMasuk) telatMenit = diff - tolMasuk; }
-                
-                let jK = parseTimeToMins(g.jadwal_keluar), wK = parseTimeToMins(g.waktu_keluar);
-                if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tolKeluar) cepatMenit = diff - tolKeluar; }
-                
-                if (adminViewMode === 'late' && telatMenit <= 0) return;
-                if (adminViewMode === 'early' && cepatMenit <= 0) return;
-                
-                tLate += telatMenit; tEarly += cepatMenit; visibleRecords++;
-
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td class="font-bold">${g.jp}</td>
-                    <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
-                    <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
-                    <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>`;
-                tbody.appendChild(tr);
-            });
+            // Filter Logika
+            if (adminViewMode === 'late' && telatMenit <= 0) return;
+            if (adminViewMode === 'early' && cepatMenit <= 0) return;
+            if (adminViewMode === 'lupa' && !g.isLupa) return;
             
-            if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
+            if (g.isLupa) tLupa++;
+            tLate += telatMenit; tEarly += cepatMenit; visibleRecords++;
 
-            document.getElementById('adminStatTotal').textContent = visibleRecords; 
-            document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
-            document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
+            const badgeLupa = g.isLupa ? `<br><span class="badge" style="background:#f3e8ff; color:#9333ea; font-size:0.7rem;">Lupa Scan Keluar</span>` : '';
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td class="font-bold">${g.jp}</td>
+                <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
+                <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span>${badgeLupa}</td>
+                <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>`;
+            tbody.appendChild(tr);
+        });
+        
+        if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
+
+        document.getElementById('adminStatTotal').textContent = visibleRecords; 
+        document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
+        document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
+        document.getElementById('adminStatLupa').textContent = tLupa + ' Kali';
         } catch (e) { tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
     }
 
