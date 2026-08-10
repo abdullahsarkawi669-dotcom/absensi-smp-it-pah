@@ -29,6 +29,8 @@
             --radius-sm: 14px;
             --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             --font: 'Inter', system-ui, -apple-system, sans-serif;
+            --border-color: rgba(226, 232, 240, 0.8);
+            --input-bg: #f8fafc;
         }
 		html, body {
 			font-family: var(--font);
@@ -38,6 +40,7 @@
 			width: 100%;
 			overflow-x: hidden;
 			-webkit-tap-highlight-color: transparent;
+            transition: background-color var(--transition), color var(--transition);
 		}
 		body { padding-bottom: 80px; }
     
@@ -68,7 +71,7 @@
         padding: 24px;
         box-shadow: var(--shadow);
         transition: var(--transition);
-        border: 1px solid rgba(226, 232, 240, 0.8);
+        border: 1px solid var(--border-color);
         margin-bottom: 16px;
     }
     .card-header {
@@ -104,12 +107,12 @@
     .input-group { margin-bottom: 16px; position: relative; }
     .input-group label { display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 6px; color: var(--text-light); }
     .input-group input, .input-group select {
-        width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0;
+        width: 100%; padding: 14px 16px; border: 2px solid var(--border-color);
         border-radius: var(--radius-sm); font-size: 1rem; transition: var(--transition);
-        background: #f8fafc; color: var(--text); font-family: var(--font);
+        background: var(--input-bg); color: var(--text); font-family: var(--font);
     }
     .input-group input:focus, .input-group select:focus {
-        outline: none; border-color: var(--primary); background: #fff;
+        outline: none; border-color: var(--primary); background: var(--card);
         box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
     }
 
@@ -122,8 +125,8 @@
         border-radius: var(--radius); padding: 40px 30px; max-width: 420px; width: 100%;
         box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); border: 1px solid rgba(255,255,255,0.3);
     }
-    #loginScreen .login-box h1 { font-size: 1.5rem; font-weight: 800; color: var(--text); text-align: center; margin-bottom: 8px; line-height: 1.2; }
-    #loginScreen .login-box .sub { text-align: center; color: var(--text-light); font-size: 0.9rem; margin-bottom: 24px; font-weight: 500; }
+    #loginScreen .login-box h1 { font-size: 1.5rem; font-weight: 800; color: #0f172a; text-align: center; margin-bottom: 8px; line-height: 1.2; }
+    #loginScreen .login-box .sub { text-align: center; color: #64748b; font-size: 0.9rem; margin-bottom: 24px; font-weight: 500; }
     #loginScreen .login-box .logo {
         text-align: center; font-size: 3.5rem; margin-bottom: 16px;
         background: linear-gradient(135deg, #2563eb, #10b981);
@@ -135,7 +138,7 @@
         max-height: 280px; overflow-y: auto; padding: 4px 4px 4px 0;
     }
     .teacher-list .btn {
-        font-size: 0.85rem; padding: 12px 10px; background: #f1f5f9; color: var(--text);
+        font-size: 0.85rem; padding: 12px 10px; background: #f1f5f9; color: #0f172a;
         border-radius: 12px; text-align: center; font-weight: 600; border: 1px solid transparent;
     }
     .teacher-list .btn:hover { background: #e2e8f0; }
@@ -181,24 +184,24 @@
     }
     .tabs .tab {
         padding: 12px 16px; border: none; border-radius: 12px; font-weight: 600; font-size: 0.85rem;
-        cursor: pointer; transition: var(--transition); background: transparent; color: var(--text-light);
+        cursor: pointer; transition: var(--transition); background: transparent; color: #64748b;
         white-space: nowrap; flex: 1; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;
     }
     .tabs .tab.active { background: #fff; color: var(--primary); box-shadow: var(--shadow-sm); }
     .tabs .tab:active { transform: scale(0.96); }
 
-    .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid #e2e8f0; background: #fff; }
+    .table-wrap { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--border-color); background: var(--card); }
     table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
-    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+    th, td { padding: 12px 16px; text-align: left; border-bottom: 1px solid var(--border-color); color: var(--text); }
     th {
-        background: #f8fafc; font-weight: 700; color: var(--text-light); font-size: 0.75rem;
+        background: var(--input-bg); font-weight: 700; color: var(--text-light); font-size: 0.75rem;
         text-transform: uppercase; letter-spacing: 0.5px; position: sticky; top: 0; z-index: 2;
     }
-    tbody tr:hover { background: #f8fafc; }
+    tbody tr:hover { background: var(--input-bg); }
     tr:last-child td { border-bottom: none; }
 
     .report-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
-    .report-summary .stat { background: #f8fafc; padding: 16px 12px; border-radius: var(--radius-sm); text-align: center; border: 1px solid #e2e8f0; }
+    .report-summary .stat { background: var(--input-bg); padding: 16px 12px; border-radius: var(--radius-sm); text-align: center; border: 1px solid var(--border-color); }
     .report-summary .stat .num { font-size: 1.75rem; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
     .report-summary .stat .label { font-size: 0.7rem; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
 
@@ -220,17 +223,17 @@
         animation: fadeIn 0.2s ease;
     }
     .modal-overlay .modal {
-        background: #fff; border-radius: var(--radius); max-width: 460px; width: 100%;
+        background: var(--card); border-radius: var(--radius); max-width: 460px; width: 100%;
         max-height: 90vh; overflow-y: auto; padding: 32px 24px; animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); border: 1px solid var(--border-color);
     }
-    .modal-overlay .modal h3 { font-size: 1.3rem; margin-bottom: 16px; font-weight: 700; }
+    .modal-overlay .modal h3 { font-size: 1.3rem; margin-bottom: 16px; font-weight: 700; color: var(--text); }
     .modal-overlay .modal .close-btn {
-        float: right; background: #f1f5f9; border: none; width: 32px; height: 32px;
+        float: right; background: var(--input-bg); border: none; width: 32px; height: 32px;
         border-radius: 50%; font-size: 1.2rem; cursor: pointer; color: var(--text);
         display: flex; align-items: center; justify-content: center; transition: var(--transition);
     }
-    .modal-overlay .modal .close-btn:hover { background: #e2e8f0; }
+    .modal-overlay .modal .close-btn:hover { background: var(--border-color); }
 
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     @keyframes slideUp { from { opacity: 0; transform: translateY(40px); } to { opacity: 1; transform: translateY(0); } }
@@ -251,7 +254,7 @@
         .topbar .user { justify-content: center; }
     }
 
-    .divider { border: none; border-top: 2px dashed #cbd5e1; margin: 24px 0; }
+    .divider { border: none; border-top: 2px dashed var(--border-color); margin: 24px 0; }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .text-success { color: var(--success); } .text-danger { color: var(--danger); } .text-warning { color: var(--warning); }
 
@@ -283,12 +286,12 @@
     .blink-text { animation: blink 1.5s infinite; }
 
     .floating-dropdown {
-        position: absolute; top: 100%; left: 0; right: 0; background: #fff;
-        border: 2px solid #2563eb; border-radius: 0 0 12px 12px; max-height: 200px;
+        position: absolute; top: 100%; left: 0; right: 0; background: var(--card);
+        border: 2px solid var(--primary); border-radius: 0 0 12px 12px; max-height: 200px;
         overflow-y: auto; z-index: 99; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
     }
-    .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid #f1f5f9; }
-    .dropdown-item:hover { background: #eff6ff; color: #2563eb; font-weight: 600; }
+    .dropdown-item { padding: 10px 14px; cursor: pointer; font-size: 0.9rem; border-bottom: 1px solid var(--border-color); color: var(--text); }
+    .dropdown-item:hover { background: var(--input-bg); color: var(--primary); font-weight: 600; }
 	
 /* Animasi border untuk alarm notifikasi kelas berikutnya */
 .pulse-alarm { 
@@ -303,6 +306,58 @@
 /* Utilitas untuk mengunci tombol absen */
 .opacity-50 { opacity: 0.5; }
 .pointer-events-none { pointer-events: none; }
+
+/* --- TEMA MODE GELAP (DARK SKIN) --- */
+body.dark-skin {
+    --bg: #0f172a;
+    --card: #1e293b;
+    --text: #f8fafc;
+    --text-light: #94a3b8;
+    --border-color: rgba(255, 255, 255, 0.1);
+    --input-bg: #334155;
+}
+body.dark-skin .topbar {
+    background: #0f172a;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+}
+body.dark-skin .tabs {
+    background: #334155;
+}
+body.dark-skin .tabs .tab.active {
+    background: #1e293b;
+    color: var(--primary-light);
+}
+body.dark-skin th {
+    background: #0f172a;
+}
+body.dark-skin tbody tr:hover {
+    background: #334155;
+}
+body.dark-skin .card {
+    background-color: var(--card) !important;
+}
+
+/* --- TEMA HIJAU (SEKOLAH) --- */
+body.green-skin {
+    --primary: #059669; 
+    --primary-light: #34d399;
+    --primary-dark: #047857;
+    --accent: #f59e0b; 
+    --bg: #f0fdf4;
+}
+body.green-skin .topbar { background: linear-gradient(135deg, #059669, #047857); }
+body.green-skin #loginScreen { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
+
+/* --- TEMA UNGU (MODERN) --- */
+body.purple-skin {
+    --primary: #7c3aed; 
+    --primary-light: #a78bfa;
+    --primary-dark: #6d28d9;
+    --accent: #f472b6; 
+    --bg: #f5f3ff;
+}
+body.purple-skin .topbar { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
 
 </style>
 </head>
@@ -349,6 +404,17 @@
             <div class="user">
                 <span id="userNameDisplay">-</span>
                 <span class="mapel-label" id="userMapelDisplay">-</span>
+                <div style="position: relative; display: inline-block;" id="skinMenuContainer">
+                    <button class="btn btn-sm btn-outline" style="width:auto;padding:6px 12px;border-color:rgba(255,255,255,0.4);color:#fff;font-size:0.75rem;" id="skinBtnToggle">
+                        <i class="fa-solid fa-palette"></i> Tema
+                    </button>
+                    <div id="skinDropdown" class="floating-dropdown hidden" style="top: 120%; right: 0; left: auto; width: 160px; text-align: left;">
+                        <div class="dropdown-item" data-skin="light"><i class="fa-solid fa-sun"></i> Terang (Bawaan)</div>
+                        <div class="dropdown-item" data-skin="dark"><i class="fa-solid fa-moon"></i> Gelap (Malam)</div>
+                        <div class="dropdown-item" data-skin="green"><i class="fa-solid fa-leaf"></i> Hijau (Sekolah)</div>
+                        <div class="dropdown-item" data-skin="purple"><i class="fa-solid fa-gem"></i> Ungu (Modern)</div>
+                    </div>
+                </div>
                 <button class="btn btn-sm btn-outline" style="width:auto;padding:6px 12px;border-color:rgba(255,255,255,0.4);color:#fff;font-size:0.75rem;" id="switchUserBtn">
                     <i class="fa-solid fa-right-from-bracket"></i> Ganti
                 </button>
@@ -361,7 +427,7 @@
         </div>
         
         <!-- JADWAL SAYA HARI INI CARD -->
-        <div id="myScheduleCard" class="card hidden bg-white mb-4" style="padding: 16px; border: 1px solid #e2e8f0;">
+        <div id="myScheduleCard" class="card hidden bg-white mb-4" style="padding: 16px;">
             <div class="card-header" style="margin-bottom: 12px; font-size: 0.95rem;">
                 <span><i class="fa-solid fa-list-check text-primary"></i> Jadwal Saya Hari Ini</span>
             </div>
@@ -381,8 +447,7 @@
         <div id="nextClassCard" class="card hidden bg-blue-50 border-blue-200" style="padding: 16px; margin-bottom: 16px;">
             <div class="text-sm font-bold text-blue-800"><i class="fa-solid fa-calendar-day"></i> Jadwal Berikutnya</div>
             <div id="nextClassText" class="text-sm text-blue-700 mt-2 mb-2"></div>
-            <!-- TAMBAHAN TIMER JADWAL BERIKUTNYA -->
-            <div class="text-center border-t border-blue-200 pt-3 mt-2" id="timerContainer">
+            <div class="text-center border-t border-blue-200 pt-3 mt-2 hidden" id="timerContainer">
                 <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Waktu Menuju Kelas:</span>
                 <div id="nextClassTimer" class="font-black text-blue-800 mt-1" style="font-size: 2.5rem; font-family: monospace; line-height: 1;">--:--:--</div>
             </div>
@@ -395,7 +460,7 @@
             <button id="muteAlarmBtn" class="btn btn-danger hidden w-full font-bold text-lg py-3 mt-2" onclick="stopContinuousAlarm()"><i class="fa-solid fa-bell-slash"></i> MATIKAN BEL</button>
         </div>
 
-        <!-- TOMORROW SCHEDULE CARD (Notifikasi Sore Hari) -->
+        <!-- TOMORROW SCHEDULE CARD -->
         <div id="tomorrowScheduleCard" class="card hidden bg-indigo-50 border-indigo-200" style="padding: 16px; margin-bottom: 16px; border: 1px solid #c7d2fe;">
         </div>
 
@@ -454,7 +519,7 @@
                 </div>
 
                 <!-- PENCATATAN SANTRI IZIN KELAS -->
-                <div id="santriIzinContainer" class="card hidden mt-4" style="background: #f8fafc; border: 2px dashed #cbd5e1;">
+                <div id="santriIzinContainer" class="card hidden mt-4" style="background: var(--input-bg); border: 2px dashed var(--border-color);">
                     <div class="card-header" style="font-size: 1rem; margin-bottom: 12px;">
                         <span><i class="fa-solid fa-user-clock text-primary"></i> Catat Santri Izin Keluar</span>
                         <span class="badge" id="activeClassBadgeIzin">Kelas: -</span>
@@ -553,7 +618,7 @@
 
                 <div class="mt-5">
                     <div class="flex justify-between items-center mb-3">
-                        <span class="font-bold text-gray-800"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Hari Ini</span>
+                        <span class="font-bold"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Hari Ini</span>
                         <span class="text-xs font-bold bg-gray-200 text-gray-700 px-2 py-1 rounded-full" id="historyCount">0</span>
                     </div>
                     <div class="table-wrap" style="max-height:240px;overflow-y:auto;">
@@ -1059,6 +1124,7 @@ function isEvenWeek(d = new Date()) {
 
 	// KELAS 8C
 	jadwalPelajaran['senin']['JP 2']['8C'] = 'Bahasa Indonesia (Firman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 3-4']['8C'] = 'PJOK (M. Tahir, M. Pd.)';
 	jadwalPelajaran['senin']['JP 5-6']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
 	jadwalPelajaran['selasa']['JP 1-2']['8C'] = 'Adab Akhlak (Salman, S. Pd. I.)';
 	jadwalPelajaran['selasa']['JP 3-4']['8C'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
@@ -1088,6 +1154,7 @@ function isEvenWeek(d = new Date()) {
 	jadwalPelajaran['selasa']['JP 1-2']['8D'] = 'Hadits (Zulkarnaen Teguh W, S. Pd.)';
 	jadwalPelajaran['selasa']['JP 3-4']['8D'] = 'Aqidah (Syahrul Hasyim, Lc.)';
 	jadwalPelajaran['selasa']['JP 7-8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['rabu']['JP 1-2']['8D'] = 'PJOK (M. Tahir, M. Pd.)';
 	jadwalPelajaran['rabu']['JP 3-4']['8D'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
 	jadwalPelajaran['rabu']['JP 5-6']['8D'] = 'Bahasa Indonesia (Arsyad, S. Pd.)';
 	jadwalPelajaran['rabu']['JP 7-8']['8D'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
@@ -1246,6 +1313,8 @@ function isEvenWeek(d = new Date()) {
             else if (['9C', '9D'].includes(kelas)) group = ['9C', '9D'];
             else if (['7D', '7E'].includes(kelas)) group = ['7D', '7E'];
             else if (['7A', '7B'].includes(kelas)) group = ['7A', '7B'];
+			else if (['8A', '8B'].includes(kelas)) group = ['8A', '8B'];
+			else if (['7C', '8E'].includes(kelas)) group = ['7C', '8E'];
         }
 
         if (group) {
@@ -1254,7 +1323,7 @@ function isEvenWeek(d = new Date()) {
         return kelas;
     }
 
-    function getMapelForScan(kelas, guruName, hari, jp, targetDate) {
+    function getMapelForScan(kelas, guruName, hari, jp) {
         hari = (hari || "").toLowerCase();
         
         const isGuruTahfizh = TEACHERS.some(t => t.name === guruName && t.subjects.includes("Tahfizhul Qur'an"));
@@ -1272,13 +1341,15 @@ function isEvenWeek(d = new Date()) {
             if (['9C', '9D'].includes(kelas) && hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
             if (['7D', '7E'].includes(kelas) && hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
             if (['7A', '7B'].includes(kelas) && hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
+			if (['8A', '8B'].includes(kelas) && hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
+			if (['7C', '8E'].includes(kelas) && hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
         }
 
         if (jadwalPelajaran[hari] && jadwalPelajaran[hari][jp] && jadwalPelajaran[hari][jp][kelas]) {
             const jadwalRaw = jadwalPelajaran[hari][jp][kelas];
             // LOGIKA INFORMATIKA PEKAN GENAP & SBDP PEKAN GANJIL
             if (jadwalRaw.includes('SBDP') || jadwalRaw.includes('Informatika')) {
-                const genap = isEvenWeek(targetDate); // <--- PERUBAHAN DI SINI
+                const genap = isEvenWeek();
                 if (genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
                 if (!genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
                 return null; 
@@ -1676,7 +1747,7 @@ function isEvenWeek(d = new Date()) {
 
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
-    function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Date()) { // <--- TAMBAH targetDate
+    function getGroupedSchedule(teacherName, hari, currentMins) {
         let blocks = [];
         let currentBlock = null;
         const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
@@ -1686,7 +1757,7 @@ function isEvenWeek(d = new Date()) {
             if (!jadwal[jp]) continue;
             
             for (let c of CLASSES) {
-                let mapel = getMapelForScan(c, teacherName, hari, jp, targetDate); // <--- TERUSKAN targetDate DI SINI
+                let mapel = getMapelForScan(c, teacherName, hari, jp);
                 if (mapel) {
                     let formattedClass = formatKopelClass(c, mapel);
                     let k = parseTimeToMins(jadwal[jp].keluar);
@@ -1796,8 +1867,6 @@ function getNextClass() {
             const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
             const diffSeconds = masukSeconds - totalSeconds;
             
-            // TIMER BESAR DIHILANGKAN JIKA ADA PERMINTAAN
-            // Tetap diproses untuk Alarm 5 Menit di Kartu Merah
             document.getElementById('timerContainer').classList.add('hidden');
 
             // Alarm 5 Menit (300 Detik) di Kartu Merah
@@ -1867,7 +1936,7 @@ function checkTomorrowSchedule() {
             tomorrowScheduleCard.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
                               <div class="text-sm text-indigo-800 font-bold text-center py-2">Besok anda libur, semoga Allah menjaga kita semua.</div>`;
         } else {
-            let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0, tomorrowDate);
+            let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0);
             if (blocks.length > 0) {
                 let html = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Esok Hari (${tomorrowDay.toUpperCase()})</div><ul class="text-xs text-indigo-800" style="padding-left:16px; margin-bottom: 0;">`;
                 blocks.forEach(b => {
@@ -2057,11 +2126,16 @@ function checkTomorrowSchedule() {
         let activeBlock = null;
         let minDiff = 9999;
         
-        for (let b of myBlocks) {
+        for (let i = 0; i < myBlocks.length; i++) {
+            let b = myBlocks[i];
             let m = b.masuk; let k = b.keluar; let isValid = false;
-            if (currentMode === 'masuk') { isValid = (timeMins >= (m - 10) && timeMins <= k); } 
+            
+            // Toleransi masuk sangat awal untuk jam pertama (9 Menit)
+            let allowEarlyMins = (i === 0) ? 9 : 10;
+            
+            if (currentMode === 'masuk') { isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= k); } 
             else if (currentMode === 'keluar') { isValid = (timeMins >= m && timeMins <= (k + 10)); } 
-            else { isValid = (timeMins >= (m - 10) && timeMins <= (k + 10)); }
+            else { isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= (k + 10)); }
             
             if (isValid) {
                 let center = (m + k) / 2;
@@ -2124,20 +2198,35 @@ function checkTomorrowSchedule() {
             playBeepWarning(); document.getElementById('keteranganInput').value = ''; return; 
         }
 
-        if (currentMode === 'masuk' && jKeluar !== '00:00') {
+		if (currentMode === 'masuk' && jKeluar !== '00:00') {
             let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false, rawClass: classCode, keluarScanned: false };
             localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
             updateNextClassInfo(); checkActiveTeachingForIzinKasus();
         } else if (currentMode === 'keluar') {
             let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
             if (activeTeaching && activeTeaching.class === formattedClass) {
-                // Tahan agar tidak langsung hilang sampai tersinkron
-                activeTeaching.keluarScanned = true;
-                localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-                updateScanModeUI();
+                // HAPUS TAHANAN: Langsung hapus memori kelas aktif agar guru tidak terkunci.
+                // Data absen keluar tetap aman tersimpan di lokal (IndexedDB) dan akan di-sync otomatis.
+                localStorage.removeItem('activeTeaching_' + currentUser);
+                document.getElementById('activeClassTimerCard').classList.add('hidden');
                 checkActiveTeachingForIzinKasus();
+                
+                // Set ulang mode ke standby atau masuk agar bisa lanjut ke kelas berikutnya
+                currentMode = null; 
+                updateScanModeUI();
             }
         }
+		
+		//} else if (currentMode === 'keluar') {
+        //    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        //    if (activeTeaching && activeTeaching.class === formattedClass) {
+        //        // Tahan agar tidak langsung hilang sampai tersinkron
+        //        activeTeaching.keluarScanned = true;
+        //        localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
+        //        updateScanModeUI();
+        //        checkActiveTeachingForIzinKasus();
+        //    }
+        //}
 
         const record = {
             teacher: currentUser, class: formattedClass, subject: subject, action: currentMode || 'masuk',
@@ -2150,14 +2239,14 @@ function checkTomorrowSchedule() {
             const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
             showScanResult(ket ? `${actionIcon} ${formattedClass} (${ket})` : `${actionIcon} ${formattedClass} (${subject})`, 'success');
             
-            record.id = id; // TAMBAHKAN BARIS INI (Sisipkan ID dari IndexedDB)
+            record.id = id;
             addHistoryRow({...record, id});
             
             if (navigator.onLine) {
                 try {
                     const res = await sendToGoogleSheet(record);
                     if (res.success) { 
-                        await processSyncedItem(record); // UBAH markSynced MENJADI processSyncedItem
+                        await processSyncedItem(record);
                         showScanResult(`✅ Data terkirim ke Server!`, 'success');
                         
                         // Eksekusi pembersihan Active Teaching jika status keluar berhasil sinkron
@@ -2472,12 +2561,33 @@ function updateTeachingTimer() {
     } else {
         document.getElementById('activeClassCountdown').textContent = "00:00"; document.getElementById('activeClassWarning').classList.add('hidden');
         
-        // Hapus jika sudah kedaluwarsa 15 menit dan bukan status menunggu sinkronisasi keluar
-        if (diffSeconds < -900 && !activeTeaching.keluarScanned) { 
+        // Pengecekan otomatis > 3 menit setelah kelas usai
+        if (diffSeconds < -180 && !activeTeaching.keluarScanned) { 
+            const dateStr = getLocalDateString(now);
+            const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            const record = {
+                teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject, action: 'keluar',
+                date: dateStr, time: timeStr, day: getDayNameID(), jp: '-',
+                jadwal_masuk: '-', jadwal_keluar: activeTeaching.keluar,
+                timestamp: now.toISOString(), keterangan: 'Otomatis Keluar', synced: false
+            };
+            
+            saveAttendanceLocal(record).then(async (id) => {
+                record.id = id; addHistoryRow({...record, id});
+                if (navigator.onLine) {
+                    try {
+                        const res = await sendToGoogleSheet(record);
+                        if (res.success) await processSyncedItem(record);
+                    } catch(e) {}
+                }
+                syncNow(false, false);
+            });
+
             localStorage.removeItem('activeTeaching_' + currentUser); 
             timerCard.classList.add('hidden'); 
             checkActiveTeachingForIzinKasus(); 
             updateScanModeUI(); 
+            showToast(`Sistem otomatis checkout dari kelas ${activeTeaching.class} karena melebihi 3 menit.`, 'info');
         }
     }
 }
@@ -2499,12 +2609,14 @@ async function renderMySchedule() {
     const tbody = document.getElementById('myScheduleBody');
     tbody.innerHTML = '';
     
-    // Sesuai requirement, pada jam 13.00 ke atas, card ini disembunyikan
     if (blocks.length === 0 || now.getHours() >= 13) {
         card.classList.add('hidden'); 
+        card.style.display = 'none';
         return;
     }
+    
     card.classList.remove('hidden');
+    card.style.display = 'block';
     
     let countDisplayed = 0;
     blocks.forEach(sch => {
@@ -2529,7 +2641,7 @@ async function renderMySchedule() {
             return overlap;
         });
         
-        // Hapus baris yang waktunya sudah lewat dan di-scan (Requirement 4)
+        // Hapus baris yang waktunya sudah lewat dan di-scan
         if (isPassed && hasClockedIn) return; 
         
         countDisplayed++;
@@ -2567,7 +2679,8 @@ async function renderMySchedule() {
     });
     
     if (countDisplayed === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-sm text-success font-bold py-3"><i class="fa-solid fa-check-circle"></i> Seluruh jadwal Anda hari ini telah dituntaskan.</td></tr>';
+        card.classList.add('hidden');
+        card.style.display = 'none';
     }
 }
 
@@ -2688,22 +2801,18 @@ async function renderMySchedule() {
             const res = await response.json();
             if (!res.success) throw new Error(res.error);
 
-            // NORMALISASI TANGGAL
-            // NORMALISASI TANGGAL & WAKTU
             res.data.forEach(d => {
-                // 1. Normalisasi Tanggal
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                     let dt = new Date(d.date);
                     if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                 }
-                // 2. Normalisasi Waktu (Membersihkan T dan titik)
                 ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
                     if (d[k] && typeof d[k] === 'string') {
                         if (d[k].includes('T')) {
                             let dt = new Date(d[k]);
                             if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
                         } else {
-                            d[k] = d[k].replace(/\./g, ':'); // Mengatasi masalah lokal id-ID
+                            d[k] = d[k].replace(/\./g, ':');
                         }
                     }
                 });
@@ -2850,7 +2959,6 @@ function buildAdminMissedClasses(allData) {
         });
     }
 
-// === FITUR LIVE MONITOR ADMIN ===
     let liveMonitorMode = 'ongoing';
     let currentServerDataCacheAdmin = [];
 
@@ -2945,7 +3053,6 @@ function buildAdminMissedClasses(allData) {
         tbody.innerHTML = rowsHTML || '<tr><td colspan="4" class="text-center text-muted">Tidak ada jadwal pada JP ini</td></tr>';
     }
     
-    // Event listener untuk tombol toggle JP Live Monitor
     document.addEventListener('click', function(e) {
         if(e.target && e.target.closest('.live-toggle')) {
             const btn = e.target.closest('.live-toggle');
@@ -2974,31 +3081,25 @@ function buildAdminMissedClasses(allData) {
             const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
             const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
             
-            // NORMALISASI TANGGAL
-            // NORMALISASI TANGGAL & WAKTU
             res.data.forEach(d => {
-                // 1. Normalisasi Tanggal
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                     let dt = new Date(d.date);
                     if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                 }
-                // 2. Normalisasi Waktu (Membersihkan T dan titik)
                 ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
                     if (d[k] && typeof d[k] === 'string') {
                         if (d[k].includes('T')) {
                             let dt = new Date(d[k]);
                             if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
                         } else {
-                            d[k] = d[k].replace(/\./g, ':'); // Mengatasi masalah lokal id-ID
+                            d[k] = d[k].replace(/\./g, ':'); 
                         }
                     }
                 });
             });
             
-			// ==== TAMBAHKAN 2 BARIS INI ====
             currentServerDataCacheAdmin = res.data;
             renderLiveMonitor(); 
-            // ===============================
 			
             buildAdminMissedClasses(res.data);
             
@@ -3105,22 +3206,18 @@ function buildAdminMissedClasses(allData) {
             const res = await response.json();
             if (!res.success) throw new Error(res.error);
             
-            // NORMALISASI TANGGAL
-            // NORMALISASI TANGGAL & WAKTU
             res.data.forEach(d => {
-                // 1. Normalisasi Tanggal
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
                     let dt = new Date(d.date);
                     if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
                 }
-                // 2. Normalisasi Waktu (Membersihkan T dan titik)
                 ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
                     if (d[k] && typeof d[k] === 'string') {
                         if (d[k].includes('T')) {
                             let dt = new Date(d[k]);
                             if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
                         } else {
-                            d[k] = d[k].replace(/\./g, ':'); // Mengatasi masalah lokal id-ID
+                            d[k] = d[k].replace(/\./g, ':'); 
                         }
                     }
                 });
@@ -3240,6 +3337,50 @@ function buildAdminMissedClasses(allData) {
         });
         updateOfflineStatus();
     });
+
+	// ==========================================
+    // FUNGSI GANTI SKIN (DENGAN DROPDOWN MENU)
+    // ==========================================
+    const savedSkin = localStorage.getItem('app_skin') || 'light';
+    applySkin(savedSkin);
+
+    const skinBtnToggle = document.getElementById('skinBtnToggle');
+    const skinDropdown = document.getElementById('skinDropdown');
+
+    if (skinBtnToggle) {
+        skinBtnToggle.addEventListener('click', (e) => {
+            e.stopPropagation();
+            skinDropdown.classList.toggle('hidden');
+        });
+    }
+
+    // Event saat tema dipilih
+    document.querySelectorAll('#skinDropdown .dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const selectedSkin = e.target.closest('.dropdown-item').dataset.skin;
+            applySkin(selectedSkin);
+            localStorage.setItem('app_skin', selectedSkin);
+            skinDropdown.classList.add('hidden');
+            showToast('Tema aplikasi berhasil diubah', 'success');
+        });
+    });
+
+    // Tutup menu jika klik di luar
+    document.addEventListener('click', (e) => {
+        if (skinDropdown && !skinDropdown.contains(e.target) && e.target !== skinBtnToggle) {
+            skinDropdown.classList.add('hidden');
+        }
+    });
+
+    // Fungsi utama penerapan warna class
+    function applySkin(skinName) {
+        // Hapus semua skin yang ada sebelumnya
+        document.body.classList.remove('dark-skin', 'green-skin', 'purple-skin');
+        if (skinName !== 'light') {
+            document.body.classList.add(skinName + '-skin');
+        }
+    }
+
 </script>
 </body>
 </html>
