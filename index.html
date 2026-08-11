@@ -2047,13 +2047,21 @@ function checkTomorrowSchedule() {
 
     // Cek apakah waktu kelas sudah berakhir
     let isPastEndTime = false;
-    if (activeTeaching && activeTeaching.keluar) {
-        const now = new Date();
-        const endParts = activeTeaching.keluar.split(':');
-        const endDate = new Date(); 
-        endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
-        if (now > endDate) isPastEndTime = true;
+if (activeTeaching && activeTeaching.keluar) {
+    const now = new Date();
+    const endParts = activeTeaching.keluar.split(':');
+    const endDate = new Date(); 
+    endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+    
+    const todayStr = getLocalDateString(now);
+    
+    // PERBAIKAN: Lepas kunci otomatis jika sesi mengajar berasal dari hari sebelumnya
+    if (activeTeaching.date && activeTeaching.date !== todayStr) {
+        isPastEndTime = true;
+    } else if (now > endDate) {
+        isPastEndTime = true;
     }
+}
 
     if (activeTeaching && !isPastEndTime) {
         currentMode = 'keluar';
@@ -2988,8 +2996,8 @@ async function autoResolveLupaAbsen() {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
-    // Reset otomatis jika beda hari ATAU masih di hari yang sama namun belum lewat jam 07:30 (450 menit)
-    if ((activeData.date && activeData.date !== todayStr) || currentMins <= 450) {
+    // PERBAIKAN: Cegah kegagalan evaluasi jika activeData.date bernilai undefined
+	if (!activeData.date || activeData.date !== todayStr || currentMins <= 450) {
          const recordLupa = {
              teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
              date: activeData.date || todayStr, time: '23:59:59', day: getDayNameID(), jp: '-',
