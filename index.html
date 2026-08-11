@@ -912,7 +912,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxAq3eUP_z4lKPpj2SOUlAPS8ky32YEuyIWbfqpeCR4R40vsDfa5nX7K_CCfUx42QKDXA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzpDitrX2kLssuYUEBIW9sN1tUMim_LIcc_6kABJ-He5eW3W04p8mx6NFrwjr7tF-ZzWQ/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
 function getLocalDateString(d = new Date()) {
@@ -2126,6 +2126,86 @@ function checkTomorrowSchedule() {
     document.getElementById('adminSyncNow').addEventListener('click', () => syncNow(true, true));
     document.getElementById('agusSyncNow').addEventListener('click', () => syncNow(true, true));
 
+// --- TAMBAHAN UNTUK FITUR ALASAN TERLAMBAT ---
+window.showLateReasonModal = function(callback, initialValue = '') {
+    document.getElementById('modalContent').innerHTML = `
+        <div class="p-2">
+            <div class="text-center mb-4">
+                <i class="fa-solid fa-stopwatch text-warning mb-2" style="font-size: 3rem;"></i>
+                <h3 class="font-bold text-lg">Anda Terlambat!</h3>
+                <p class="text-sm text-muted">Waktu absen Anda melewati batas toleransi masuk. Silakan isi alasan keterlambatan Anda.</p>
+            </div>
+            <div class="input-group">
+                <label>Alasan Keterlambatan</label>
+                <textarea id="lateReasonInput" rows="3" class="w-full p-3 border-2 border-amber-200 rounded-xl bg-amber-50" placeholder="Misal: Rapat dadakan, ban bocor, menemani anak sakit, dll...">${initialValue}</textarea>
+            </div>
+            <button class="btn btn-warning w-full mt-2" id="submitLateReasonBtn"><i class="fa-solid fa-save"></i> Simpan Alasan</button>
+        </div>
+    `;
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    
+    document.getElementById('submitLateReasonBtn').onclick = () => {
+        const reason = document.getElementById('lateReasonInput').value.trim();
+        if (!reason) { showToast('Alasan keterlambatan wajib diisi!', 'error'); return; }
+        document.getElementById('modalOverlay').classList.add('hidden');
+        callback(reason);
+    };
+};
+
+window.editKeterangan = async function(encodedRecord) {
+    if (!navigator.onLine) {
+        showToast('Anda harus terkoneksi internet (Online) untuk mengedit alasan ke server.', 'error');
+        return;
+    }
+    const record = JSON.parse(decodeURIComponent(encodedRecord));
+    let currentReason = record.keterangan || '';
+    if (currentReason.startsWith('Telat: ')) currentReason = currentReason.substring(7);
+    
+    showLateReasonModal(async (newReason) => {
+        let finalKet = `Telat: ${newReason}`;
+        
+        // 1. Update Database Lokal (IndexedDB)
+        try {
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            if (record.id) {
+                const getReq = store.get(record.id);
+                getReq.onsuccess = () => {
+                    let data = getReq.result;
+                    if (data) { data.keterangan = finalKet; store.put(data); }
+                };
+            }
+        } catch(e) {}
+
+        // 2. Update UI Optimis
+        showToast('Mengirim perubahan ke server...', 'info');
+        
+        // 3. Update ke Google Sheets
+        try {
+            const payload = {
+                api_action: 'editKeterangan', teacher: record.teacher, date: record.date,
+                class: record.class, jp: record.jp, action: record.action, keterangan: finalKet
+            };
+            const response = await fetch(GAS_URL, {
+                method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload)
+            });
+            const res = await response.json();
+            
+            if (res.success) {
+                showToast('✅ Alasan berhasil diperbarui!', 'success');
+                await refreshServerCache(); 
+                loadHistory(); 
+            } else {
+                throw new Error(res.error);
+            }
+        } catch(e) {
+            showToast('❌ Gagal update ke server: ' + e.message, 'error');
+        }
+    }, currentReason);
+};
+// ----------------------------------------------
+
     function startScanner() {
         if (document.getElementById('tabScan').classList.contains('hidden') || !currentMode) return;
         if (html5QrCode) { stopScanner(); setTimeout(startScanner, 100); return; }
@@ -2245,6 +2325,41 @@ function checkTomorrowSchedule() {
             return;
         }
 
+        // =========================================================
+        // --- AWAL TAMBAHAN LOGIKA CEK TERLAMBAT SAAT SCAN ---
+        // =========================================================
+        const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+        let isLate = false;
+        let m = parseTimeToMins(jMasuk);
+        
+        // Jika sedang absen masuk dan jadwal masuk (m) terbaca valid
+        if (currentMode === 'masuk' && m > 0) {
+            // Hitung selisih waktu scan dengan waktu jadwal
+            if ((timeMins - m) > tolMasuk) {
+                isLate = true;
+            }
+        }
+
+        if (isLate) {
+            // Tahan proses! Panggil fungsi poptext yang dibuat di Langkah A
+            showLateReasonModal((alasan) => {
+                // Callback ini akan dieksekusi SETELAH guru menekan tombol "Simpan Alasan" di poptext
+                
+                // Gabungkan jika guru sebelumnya sudah mengisi kolom keterangan (opsional) di layar utama
+                let finalKet = ket ? `${ket} | Telat: ${alasan}` : `Telat: ${alasan}`;
+                
+                // Lanjutkan proses simpan ke database dengan membawa alasan telat
+                executeFinalScanRecord(classCode, finalKet, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
+            }, "");
+            
+            // Wajib diberi return agar baris executeFinalScanRecord reguler di bawah tidak ikut tereksekusi
+            return; 
+        }
+        // =========================================================
+        // --- AKHIR TAMBAHAN LOGIKA CEK TERLAMBAT SAAT SCAN ---
+        // =========================================================
+
+        // Jika tidak telat, proses akan lurus saja mengeksekusi baris ini secara instan
         executeFinalScanRecord(classCode, ket, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
     }
 
@@ -2794,10 +2909,32 @@ async function renderMySchedule() {
     
     setInterval(() => { if (currentUser) renderMySchedule(); }, 60000);
 
+    function generateHistoryRowHTML(record) {
+        const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+        let isLate = false;
+        if (record.action === 'masuk' && record.jadwal_masuk && record.jadwal_masuk !== '-') {
+            let m = parseTimeToMins(record.jadwal_masuk);
+            let wM = parseTimeToMins(record.time);
+            if (m > 0 && wM > 0 && (wM - m) > tolMasuk) isLate = true;
+        }
+        
+        let ketDisplay = record.keterangan || '-';
+        let editBtn = '';
+        const todayStr = getLocalDateString(new Date());
+        
+        // Memunculkan tombol edit HANYA untuk status masuk, telat, dan terjadi pada hari ini
+        if (isLate && record.date === todayStr) {
+            const encodedRecord = encodeURIComponent(JSON.stringify(record));
+            editBtn = `<br><button class="btn btn-sm btn-outline mt-1 text-warning" style="padding: 4px 8px; font-size: 0.7rem; width: 100%; border-color: var(--warning);" onclick="editKeterangan('${encodedRecord}')"><i class="fa-solid fa-pen"></i> Edit Alasan</button>`;
+        }
+        
+        return `<td>${record.time}</td><td class="font-bold">${record.class}</td><td>${record.subject}</td><td>${record.action === 'masuk' ? '✅ In' : '🚪 Out'}</td><td class="text-xs">${ketDisplay}${editBtn}</td>`;
+    }
+
     function addHistoryRow(record) {
         const tbody = document.getElementById('historyBody');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${record.time}</td><td class="font-bold">${record.class}</td><td>${record.subject}</td><td>${record.action === 'masuk' ? '✅ In' : '🚪 Out'}</td><td class="text-xs">${record.keterangan || '-'}</td>`;
+        tr.innerHTML = generateHistoryRowHTML(record);
         tbody.prepend(tr);
         if (tbody.children.length > 50) tbody.removeChild(tbody.lastChild);
         document.getElementById('historyCount').textContent = tbody.children.length;
@@ -2806,7 +2943,6 @@ async function renderMySchedule() {
     function loadHistory() {
         if (!currentUser) return;
         getLocalHistory(currentUser, getLocalDateString(new Date())).then((localData) => {
-            // Gabung data lokal dan data server agar riwayat tidak hilang saat dipasangkan
             const todayStr = getLocalDateString(new Date());
             const serverData = serverDataCache.filter(d => d.teacher === currentUser && d.date === todayStr);
 
@@ -2817,7 +2953,7 @@ async function renderMySchedule() {
             });
             localData.forEach(d => {
                 const key = `${d.class}_${d.subject}_${d.action}_${d.jp}`;
-                mergedMap.set(key, d); // Lokal override server
+                mergedMap.set(key, d); // Lokal override server (jika offline)
             });
 
             const mergedData = Array.from(mergedMap.values());
@@ -2825,7 +2961,7 @@ async function renderMySchedule() {
             
             mergedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(record => {
                 const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${record.time}</td><td class="font-bold">${record.class}</td><td>${record.subject}</td><td>${record.action === 'masuk' ? '✅ In' : '🚪 Out'}</td><td class="text-xs">${record.keterangan || '-'}</td>`;
+                tr.innerHTML = generateHistoryRowHTML(record);
                 tbody.appendChild(tr);
             });
             document.getElementById('historyCount').textContent = tbody.children.length;
