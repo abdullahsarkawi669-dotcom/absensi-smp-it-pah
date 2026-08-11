@@ -472,11 +472,12 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         </div>
 
         <div class="tabs" id="mainTabs">
-            <button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
-            <button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
-            <button class="tab hidden" data-tab="admin" id="adminTab"><i class="fa-solid fa-shield-halved"></i> Admin</button>
-            <button class="tab hidden" data-tab="agus" id="agusTab"><i class="fa-solid fa-crown"></i> Master</button>
-        </div>
+			<button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
+			<button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
+			<button class="tab" data-tab="sholat" id="sholatTab"><i class="fa-solid fa-mosque"></i> Sholat</button>
+			<button class="tab hidden" data-tab="admin" id="adminTab"><i class="fa-solid fa-shield-halved"></i> Admin</button>
+			<button class="tab hidden" data-tab="agus" id="agusTab"><i class="fa-solid fa-crown"></i> Master</button>
+		</div>
 
         <div id="tabScan" class="tab-content">
             <div class="card">
@@ -668,6 +669,58 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 </div>
             </div>
         </div>
+
+<div id="tabSholat" class="tab-content hidden">
+    <div class="card bg-emerald-50 border-emerald-200" style="border: 1px solid #a7f3d0; margin-bottom: 16px;">
+        <div class="card-header text-emerald-800" style="margin-bottom: 8px;">
+            <span><i class="fa-solid fa-location-dot"></i> Lokasi & Tanggal</span>
+            <button class="btn btn-sm btn-outline" id="btnGantiLokasi" style="padding: 4px 8px; font-size: 0.75rem;"><i class="fa-solid fa-pen"></i> Ubah</button>
+        </div>
+        
+        <div id="lokasiInputArea" class="hidden mb-3">
+            <div class="flex gap-2">
+                <input type="text" id="inputKota" class="w-full p-2 border-2 border-emerald-200 rounded-lg text-sm" placeholder="Ketik nama kota (misal: Mataram)...">
+                <button class="btn btn-sm btn-success" id="btnCariKota"><i class="fa-solid fa-magnifying-glass"></i></button>
+            </div>
+            <div id="hasilPencarianKota" class="mt-2 text-sm flex flex-col gap-1 max-h-32 overflow-y-auto"></div>
+        </div>
+
+        <div class="text-lg font-black text-emerald-700" id="namaLokasi">Kota Mataram</div>
+        <div class="text-sm font-bold text-emerald-600 mt-1" id="tanggalMasehi">-</div>
+        <div class="text-xs font-semibold text-emerald-600 mb-2" id="tanggalHijriah">-</div>
+    </div>
+
+    <!-- Countdown Timer -->
+    <div class="card text-center" style="background: linear-gradient(135deg, #059669, #10b981); color: white; margin-bottom: 16px; border: none;">
+        <div class="text-sm font-semibold opacity-90">Menuju Waktu <span id="nextPrayerName" class="font-black text-accent-light">...</span></div>
+        <div id="prayerCountdown" class="text-4xl font-black mt-2 mb-2" style="font-family: monospace; letter-spacing: 2px;">--:--:--</div>
+        <div class="text-xs opacity-80"><i class="fa-solid fa-bell"></i> Pengingat aktif</div>
+    </div>
+
+    <!-- Grid Waktu Sholat -->
+    <div class="card" style="padding: 16px;">
+        <div class="card-header" style="margin-bottom: 12px; font-size: 0.95rem;">
+            <span><i class="fa-regular fa-clock"></i> Jadwal Harian</span>
+            <span class="badge" style="background: #ecfdf5; color: #059669;"><i class="fa-solid fa-database"></i> <span id="statusCacheSholat">Online</span></span>
+        </div>
+        <div id="prayerGrid" class="flex flex-col gap-2">
+            <!-- Waktu sholat di-generate via JS -->
+            <div class="text-center text-sm text-muted py-4"><i class="fa-solid fa-spinner fa-spin"></i> Memuat jadwal...</div>
+        </div>
+    </div>
+
+    <!-- Informasi Tambahan -->
+    <div class="grid-2 mt-4">
+        <button class="btn btn-outline flex-col py-3" id="btnArahKiblat" style="gap:4px;">
+            <i class="fa-solid fa-compass text-2xl text-primary"></i>
+            <span class="text-xs font-bold">Arah Kiblat</span>
+        </button>
+        <button class="btn btn-outline flex-col py-3" id="btnMasjidTerdekat" style="gap:4px;">
+            <i class="fa-solid fa-mosque text-2xl text-success"></i>
+            <span class="text-xs font-bold">Masjid Terdekat</span>
+        </button>
+    </div>
+</div>
 
         <div id="tabAdmin" class="tab-content hidden">
 		<!-- LIVE MONITOR CARD -->
@@ -3696,6 +3749,258 @@ function buildAdminMissedClasses(allData) {
             document.body.classList.add(skinName + '-skin');
         }
     }
+
+// ==========================================
+// ENGINE JADWAL SHOLAT & FITUR ISLAMI
+// ==========================================
+const SHOLAT_STATE = {
+    kotaId: localStorage.getItem('sholat_kota_id') || '1422', // Default: 1422 (Mataram)
+    kotaNama: localStorage.getItem('sholat_kota_nama') || 'KOTA MATARAM',
+    jadwalHariIni: null,
+    waktuSholatArr: ['subuh', 'terbit', 'dhuha', 'dzuhur', 'ashar', 'maghrib', 'isya'],
+    nextPrayerInterval: null
+};
+
+// 1. Inisialisasi Tanggal Masehi & Hijriah (Native JS, Tanpa Framework)
+function updateTanggalIslami() {
+    const now = new Date();
+    
+    // Format Masehi
+    const opsiMasehi = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    document.getElementById('tanggalMasehi').textContent = now.toLocaleDateString('id-ID', opsiMasehi);
+    
+    // Format Hijriah menggunakan Native Intl Browser (Sangat Ringan)
+    try {
+        const opsiHijriah = { day: 'numeric', month: 'long', year: 'numeric' };
+        const formatter = new Intl.DateTimeFormat('id-TN-u-ca-islamic', opsiHijriah);
+        document.getElementById('tanggalHijriah').textContent = formatter.format(now) + ' H';
+    } catch(e) {
+        document.getElementById('tanggalHijriah').textContent = "Kalender Hijriah";
+    }
+}
+
+// 2. Fetch API & Sistem Caching
+async function fetchJadwalSholat() {
+    const now = new Date();
+    const tahun = now.getFullYear();
+    const bulan = String(now.getMonth() + 1).padStart(2, '0');
+    const hari = String(now.getDate()).padStart(2, '0');
+    const tanggalTujuan = `${tahun}/${bulan}/${hari}`;
+    const cacheKey = `sholat_${SHOLAT_STATE.kotaId}_${tanggalTujuan}`;
+
+    document.getElementById('namaLokasi').textContent = SHOLAT_STATE.kotaNama;
+
+    // Cek Local Storage (Offline Support)
+    const dataCache = localStorage.getItem(cacheKey);
+    if (dataCache) {
+        SHOLAT_STATE.jadwalHariIni = JSON.parse(dataCache);
+        document.getElementById('statusCacheSholat').innerHTML = '<i class="fa-solid fa-wifi-slash"></i> Mode Offline';
+        renderJadwalGrid();
+        mulaiHitungMundur();
+        
+        // Tetap coba perbarui di background jika online
+        if (navigator.onLine) tarikDariServer(tanggalTujuan, cacheKey, false);
+        return;
+    }
+
+    if (!navigator.onLine) {
+        showToast('Offline! Tidak ada data sholat tersimpan untuk hari ini.', 'error');
+        return;
+    }
+
+    tarikDariServer(tanggalTujuan, cacheKey, true);
+}
+
+async function tarikDariServer(tanggalTujuan, cacheKey, renderLangsung) {
+    try {
+        const response = await fetch(`https://api.myquran.com/v2/sholat/jadwal/${SHOLAT_STATE.kotaId}/${tanggalTujuan}`);
+        const res = await response.json();
+        
+        if (res.status && res.data && res.data.jadwal) {
+            SHOLAT_STATE.jadwalHariIni = res.data.jadwal;
+            // Simpan ke Cache
+            localStorage.setItem(cacheKey, JSON.stringify(res.data.jadwal));
+            document.getElementById('statusCacheSholat').innerHTML = '<i class="fa-solid fa-cloud-arrow-down"></i> Tersinkron';
+            
+            if (renderLangsung) {
+                renderJadwalGrid();
+                mulaiHitungMundur();
+            }
+        }
+    } catch (e) {
+        if(renderLangsung) document.getElementById('prayerGrid').innerHTML = '<div class="text-center text-danger py-4">Gagal memuat jadwal. Cek koneksi.</div>';
+    }
+}
+
+// 3. Render Grid Tampilan Waktu Sholat
+function renderJadwalGrid() {
+    const grid = document.getElementById('prayerGrid');
+    if (!SHOLAT_STATE.jadwalHariIni) return;
+
+    let html = '';
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    let sholatAktifDitemukan = false;
+
+    SHOLAT_STATE.waktuSholatArr.forEach(nama => {
+        if (!SHOLAT_STATE.jadwalHariIni[nama]) return;
+        
+        const waktuStr = SHOLAT_STATE.jadwalHariIni[nama];
+        const w = waktuStr.split(':');
+        const waktuMins = parseInt(w[0]) * 60 + parseInt(w[1]);
+        
+        // Styling untuk highlight waktu yang sedang berlangsung
+        let isAktif = false;
+        if (!sholatAktifDitemukan && currentMins >= waktuMins) {
+            // Cek apakah waktu berikutnya belum masuk
+            let idxBerikutnya = SHOLAT_STATE.waktuSholatArr.indexOf(nama) + 1;
+            let waktuMinsBerikutnya = 9999;
+            if (idxBerikutnya < SHOLAT_STATE.waktuSholatArr.length) {
+                let nxt = SHOLAT_STATE.jadwalHariIni[SHOLAT_STATE.waktuSholatArr[idxBerikutnya]];
+                waktuMinsBerikutnya = parseInt(nxt.split(':')[0]) * 60 + parseInt(nxt.split(':')[1]);
+            }
+            if (currentMins < waktuMinsBerikutnya) {
+                isAktif = true;
+                sholatAktifDitemukan = true;
+            }
+        }
+
+        const bgClass = isAktif ? 'bg-emerald-100 border-emerald-500' : 'bg-gray-50 border-gray-200';
+        const textClass = isAktif ? 'text-emerald-800 font-bold' : 'text-gray-700';
+        const iconPulse = isAktif ? '<i class="fa-solid fa-clock-rotate-left fa-spin-pulse text-emerald-600"></i>' : '';
+
+        html += `
+        <div class="flex justify-between items-center p-3 border-2 rounded-xl ${bgClass} transition-all">
+            <div class="capitalize ${textClass} flex items-center gap-2">${iconPulse} ${nama}</div>
+            <div class="font-black ${textClass} text-lg" style="font-family: monospace;">${waktuStr}</div>
+        </div>`;
+    });
+
+    grid.innerHTML = html;
+}
+
+// 4. Kalkulasi Countdown Waktu Sholat Berikutnya
+function mulaiHitungMundur() {
+    if (SHOLAT_STATE.nextPrayerInterval) clearInterval(SHOLAT_STATE.nextPrayerInterval);
+    
+    SHOLAT_STATE.nextPrayerInterval = setInterval(() => {
+        if (!SHOLAT_STATE.jadwalHariIni) return;
+
+        const now = new Date();
+        const currentTime = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        
+        let waktuBerikutnya = null;
+        let namaBerikutnya = null;
+
+        for (let nama of SHOLAT_STATE.waktuSholatArr) {
+            if (nama === 'terbit' || nama === 'dhuha') continue; // Fokus 5 Waktu utama
+            
+            const w = SHOLAT_STATE.jadwalHariIni[nama].split(':');
+            const pTime = parseInt(w[0]) * 3600 + parseInt(w[1]) * 60;
+            
+            if (pTime > currentTime) {
+                waktuBerikutnya = pTime;
+                namaBerikutnya = nama;
+                break;
+            }
+        }
+
+        // Jika semua sholat hari ini sudah lewat, targetkan Subuh besok
+        if (!waktuBerikutnya) {
+            waktuBerikutnya = (24 * 3600) + (parseInt(SHOLAT_STATE.jadwalHariIni['subuh'].split(':')[0]) * 3600 + parseInt(SHOLAT_STATE.jadwalHariIni['subuh'].split(':')[1]) * 60);
+            namaBerikutnya = 'subuh (Esok)';
+        }
+
+        const sisaDetik = waktuBerikutnya - currentTime;
+        
+        // Pemicu Notifikasi (Ketika waktu sholat pas masuk)
+        if (sisaDetik === 0) {
+            showToast(`Waktu ${namaBerikutnya.toUpperCase()} telah masuk wilayah ${SHOLAT_STATE.kotaNama}`, 'success');
+            playTone(600, 'sine', 1.5); // Bunyi bel (fungsi bawaan aplikasi Anda)
+            renderJadwalGrid(); // Re-render untuk highlight waktu baru
+        }
+
+        const h = Math.floor(sisaDetik / 3600);
+        const m = Math.floor((sisaDetik % 3600) / 60);
+        const s = sisaDetik % 60;
+
+        document.getElementById('nextPrayerName').textContent = namaBerikutnya.toUpperCase();
+        document.getElementById('prayerCountdown').textContent = 
+            String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+            
+    }, 1000);
+}
+
+// 5. Fitur Pencarian & Pemilihan Kota Manual
+document.getElementById('btnGantiLokasi').addEventListener('click', () => {
+    document.getElementById('lokasiInputArea').classList.toggle('hidden');
+});
+
+document.getElementById('btnCariKota').addEventListener('click', async () => {
+    const query = document.getElementById('inputKota').value.trim();
+    if (!query) return;
+    
+    const hasilDiv = document.getElementById('hasilPencarianKota');
+    hasilDiv.innerHTML = '<span class="text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Mencari...</span>';
+    
+    try {
+        const res = await (await fetch(`https://api.myquran.com/v2/sholat/kota/cari/${query}`)).json();
+        if (res.status && res.data.length > 0) {
+            let listHtml = '';
+            res.data.forEach(kota => {
+                listHtml += `<div class="p-2 bg-gray-100 hover:bg-emerald-100 cursor-pointer rounded border border-gray-200" 
+                              onclick="pilihKotaSholat('${kota.id}', '${kota.lokasi}')">
+                              <i class="fa-solid fa-map-pin text-emerald-600 mr-1"></i> ${kota.lokasi}
+                             </div>`;
+            });
+            hasilDiv.innerHTML = listHtml;
+        } else {
+            hasilDiv.innerHTML = '<span class="text-danger">Kota tidak ditemukan</span>';
+        }
+    } catch(e) {
+        hasilDiv.innerHTML = '<span class="text-danger">Gagal mencari. Cek koneksi.</span>';
+    }
+});
+
+window.pilihKotaSholat = function(id, nama) {
+    SHOLAT_STATE.kotaId = id;
+    SHOLAT_STATE.kotaNama = nama;
+    localStorage.setItem('sholat_kota_id', id);
+    localStorage.setItem('sholat_kota_nama', nama);
+    
+    document.getElementById('lokasiInputArea').classList.add('hidden');
+    document.getElementById('inputKota').value = '';
+    document.getElementById('hasilPencarianKota').innerHTML = '';
+    
+    // --- PERBAIKAN: Hentikan timer lama dan berikan efek loading instan ---
+    if (SHOLAT_STATE.nextPrayerInterval) {
+        clearInterval(SHOLAT_STATE.nextPrayerInterval);
+    }
+    document.getElementById('nextPrayerName').textContent = '...';
+    document.getElementById('prayerCountdown').textContent = '--:--:--';
+    document.getElementById('prayerGrid').innerHTML = '<div class="text-center text-sm text-emerald-600 font-bold py-4"><i class="fa-solid fa-spinner fa-spin"></i> Menyesuaikan jadwal kota...</div>';
+    // ----------------------------------------------------------------------
+    
+    showToast(`Lokasi diubah ke ${nama}`, 'success');
+    fetchJadwalSholat(); // Panggil data kota baru
+};
+
+// 6. Action Button Tambahan (Mockup)
+document.getElementById('btnArahKiblat').addEventListener('click', () => {
+    // Membuka Google Search Kiblat Finder (Solusi ter-ringan tanpa Framework Compass JS)
+    window.open('https://qiblafinder.withgoogle.com/', '_blank');
+});
+
+document.getElementById('btnMasjidTerdekat').addEventListener('click', () => {
+    // Memanfaatkan URI scheme Google Maps
+    window.open('https://www.google.com/maps/search/masjid+terdekat', '_blank');
+});
+
+// Panggil fungsi saat tab diklik
+document.getElementById('sholatTab').addEventListener('click', () => {
+    updateTanggalIslami();
+    fetchJadwalSholat();
+});
 
 </script>
 </body>
