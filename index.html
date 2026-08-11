@@ -1836,39 +1836,55 @@ function isEvenWeek(d = new Date()) {
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
     function getGroupedSchedule(teacherName, hari, currentMins) {
-        let blocks = [];
-        let currentBlock = null;
-        const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+    let blocks = [];
+    let currentBlock = null;
+    const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
 
-        for (let i = 1; i <= 8; i++) {
-            let jp = 'JP ' + i;
-            if (!jadwal[jp]) continue;
-            
-            for (let c of CLASSES) {
-                let mapel = getMapelForScan(c, teacherName, hari, jp);
-                if (mapel) {
-                    let formattedClass = formatKopelClass(c, mapel);
-                    let k = parseTimeToMins(jadwal[jp].keluar);
+    for (let i = 1; i <= 8; i++) {
+        let jp = 'JP ' + i;
+        if (!jadwal[jp]) continue;
+
+        let foundMapel = false;
+        for (let c of CLASSES) {
+            let mapel = getMapelForScan(c, teacherName, hari, jp);
+            if (mapel) {
+                foundMapel = true;
+                let formattedClass = formatKopelClass(c, mapel);
+                let k = parseTimeToMins(jadwal[jp].keluar);
+
+                // CEK TAMBAHAN: Pastikan jadwal berurutan (JP sebelumnya === i - 1)
+                if (currentBlock && 
+                    currentBlock.class === formattedClass && 
+                    currentBlock.mapel === mapel && 
+                    currentBlock.jps[currentBlock.jps.length - 1] === (i - 1)) {
                     
-                    if (currentBlock && currentBlock.class === formattedClass && currentBlock.mapel === mapel) {
-                        currentBlock.jps.push(i);
-                        currentBlock.keluar = jadwal[jp].keluar;
-                        currentBlock.kMins = k; 
-                    } else {
-                        if (currentBlock) blocks.push(currentBlock);
-                        currentBlock = {
-                            class: formattedClass, mapel: mapel,
-                            jps: [i], masuk: jadwal[jp].masuk, keluar: jadwal[jp].keluar,
-                            kMins: k
-                        };
-                    }
-                    break; 
+                    currentBlock.jps.push(i);
+                    currentBlock.keluar = jadwal[jp].keluar;
+                    currentBlock.kMins = k;
+                } else {
+                    if (currentBlock) blocks.push(currentBlock);
+                    currentBlock = {
+                        class: formattedClass, mapel: mapel,
+                        jps: [i], masuk: jadwal[jp].masuk, keluar: jadwal[jp].keluar,
+                        kMins: k
+                    };
                 }
+                break; // Hentikan loop kelas karena jadwal JP ini sudah ketemu
             }
         }
-        if (currentBlock) blocks.push(currentBlock);
-        return blocks;
+        
+        // Jika di JP ini guru tidak mengajar apa-apa, maka putuskan/simpan blok yang sedang aktif
+        if (!foundMapel) {
+            if (currentBlock) {
+                blocks.push(currentBlock);
+                currentBlock = null;
+            }
+        }
     }
+    
+    if (currentBlock) blocks.push(currentBlock);
+    return blocks;
+}
 
 function getNextClass() {
     if (!currentUser) return null;
@@ -3769,11 +3785,29 @@ function updateTanggalIslami() {
     const opsiMasehi = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     document.getElementById('tanggalMasehi').textContent = now.toLocaleDateString('id-ID', opsiMasehi);
     
-    // Format Hijriah menggunakan Native Intl Browser (Sangat Ringan)
+    // Perbaikan Format Hijriah
+    const bulanHijriah = [
+        'Muharram', 'Safar', 'Rabiul Awal', 'Rabiul Akhir', 
+        'Jumadil Awal', 'Jumadil Akhir', 'Rajab', "Sya'ban", 
+        'Ramadhan', 'Syawal', "Dzulqa'dah", 'Dzulhijjah'
+    ];
+    
     try {
-        const opsiHijriah = { day: 'numeric', month: 'long', year: 'numeric' };
-        const formatter = new Intl.DateTimeFormat('id-TN-u-ca-islamic', opsiHijriah);
-        document.getElementById('tanggalHijriah').textContent = formatter.format(now) + ' H';
+        // Menggunakan en-US untuk memaksa output angka, guna menghindari bug translasi native Android
+        const formatter = new Intl.DateTimeFormat('en-US-u-ca-islamic', { 
+            day: 'numeric', 
+            month: 'numeric', 
+            year: 'numeric' 
+        });
+        const parts = formatter.formatToParts(now);
+        
+        // Ekstrak angka tanggal, bulan, dan tahun
+        let d = parts.find(p => p.type === 'day').value;
+        let m = parts.find(p => p.type === 'month').value;
+        let y = parts.find(p => p.type === 'year').value;
+
+        // Cocokkan angka bulan (dikurangi 1 karena array dimulai dari 0)
+        document.getElementById('tanggalHijriah').textContent = `${d} ${bulanHijriah[parseInt(m) - 1]} ${y} H`;
     } catch(e) {
         document.getElementById('tanggalHijriah').textContent = "Kalender Hijriah";
     }
