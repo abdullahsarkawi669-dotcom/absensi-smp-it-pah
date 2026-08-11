@@ -816,13 +816,20 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 </button>
                 
                 <div class="table-wrap mt-4" style="max-height:350px;overflow-y:auto;">
-                    <table>
-                        <thead>
-                            <tr><th>Nama Guru</th><th>Mapel</th><th>Mnt Telat</th><th>Mnt Cepat</th><th>Total Sesi</th></tr>
-                        </thead>
-                        <tbody id="agusBody"></tbody>
-                    </table>
-                </div>
+					<table>
+						<thead>
+							<tr>
+								<th>Nama Guru</th>
+								<th>Mapel</th>
+								<th class="text-center">Total Sesi</th>
+								<th class="text-center">Telat (Mnt)</th>
+								<th class="text-center">Cepat (Mnt)</th>
+								<th class="text-center">Lupa Out</th>
+							</tr>
+						</thead>
+					<tbody id="agusBody"></tbody>
+					</table>
+				</div>
             </div>
         </div>
 
@@ -2279,24 +2286,21 @@ function checkTomorrowSchedule() {
             playBeepWarning(); document.getElementById('keteranganInput').value = ''; return; 
         }
 
-		if (currentMode === 'masuk' && jKeluar !== '00:00') {
-            let activeTeaching = { class: formattedClass, subject: subject, keluar: jKeluar, notified: false, rawClass: classCode, keluarScanned: false };
-            localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-            updateNextClassInfo(); checkActiveTeachingForIzinKasus();
-        } else if (currentMode === 'keluar') {
-            let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-            if (activeTeaching && activeTeaching.class === formattedClass) {
-                // HAPUS TAHANAN: Langsung hapus memori kelas aktif agar guru tidak terkunci.
-                // Data absen keluar tetap aman tersimpan di lokal (IndexedDB) dan akan di-sync otomatis.
-                localStorage.removeItem('activeTeaching_' + currentUser);
-                document.getElementById('activeClassTimerCard').classList.add('hidden');
-                checkActiveTeachingForIzinKasus();
-                
-                // Set ulang mode ke standby atau masuk agar bisa lanjut ke kelas berikutnya
-                currentMode = null; 
-                updateScanModeUI();
-            }
-        }
+		// Temukan blok ini dalam executeFinalScanRecord():
+if (currentMode === 'masuk' && jKeluar !== '00:00') {
+    // GANTIKAN DENGAN:
+    let activeTeaching = { 
+        class: formattedClass, 
+        subject: subject, 
+        keluar: jKeluar, 
+        notified: false, 
+        rawClass: classCode, 
+        keluarScanned: false,
+        date: dateStr // Pastikan tanggal ikut tersimpan
+    };
+    localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
+    updateNextClassInfo(); checkActiveTeachingForIzinKasus();
+}
 		
 		//} else if (currentMode === 'keluar') {
         //    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
@@ -2783,7 +2787,8 @@ async function renderMySchedule() {
 
         updateTeachingTimer();
         updateNextClassInfo();
-        checkTomorrowSchedule(); 
+        checkTomorrowSchedule();
+		autoResolveLupaAbsen(); // Tambahkan pemanggilan ini		
     }
     setInterval(updateClock, 1000);
     
@@ -2836,7 +2841,72 @@ async function renderMySchedule() {
         const banner = document.getElementById('offlineBanner');
         if (!navigator.onLine) { banner.classList.add('show'); } else { banner.classList.remove('show'); syncNow(false, true); updateSyncStatus(); }
     }
-    window.addEventListener('online', () => { updateOfflineStatus(); showToast('🌐 Online: Sync berjalan...', 'success'); });
+    // --- TAMBAHKAN FUNGSI INI ---
+async function autoResolveLupaAbsen() {
+    if (!currentUser) return;
+    let activeStr = localStorage.getItem('activeTeaching_' + currentUser);
+    if (!activeStr) return;
+    
+    let activeData = JSON.parse(activeStr);
+    const todayStr = getLocalDateString(new Date());
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    
+    // Reset otomatis jika beda hari ATAU masih di hari yang sama namun belum lewat jam 07:30 (450 menit)
+    if ((activeData.date && activeData.date !== todayStr) || currentMins <= 450) {
+         const recordLupa = {
+             teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
+             date: activeData.date || todayStr, time: '23:59:59', day: getDayNameID(), jp: '-',
+             jadwal_masuk: '-', jadwal_keluar: activeData.keluar,
+             timestamp: new Date().toISOString(), keterangan: 'Lupa scan keluar', synced: false
+         };
+         
+         await saveAttendanceLocal(recordLupa);
+         if (navigator.onLine) {
+             sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
+         }
+
+         localStorage.removeItem('activeTeaching_' + currentUser);
+         
+         const timerCard = document.getElementById('activeClassTimerCard');
+         if(timerCard) timerCard.classList.add('hidden');
+         
+         currentMode = 'masuk';
+         updateScanModeUI();
+         showToast('Sistem otomatis membersihkan sesi lama. Tombol Masuk telah dibuka.', 'info');
+    }
+}
+
+async function verifySheetStatus() {
+    // Sinkronisasi status tombol berdasarkan data server terbaru setelah online
+    if (!currentUser) return;
+    await refreshServerCache();
+    const todayStr = getLocalDateString(new Date());
+    const serverDataToday = serverDataCache.filter(d => d.date === todayStr && d.teacher === currentUser);
+    
+    if (serverDataToday.length > 0) {
+        // Cari aktivitas terakhir
+        const lastActivity = serverDataToday.reduce((a, b) => (new Date(a.timestamp) > new Date(b.timestamp) ? a : b));
+        let activeStr = localStorage.getItem('activeTeaching_' + currentUser);
+        
+        // Jika di server terakhir sudah "keluar" tapi di lokal masih terkunci
+        if (lastActivity.action === 'keluar' && activeStr) {
+            localStorage.removeItem('activeTeaching_' + currentUser);
+            document.getElementById('activeClassTimerCard').classList.add('hidden');
+            currentMode = 'masuk';
+            updateScanModeUI();
+        }
+    }
+}
+// ------------------------------
+
+// --- GANTIKAN EVENT LISTENER ONLINE YANG LAMA ---
+window.addEventListener('online', async () => { 
+    updateOfflineStatus(); 
+    showToast('🌐 Online: Sync otomatis berjalan...', 'success'); 
+    await syncNow(false, true);
+    await verifySheetStatus(); // Verifikasi data dengan Spreadsheet
+});
     window.addEventListener('offline', () => { updateOfflineStatus(); showToast('📴 Offline', 'warning'); });
     setInterval(() => { if (navigator.onLine) syncNow(false, false); }, 30000);
 
@@ -3283,93 +3353,105 @@ function buildAdminMissedClasses(allData) {
     document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
 
     async function loadAgusData() {
-        if (!isAgus) return;
-        const tbody = document.getElementById('agusBody');
-        const period = document.getElementById('agusFilterPeriod').value;
-        const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
-        const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+    if (!isAgus) return;
+    const tbody = document.getElementById('agusBody');
+    const period = document.getElementById('agusFilterPeriod').value;
+    const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+    const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+    
+    // Perbaikan struktur Header Tabel
+    const tableHead = document.querySelector('#agusBody').closest('table').querySelector('thead tr');
+    tableHead.innerHTML = '<th>Nama Guru</th><th>Mapel</th><th>Total Sesi</th><th>Telat (Mnt)</th><th>Cepat (Mnt)</th><th>Lupa Out</th>';
+    
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
+    
+    try {
+        const response = await fetch(GAS_URL + '?action=getAbsensi');
+        const res = await response.json();
+        if (!res.success) throw new Error(res.error);
         
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
+        res.data.forEach(d => {
+            if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                let dt = new Date(d.date);
+                if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+            }
+            ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                if (d[k] && typeof d[k] === 'string') {
+                    if (d[k].includes('T')) {
+                        let dt = new Date(d[k]);
+                        if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                    } else {
+                        d[k] = d[k].replace(/\./g, ':'); 
+                    }
+                }
+            });
+        });
         
-        try {
-            const response = await fetch(GAS_URL + '?action=getAbsensi');
-            const res = await response.json();
-            if (!res.success) throw new Error(res.error);
-            
-            res.data.forEach(d => {
-                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
-                    let dt = new Date(d.date);
-                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-                }
-                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
-                    if (d[k] && typeof d[k] === 'string') {
-                        if (d[k].includes('T')) {
-                            let dt = new Date(d[k]);
-                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
-                        } else {
-                            d[k] = d[k].replace(/\./g, ':'); 
-                        }
-                    }
-                });
-            });
-            
-            const now = new Date();
-            let filtered = res.data.filter(d => {
-                if (!d.date) return false;
-                if (period === 'day') return d.date === now.toISOString().split('T')[0];
-                if (period === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
-                if (period === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-                if (period === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
-                return true;
-            });
-            
-            const grouped = {};
-            filtered.forEach(d => {
-                if (!d.date || !d.teacher || !d.jp) return;
-                const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
-                if (!grouped[key]) grouped[key] = {
-                    date: d.date, teacher: d.teacher, mapel: d.subject || '-',
-                    jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
-                    waktu_masuk: '-', waktu_keluar: '-', action_masuk: false, action_keluar: false
-                };
-                if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; grouped[key].action_masuk = true; }
-                if (d.action === 'keluar') { grouped[key].waktu_keluar = d.time; grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; grouped[key].action_keluar = true; }
-                grouped[key].mapel = d.subject || grouped[key].mapel;
-            });
+        const now = new Date();
+        let filtered = res.data.filter(d => {
+            if (!d.date) return false;
+            if (period === 'day') return d.date === now.toISOString().split('T')[0];
+            if (period === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
+            if (period === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+            if (period === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
+            return true;
+        });
+        
+        const grouped = {};
+        filtered.forEach(d => {
+            if (!d.date || !d.teacher || !d.jp) return;
+            const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
+            if (!grouped[key]) grouped[key] = {
+                date: d.date, teacher: d.teacher, mapel: d.subject || '-',
+                jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
+                waktu_masuk: '-', waktu_keluar: '-', action_masuk: false, action_keluar: false, isLupa: false
+            };
+            if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; grouped[key].action_masuk = true; }
+            if (d.action === 'keluar') { 
+                grouped[key].waktu_keluar = d.time; 
+                grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
+                grouped[key].action_keluar = true; 
+                if (d.keterangan && d.keterangan.toLowerCase().includes('lupa')) grouped[key].isLupa = true;
+            }
+            grouped[key].mapel = d.subject || grouped[key].mapel;
+        });
 
-            const reportMap = {};
-            Object.values(grouped).forEach(g => {
-                if (!reportMap[g.teacher]) reportMap[g.teacher] = { name: g.teacher, mapel: g.mapel, total_sesi: 0, telat: 0, cepat: 0 };
-                reportMap[g.teacher].total_sesi++;
-                
-                if (g.action_masuk && g.jadwal_masuk !== '-') {
-                    let jM = parseTimeToMins(g.jadwal_masuk); let wM = parseTimeToMins(g.waktu_masuk);
-                    if (jM > 0 && wM > 0) {
-                        let diff = wM - jM;
-                        if (diff > tolMasuk) reportMap[g.teacher].telat += (diff - tolMasuk);
-                    }
+        const reportMap = {};
+        Object.values(grouped).forEach(g => {
+            if (!reportMap[g.teacher]) reportMap[g.teacher] = { name: g.teacher, mapel: g.mapel, total_sesi: 0, telat: 0, cepat: 0, lupa: 0 };
+            reportMap[g.teacher].total_sesi++;
+            
+            if (g.isLupa) reportMap[g.teacher].lupa++;
+            
+            if (g.action_masuk && g.jadwal_masuk !== '-') {
+                let jM = parseTimeToMins(g.jadwal_masuk); let wM = parseTimeToMins(g.waktu_masuk);
+                if (jM > 0 && wM > 0) {
+                    let diff = wM - jM;
+                    if (diff > tolMasuk) reportMap[g.teacher].telat += (diff - tolMasuk);
                 }
-                if (g.action_keluar && g.jadwal_keluar !== '-') {
-                    let jK = parseTimeToMins(g.jadwal_keluar); let wK = parseTimeToMins(g.waktu_keluar);
-                    if (jK > 0 && wK > 0) {
-                        let diff = jK - wK;
-                        if (diff > tolKeluar) reportMap[g.teacher].cepat += (diff - tolKeluar);
-                    }
+            }
+            if (g.action_keluar && g.jadwal_keluar !== '-' && !g.isLupa) {
+                let jK = parseTimeToMins(g.jadwal_keluar); let wK = parseTimeToMins(g.waktu_keluar);
+                if (jK > 0 && wK > 0) {
+                    let diff = jK - wK;
+                    if (diff > tolKeluar) reportMap[g.teacher].cepat += (diff - tolKeluar);
                 }
-            });
+            }
+        });
 
-            tbody.innerHTML = '';
-            Object.values(reportMap).forEach(item => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td class="font-bold">${item.name}</td><td>${item.mapel}</td>
-                    <td class="${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
-                    <td class="${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
-                    <td class="text-primary font-bold">${item.total_sesi}</td>`;
-                tbody.appendChild(tr);
-            });
-            if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Tidak ada data.</td></tr>';
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="5" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
-    }
+        tbody.innerHTML = '';
+        Object.values(reportMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `<td class="font-bold">${item.name}</td><td>${item.mapel}</td>
+                <td class="text-primary font-bold text-center">${item.total_sesi}</td>
+                <td class="text-center ${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
+                <td class="text-center ${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
+                <td class="text-center ${item.lupa > 0 ? 'text-purple-600 font-bold' : ''}">${item.lupa}</td>`;
+            tbody.appendChild(tr);
+        });
+        if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Tidak ada data terakumulasi.</td></tr>';
+    } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
+}
 
     document.getElementById('agusEditLink').addEventListener('click', () => {
         document.getElementById('modalContent').innerHTML = `<div class="input-group"><label>URL Apps Script Terpasang</label><input type="text" id="gasUrlInput" value="${GAS_URL}" /></div><button class="btn btn-primary" id="saveGasUrl">Simpan Link</button>`;
