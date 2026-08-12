@@ -4143,6 +4143,11 @@ function renderRiwayatData(allData, range) {
         document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
         document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); 
         initAdminFilters();
+		
+		// --- TAMBAHKAN DUA BARIS INI AGAR KOTA MATARAM LANGSUNG DIMUAT OTOMATIS ---
+        updateTanggalIslami();
+        fetchJadwalSholat();
+        // ------------------------------------------------------------------------
         
         const savedUser = localStorage.getItem('absensi_user'); 
         if (savedUser) { 
