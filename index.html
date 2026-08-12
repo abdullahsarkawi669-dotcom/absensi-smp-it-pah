@@ -1055,6 +1055,54 @@ function isEvenWeek(d = new Date()) {
     return weekNumber % 2 === 0;
 }
 
+// ==========================================
+// DAFTAR HARI LIBUR / KEGIATAN SEKOLAH
+// ==========================================
+function isLiburSekolah(dateObj) {
+    // Format tanggal menjadi YYYY-MM-DD
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    const tanggalFormat = `${y}-${m}-${d}`;
+    const bulanHari = `${m}-${d}`; // Untuk kegiatan tahunan (contoh: 17 Agustus)
+
+    // Daftar Tanggal Libur / Tidak Mengajar (Sesuai Permintaan Anda)
+    const liburSpesifik = [
+        '2026-08-17', // 17 Agustus: Upacara
+        '2026-09-25', // Pembagian Rapor
+        '2026-10-23', // Itqan
+        '2026-10-24', // Itqan
+        '2026-11-21', // Tes SPMB khusus kelas 9A-9D (atau disesuaikan)
+        '2026-11-20', // Pembagian rapor
+    ];
+
+    // Daftar Rentang Tanggal Libur (Format: 'YYYY-MM-DD')
+    const rentangLibur = [
+        { mulai: '2026-09-14', selesai: '2026-09-23' }, // Sumatif Tengah Semester
+        { mulai: '2026-10-05', selesai: '2026-10-07' }, // Audisi Festival Abu Hurairah
+        { mulai: '2026-11-09', selesai: '2026-11-13' }, // Final Festival
+        { mulai: '2026-11-30', selesai: '2026-12-12' }, // Sumatif Akhir Semester
+		{ mulai: '2026-12-21', selesai: '2027-01-03' }, // Libur Semester Ganjil
+		{ mulai: '2027-01-28', selesai: '2027-01-30' }, // Festival External Bali Nusa tenggara
+		{ mulai: '2027-02-08', selesai: '2027-02-09' }, // Libur Awal Ramadhan
+		{ mulai: '2027-02-22', selesai: '2027-03-20' }, // Libur Ramadhan
+		{ mulai: '2027-03-24', selesai: '2027-04-02' }, // STS Genap
+		{ mulai: '2027-04-23', selesai: '2027-04-24' }, // Itqan al-Qur'an Hadits
+    ];
+
+    // Cek tanggal spesifik
+    if (liburSpesifik.includes(tanggalFormat)) return true;
+
+    // Cek apakah masuk dalam rentang tanggal
+    for (let r of rentangLibur) {
+        if (tanggalFormat >= r.mulai && tanggalFormat <= r.selasa <= r.selesai) { // sesuaikan logika perbandingan
+            if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) return true;
+        }
+    }
+
+    return false;
+}
+
     const JADWAL_WAKTU = {
         reguler: {
             'JP 1': { masuk: '07:30', keluar: '08:10' },
@@ -1909,6 +1957,12 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
 // Tambahkan targetDate pada getGroupedSchedule
 function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Date()) {
     let blocks = [];
+	// --- TAMBAHKAN KODE INI ---
+    // Jika tanggal tersebut adalah hari libur/kegiatan sekolah, kembalikan array kosong (tidak ada jadwal)
+    if (isLiburSekolah(targetDate)) {
+        return blocks; 
+    }
+    // --------------------------
     let currentBlock = null;
     const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
 
