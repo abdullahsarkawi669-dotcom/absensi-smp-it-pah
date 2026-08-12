@@ -728,7 +728,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             <span class="badge" id="jadwalPekanBadge" style="background:#eff6ff; color:#2563eb;">Pekan ...</span>
         </div>
         
-        <p class="text-sm text-muted mb-3 text-center">Menampilkan jadwal mengajar untuk ustadz <b><span id="jadwalPekanGuru">-</span></b>.</p>
+        <p class="text-sm text-muted mb-3 text-center">Menampilkan jadwal mengajar untuk <b><span id="jadwalPekanGuru">-</span></b>.</p>
         
         <!-- Peringatan Khusus SBDP & Informatika akan muncul di sini -->
         <div id="jadwalPekanNotice"></div>
@@ -1058,6 +1058,60 @@ function isEvenWeek(d = new Date()) {
 // ==========================================
 // DAFTAR HARI LIBUR / KEGIATAN SEKOLAH
 // ==========================================
+function getStatusHariIni(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    const tanggalFormat = `${y}-${m}-${d}`;
+
+    // Daftar Tanggal Libur / Merah (Termasuk 17 Agustus)
+    const liburSpesifik = [
+        '2026-08-17', // 17 Agustus: Upacara / Hari Kemerdekaan
+        '2026-09-25', // Pembagian Rapor
+        '2026-10-23', // Itqan
+        '2026-10-24', // Itqan
+    ];
+
+    // Rentang Tanggal Libur (Warna Merah)
+    const rentangLibur = [
+        { mulai: '2026-12-21', selesai: '2027-01-03' }, // Libur Semester Ganjil
+        { mulai: '2027-02-08', selesai: '2027-02-09' }, // Libur Awal Ramadhan
+        { mulai: '2027-02-22', selesai: '2027-03-20' }, // Libur Ramadhan
+    ];
+
+    // Rentang Kegiatan / STS / Festival (Warna Hijau)
+    const rentangKegiatan = [
+        { mulai: '2026-09-14', selesai: '2026-09-23', nama: 'Sumatif Tengah Semester (STS)' },
+        { mulai: '2026-10-05', selesai: '2026-10-07', nama: 'Audisi Festival Abu Hurairah' },
+        { mulai: '2026-11-09', selesai: '2026-11-13', nama: 'Final Festival' },
+        { mulai: '2026-11-30', selesai: '2026-12-12', nama: 'Sumatif Akhir Semester (SAS)' },
+        { mulai: '2027-01-28', selesai: '2027-01-30', nama: 'Festival External Bali Nusa Tenggara' },
+        { mulai: '2027-03-24', selesai: '2027-04-02', nama: 'STS Genap' },
+        { mulai: '2027-04-23', selesai: '2027-04-24', nama: "Itqan al-Qur'an Hadits" }
+    ];
+
+    // Cek Libur Spesifik
+    if (liburSpesifik.includes(tanggalFormat) || tanggalFormat.endsWith('-08-17')) {
+        return { status: 'libur', label: 'Libur Nasional / Hari Kemerdekaan (17 Agustus)' };
+    }
+
+    // Cek Rentang Libur
+    for (let r of rentangLibur) {
+        if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) {
+            return { status: 'libur', label: 'Libur Semester / Libur Panjang' };
+        }
+    }
+
+    // Cek Rentang Kegiatan (STS/Festival -> Hijau)
+    for (let r of rentangKegiatan) {
+        if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) {
+            return { status: 'kegiatan', label: r.nama };
+        }
+    }
+
+    return { status: 'normal', label: '' };
+}
+
 function isLiburSekolah(dateObj) {
     // Format tanggal menjadi YYYY-MM-DD
     const y = dateObj.getFullYear();
@@ -1094,11 +1148,9 @@ function isLiburSekolah(dateObj) {
     if (liburSpesifik.includes(tanggalFormat)) return true;
 
     // Cek apakah masuk dalam rentang tanggal
-    for (let r of rentangLibur) {
-        if (tanggalFormat >= r.mulai && tanggalFormat <= r.selasa <= r.selesai) { // sesuaikan logika perbandingan
-            if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) return true;
-        }
-    }
+for (let r of rentangLibur) {
+    if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) return true;
+}
 
     return false;
 }
@@ -3854,42 +3906,52 @@ function renderJadwalPekanIni() {
     
     guruText.textContent = currentUser;
     
-    // Deteksi Pekan Ganjil / Genap
     const isGenap = isEvenWeek();
     badge.innerHTML = isGenap ? '<i class="fa-solid fa-2"></i> Pekan Genap' : '<i class="fa-solid fa-1"></i> Pekan Ganjil';
     
-    // Logika Notice khusus untuk Informatika dan SBDP agar tidak keliru
-    let noticeInfo = '';
-    if (currentUser === 'Agus Sarkawi, S. T.' || currentUser === 'Saifuddin Hidayat, S. Pd.') {
-        if (isGenap && currentUser === 'Agus Sarkawi, S. T.') {
-            noticeInfo = `<div class="bg-blue-50 border border-blue-200 text-blue-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-circle-check"></i> Pekan ini adalah <b>Pekan Genap</b>. Jadwal mengajar Anda (Informatika) <b>AKTIF</b>.</div>`;
-        } else if (!isGenap && currentUser === 'Agus Sarkawi, S. T.') {
-            noticeInfo = `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-triangle-exclamation"></i> Pekan ini adalah <b>Pekan Ganjil</b>. Sesi mengajar Anda saat ini digantikan oleh mapel SBDP.</div>`;
-        } else if (!isGenap && currentUser === 'Saifuddin Hidayat, S. Pd.') {
-            noticeInfo = `<div class="bg-blue-50 border border-blue-200 text-blue-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-circle-check"></i> Pekan ini adalah <b>Pekan Ganjil</b>. Jadwal mengajar Anda (SBDP) <b>AKTIF</b>.</div>`;
-        } else if (isGenap && currentUser === 'Saifuddin Hidayat, S. Pd.') {
-            noticeInfo = `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-triangle-exclamation"></i> Pekan ini adalah <b>Pekan Genap</b>. Sesi mengajar Anda saat ini digantikan oleh mapel Informatika.</div>`;
-        }
-    }
-    notice.innerHTML = noticeInfo;
-
     let html = '';
     const days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
     let totalSesi = 0;
 
-    days.forEach(day => {
-        // Mengambil seluruh grup kelas (currentMins = 0) untuk hari bersangkutan
-        let blocks = getGroupedSchedule(currentUser, day, 0); 
+    // Untuk mendapatkan tanggal rentang pekan ini secara dinamis
+    const range = getWeekDateRange(0);
+
+    days.forEach((day, index) => {
+        let currentDate = new Date(range.start);
+        currentDate.setDate(currentDate.getDate() + index);
         
-        if (blocks.length > 0) {
-            let dayName = day.charAt(0).toUpperCase() + day.slice(1);
-            html += `<div class="p-3 rounded-xl border border-gray-200" style="background: var(--input-bg);">
-                <div class="font-bold text-primary mb-2 border-b border-gray-200 pb-1 flex items-center gap-2">
-                    <i class="fa-regular fa-calendar-days"></i> ${dayName}
-                </div>
-                <table class="w-full text-sm">
-                    <tbody>`;
-            
+        // Panggil fungsi status tanggal (libur/kegiatan/normal)
+        const statusHari = getStatusHariIni(currentDate);
+        let blocks = getGroupedSchedule(currentUser, day, 0, currentDate);
+        
+        let dayName = day.charAt(0).toUpperCase() + day.slice(1);
+        let dateDisplay = `${String(currentDate.getDate()).padStart(2,'0')}/${String(currentDate.getMonth()+1).padStart(2,'0')}`;
+
+        // Styling Grid berdasarkan status (Merah untuk libur, Hijau untuk STS/Festival/Kegiatan)
+        let borderStyle = 'border-gray-200';
+        let bgStyle = 'var(--input-bg)';
+        let badgeInfo = '';
+
+        if (statusHari.status === 'libur') {
+            borderStyle = 'border-red-400';
+            bgStyle = '#fef2f2'; // Merah Muda / Red-50
+            badgeInfo = `<span class="badge bg-red-100 text-red-700 font-bold px-2 py-1 text-xs"><i class="fa-solid fa-triangle-exclamation"></i> Libur: ${statusHari.label}</span>`;
+        } else if (statusHari.status === 'kegiatan') {
+            borderStyle = 'border-emerald-400';
+            bgStyle = '#ecfdf5'; // Hijau Muda / Emerald-50
+            badgeInfo = `<span class="badge bg-emerald-100 text-emerald-700 font-bold px-2 py-1 text-xs"><i class="fa-solid fa-calendar-check"></i> ${statusHari.label}</span>`;
+        }
+
+        html += `<div class="p-3 rounded-xl border-2 ${borderStyle} mb-3" style="background: ${bgStyle};">
+            <div class="font-bold text-primary mb-2 border-b border-gray-200 pb-1 flex justify-between items-center">
+                <span><i class="fa-regular fa-calendar-days"></i> ${dayName}, ${dateDisplay}</span>
+                ${badgeInfo}
+            </div>`;
+
+        if (statusHari.status === 'libur') {
+            html += `<div class="text-center py-3 text-red-600 font-bold text-xs"><i class="fa-solid fa-mug-hot">></i> Hari Tidak Mengajar (Libur Tanggal Merah / Semester)</div>`;
+        } else if (blocks.length > 0) {
+            html += `<table class="w-full text-sm"><tbody>`;
             blocks.forEach(b => {
                 let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
                 html += `<tr class="border-b last:border-0 border-gray-200">
@@ -3901,13 +3963,13 @@ function renderJadwalPekanIni() {
                          </tr>`;
                 totalSesi++;
             });
-            html += `</tbody></table></div>`;
+            html += `</tbody></table>`;
+        } else {
+            html += `<div class="text-center py-2 text-muted text-xs">Tidak ada jadwal mengajar pada hari ini.</div>`;
         }
+        
+        html += `</div>`;
     });
-
-    if (totalSesi === 0) {
-        html = `<div class="text-center py-6 text-muted"><i class="fa-solid fa-calendar-xmark text-3xl mb-2 text-gray-300"></i><br>Tidak ada jadwal mengajar pada pekan ini.</div>`;
-    }
 
     container.innerHTML = html;
 }
