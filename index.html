@@ -492,6 +492,9 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         <div class="tabs" id="mainTabs">
 			<button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
 			<button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
+			<!-- TAMBAHKAN TOMBOL INI -->
+			<button class="tab" data-tab="jadwal" id="jadwalTab"><i class="fa-solid fa-calendar-week"></i> Jadwal</button>
+			<!-- =================== -->
 			<button class="tab" data-tab="sholat" id="sholatTab"><i class="fa-solid fa-mosque"></i> Sholat</button>
 			<button class="tab hidden" data-tab="admin" id="adminTab"><i class="fa-solid fa-shield-halved"></i> Admin</button>
 			<button class="tab hidden" data-tab="agus" id="agusTab"><i class="fa-solid fa-crown"></i> Master</button>
@@ -687,6 +690,26 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 </div>
             </div>
         </div>
+
+<!-- KONTEN TAB JADWAL PEKAN INI -->
+<div id="tabJadwal" class="tab-content hidden">
+    <div class="card border-blue-200" style="border: 1px solid #bfdbfe;">
+        <div class="card-header text-blue-800" style="margin-bottom: 8px;">
+            <span><i class="fa-solid fa-calendar-week"></i> Jadwal Pekan Ini</span>
+            <span class="badge" id="jadwalPekanBadge" style="background:#eff6ff; color:#2563eb;">Pekan ...</span>
+        </div>
+        
+        <p class="text-sm text-muted mb-3 text-center">Menampilkan jadwal mengajar untuk <b><span id="jadwalPekanGuru">-</span></b>.</p>
+        
+        <!-- Peringatan Khusus SBDP & Informatika akan muncul di sini -->
+        <div id="jadwalPekanNotice"></div>
+        
+        <div id="jadwalPekanContainer" class="flex flex-col gap-3 mt-2">
+            <!-- Data tabel jadwal per hari akan di-render di sini via JS -->
+        </div>
+    </div>
+</div>
+<!-- AKHIR KONTEN TAB JADWAL PEKAN INI -->
 
 <div id="tabSholat" class="tab-content hidden">
     <div class="card bg-emerald-50 border-emerald-200" style="border: 1px solid #a7f3d0; margin-bottom: 16px;">
@@ -1983,7 +2006,7 @@ function getNextClass() {
             infoCard.classList.remove('hidden');
             const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
             document.getElementById('nextClassText').innerHTML =
-                `Hari ini Anda akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
+                `Hari ini Ustadz akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
 
             const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
             const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
@@ -3169,17 +3192,20 @@ window.addEventListener('online', async () => {
     window.addEventListener('offline', () => { updateOfflineStatus(); showToast('📴 Offline', 'warning'); });
     setInterval(() => { if (navigator.onLine) syncNow(false, false); }, 30000);
 
-    document.querySelectorAll('#mainTabs .tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active')); tab.classList.add('active');
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById('tab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.remove('hidden');
-            stopScanner();
-            if (tab.dataset.tab === 'rekap') loadRekap();
-            if (tab.dataset.tab === 'admin' && isAdmin) loadAdminData();
-            if (tab.dataset.tab === 'agus' && isAgus) loadAgusData();
-        });
+    // GANTIKAN BLOK KODE LAMA DENGAN KODE INI
+document.querySelectorAll('#mainTabs .tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('#mainTabs .tab').forEach(t => t.classList.remove('active')); tab.classList.add('active');
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+        document.getElementById('tab' + tab.dataset.tab.charAt(0).toUpperCase() + tab.dataset.tab.slice(1)).classList.remove('hidden');
+        stopScanner();
+        
+        if (tab.dataset.tab === 'rekap') loadRekap();
+        if (tab.dataset.tab === 'jadwal') renderJadwalPekanIni(); // PEMANGGILAN FUNGSI BARU
+        if (tab.dataset.tab === 'admin' && isAdmin) loadAdminData();
+        if (tab.dataset.tab === 'agus' && isAgus) loadAgusData();
     });
+});
 
     let rekapFilter = 'day';
     document.querySelectorAll('.rekap-filter').forEach(btn => {
@@ -3735,6 +3761,78 @@ function buildAdminMissedClasses(allData) {
         toast.className = 'toast ' + type; toast.innerHTML = `${icon} <span>${msg}</span>`; container.appendChild(toast);
         setTimeout(() => { toast.style.opacity = '0'; toast.style.transform = 'translateY(10px) translateX(-50%)'; setTimeout(() => { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 300); }, 3000);
     }
+
+// ==========================================
+// FUNGSI RENDER JADWAL PEKAN INI 
+// (Dengan Filter Ganjil/Genap untuk Informatika & SBDP)
+// ==========================================
+function renderJadwalPekanIni() {
+    if (!currentUser) return;
+    
+    const container = document.getElementById('jadwalPekanContainer');
+    const guruText = document.getElementById('jadwalPekanGuru');
+    const badge = document.getElementById('jadwalPekanBadge');
+    const notice = document.getElementById('jadwalPekanNotice');
+    
+    guruText.textContent = currentUser;
+    
+    // Deteksi Pekan Ganjil / Genap
+    const isGenap = isEvenWeek();
+    badge.innerHTML = isGenap ? '<i class="fa-solid fa-2"></i> Pekan Genap' : '<i class="fa-solid fa-1"></i> Pekan Ganjil';
+    
+    // Logika Notice khusus untuk Informatika dan SBDP agar tidak keliru
+    let noticeInfo = '';
+    if (currentUser === 'Agus Sarkawi, S. T.' || currentUser === 'Saifuddin Hidayat, S. Pd.') {
+        if (isGenap && currentUser === 'Agus Sarkawi, S. T.') {
+            noticeInfo = `<div class="bg-blue-50 border border-blue-200 text-blue-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-circle-check"></i> Pekan ini adalah <b>Pekan Genap</b>. Jadwal mengajar Anda (Informatika) <b>AKTIF</b>.</div>`;
+        } else if (!isGenap && currentUser === 'Agus Sarkawi, S. T.') {
+            noticeInfo = `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-triangle-exclamation"></i> Pekan ini adalah <b>Pekan Ganjil</b>. Sesi mengajar Anda saat ini digantikan oleh mapel SBDP.</div>`;
+        } else if (!isGenap && currentUser === 'Saifuddin Hidayat, S. Pd.') {
+            noticeInfo = `<div class="bg-blue-50 border border-blue-200 text-blue-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-circle-check"></i> Pekan ini adalah <b>Pekan Ganjil</b>. Jadwal mengajar Anda (SBDP) <b>AKTIF</b>.</div>`;
+        } else if (isGenap && currentUser === 'Saifuddin Hidayat, S. Pd.') {
+            noticeInfo = `<div class="bg-amber-50 border border-amber-200 text-amber-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-triangle-exclamation"></i> Pekan ini adalah <b>Pekan Genap</b>. Sesi mengajar Anda saat ini digantikan oleh mapel Informatika.</div>`;
+        }
+    }
+    notice.innerHTML = noticeInfo;
+
+    let html = '';
+    const days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+    let totalSesi = 0;
+
+    days.forEach(day => {
+        // Mengambil seluruh grup kelas (currentMins = 0) untuk hari bersangkutan
+        let blocks = getGroupedSchedule(currentUser, day, 0); 
+        
+        if (blocks.length > 0) {
+            let dayName = day.charAt(0).toUpperCase() + day.slice(1);
+            html += `<div class="p-3 rounded-xl border border-gray-200" style="background: var(--input-bg);">
+                <div class="font-bold text-primary mb-2 border-b border-gray-200 pb-1 flex items-center gap-2">
+                    <i class="fa-regular fa-calendar-days"></i> ${dayName}
+                </div>
+                <table class="w-full text-sm">
+                    <tbody>`;
+            
+            blocks.forEach(b => {
+                let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+                html += `<tr class="border-b last:border-0 border-gray-200">
+                            <td class="py-2 pr-2 font-bold text-gray-700 align-top whitespace-nowrap" style="width: 25%; font-size: 0.75rem;">
+                                ${jpStr}<br><span class="text-xs text-muted font-normal">${b.masuk} - ${b.keluar}</span>
+                            </td>
+                            <td class="py-2 pr-2 font-black text-gray-800 align-top" style="width: 20%;">${b.class}</td>
+                            <td class="py-2 text-primary font-bold align-top" style="font-size: 0.8rem;">${b.mapel}</td>
+                         </tr>`;
+                totalSesi++;
+            });
+            html += `</tbody></table></div>`;
+        }
+    });
+
+    if (totalSesi === 0) {
+        html = `<div class="text-center py-6 text-muted"><i class="fa-solid fa-calendar-xmark text-3xl mb-2 text-gray-300"></i><br>Tidak ada jadwal mengajar pada pekan ini.</div>`;
+    }
+
+    container.innerHTML = html;
+}
 
     document.addEventListener('DOMContentLoaded', async () => {
         await openDB(); 
