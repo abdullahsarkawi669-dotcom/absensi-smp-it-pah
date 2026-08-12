@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Absensi Guru - SMP Islam Terpadu Putra Abu Hurairah Mataram</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <style>
@@ -359,9 +360,26 @@ body.purple-skin {
 body.purple-skin .topbar { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
 body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, #7c3aed 100%); }
 
+/* CSS Tambahan untuk Popout Sholat */
+.sholat-popout {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #059669; color: white; padding: 16px 24px; border-radius: 16px;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); z-index: 99999;
+    text-align: center; border: 4px solid #34d399;
+    animation: slideDownPopout 0.5s cubic-bezier(0.16, 1, 0.3, 1), pulseSholat 2s infinite;
+}
+@keyframes slideDownPopout { from { top: -100px; opacity: 0; } to { top: 20px; opacity: 1; } }
+@keyframes pulseSholat { 0% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.7); } 70% { box-shadow: 0 0 0 15px rgba(5, 150, 105, 0); } 100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0); } }
+
 </style>
 </head>
 <body>
+
+<div id="sholatPopout" class="sholat-popout hidden">
+    <i class="fa-solid fa-mosque mb-2" style="font-size: 2.5rem;"></i>
+    <div style="font-size: 1.5rem; font-weight: 900; text-transform: uppercase;">Waktu Sholat <span id="sholatPopoutName"></span></div>
+    <div style="font-size: 0.9rem; margin-top: 4px; opacity: 0.9;">Sekarang waktu sholat telah tiba.</div>
+</div>
 
 <div id="loginScreen">
     <div class="login-box">
@@ -691,11 +709,11 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     </div>
 
     <!-- Countdown Timer -->
-    <div class="card text-center" style="background: linear-gradient(135deg, #059669, #10b981); color: white; margin-bottom: 16px; border: none;">
-        <div class="text-sm font-semibold opacity-90">Menuju Waktu <span id="nextPrayerName" class="font-black text-accent-light">...</span></div>
-        <div id="prayerCountdown" class="text-4xl font-black mt-2 mb-2" style="font-family: monospace; letter-spacing: 2px;">--:--:--</div>
-        <div class="text-xs opacity-80"><i class="fa-solid fa-bell"></i> Pengingat aktif</div>
-    </div>
+<div class="card text-center" style="background: linear-gradient(135deg, #059669, #10b981); color: white; margin-bottom: 16px; border: none; padding: 24px 16px;">
+    <div class="font-bold opacity-90" style="font-size: 1.1rem;">Menuju Waktu <span id="nextPrayerName" class="font-black text-accent-light" style="font-size: 1.4rem; text-transform: uppercase;">...</span></div>
+    <div id="prayerCountdown" class="font-black mt-3 mb-3" style="font-family: 'Orbitron', monospace; font-size: 4rem; letter-spacing: 3px; text-shadow: 2px 2px 8px rgba(0,0,0,0.2); line-height: 1;">--:--:--</div>
+    <div class="text-sm opacity-90 font-medium"><i class="fa-solid fa-bell"></i> Alarm 2 menit sebelum & saat waktu sholat</div>
+</div>
 
     <!-- Grid Waktu Sholat -->
     <div class="card" style="padding: 16px;">
@@ -2446,11 +2464,12 @@ window.editKeterangan = async function(encodedRecord) {
     // -- CEK LUPA SCAN KELUAR PADA KELAS SEBELUMNYA --
     let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
     if (currentMode === 'masuk' && activeTeaching && !activeTeaching.keluarScanned) {
+        // KETENTUAN 1: Waktu keluar otomatis = waktu scan masuk kelas yang baru
         const recordLupa = {
             teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject, action: 'keluar',
             date: dateStr, time: timeStr, day: getDayNameID(), jp: '-',
             jadwal_masuk: '-', jadwal_keluar: activeTeaching.keluar,
-            timestamp: now.toISOString(), keterangan: 'Lupa scan keluar pada riwayat kelas sebelumnya', synced: false
+            timestamp: now.toISOString(), keterangan: 'lupa scan keluar', synced: false
         };
         
         await saveAttendanceLocal(recordLupa).then(async (id) => {
@@ -2462,7 +2481,7 @@ window.editKeterangan = async function(encodedRecord) {
                 } catch(e) {}
             }
         });
-        showToast(`Sistem menutup kelas ${activeTeaching.class} karena Anda lupa absen keluar.`, 'warning');
+        showToast(`Sistem menutup kelas ${activeTeaching.class} secara otomatis (Lupa Scan Keluar).`, 'warning');
         localStorage.removeItem('activeTeaching_' + currentUser);
         document.getElementById('activeClassTimerCard').classList.add('hidden');
     }
@@ -2980,6 +2999,7 @@ async function renderMySchedule() {
         updateTeachingTimer();
         updateNextClassInfo();
         checkTomorrowSchedule();
+		if (new Date().getSeconds() === 0) renderJadwalGrid(); // Auto refresh penyorot tiap berganti menit
 		autoResolveLupaAbsen(); // Tambahkan pemanggilan ini		
     }
     setInterval(updateClock, 1000);
@@ -3065,28 +3085,54 @@ async function autoResolveLupaAbsen() {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
-    // PERBAIKAN: Cegah kegagalan evaluasi jika activeData.date bernilai undefined
-	if (!activeData.date || activeData.date !== todayStr || currentMins <= 450) {
+    // Hitung jadwal batas keluar dalam format menit
+    let keluarMins = parseTimeToMins(activeData.keluar);
+
+    // KETENTUAN 2: Jika 10 menit setelah batas jadwal keluar belum juga scan out
+    if (activeData.date === todayStr && currentMins >= (keluarMins + 10)) {
+        let outH = Math.floor((keluarMins + 10) / 60);
+        let outM = (keluarMins + 10) % 60;
+        let autoOutTime = String(outH).padStart(2, '0') + ':' + String(outM).padStart(2, '0') + ':00';
+
+        const recordLupa = {
+            teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
+            date: activeData.date, time: autoOutTime, day: getDayNameID(), jp: '-',
+            jadwal_masuk: '-', jadwal_keluar: activeData.keluar,
+            timestamp: new Date().toISOString(), keterangan: 'lupa scan keluar', synced: false
+        };
+        
+        await saveAttendanceLocal(recordLupa);
+        if (navigator.onLine) {
+            sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
+        }
+
+        localStorage.removeItem('activeTeaching_' + currentUser);
+        const timerCard = document.getElementById('activeClassTimerCard');
+        if(timerCard) timerCard.classList.add('hidden');
+        
+        currentMode = 'masuk';
+        updateScanModeUI();
+        showToast('Sistem mencatat otomatis absen keluar Anda (10 menit berlalu).', 'info');
+        return;
+    }
+    
+    // Pembersihan sistem di penghujung malam (Fallback)
+	if (!activeData.date || activeData.date !== todayStr || currentMins <= 200) {
          const recordLupa = {
              teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
              date: activeData.date || todayStr, time: '23:59:59', day: getDayNameID(), jp: '-',
              jadwal_masuk: '-', jadwal_keluar: activeData.keluar,
-             timestamp: new Date().toISOString(), keterangan: 'Lupa scan keluar', synced: false
+             timestamp: new Date().toISOString(), keterangan: 'lupa scan keluar', synced: false
          };
-         
          await saveAttendanceLocal(recordLupa);
-         if (navigator.onLine) {
-             sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
-         }
+         if (navigator.onLine) sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
 
          localStorage.removeItem('activeTeaching_' + currentUser);
-         
          const timerCard = document.getElementById('activeClassTimerCard');
          if(timerCard) timerCard.classList.add('hidden');
          
          currentMode = 'masuk';
          updateScanModeUI();
-         showToast('Sistem otomatis membersihkan sesi lama. Tombol Masuk telah dibuka.', 'info');
     }
 }
 
@@ -3874,30 +3920,25 @@ function renderJadwalGrid() {
     let html = '';
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
-    let sholatAktifDitemukan = false;
+
+    // Deteksi sholat mana yang saat ini sedang berlangsung dengan membaca dari Isya mundur ke Subuh
+    let namaAktif = null;
+    let waktuTerbalik = [...SHOLAT_STATE.waktuSholatArr].reverse();
+    for (let nama of waktuTerbalik) {
+        if (SHOLAT_STATE.jadwalHariIni[nama]) {
+            const w = SHOLAT_STATE.jadwalHariIni[nama].split(':');
+            const waktuMins = parseInt(w[0]) * 60 + parseInt(w[1]);
+            if (currentMins >= waktuMins) {
+                namaAktif = nama;
+                break;
+            }
+        }
+    }
 
     SHOLAT_STATE.waktuSholatArr.forEach(nama => {
         if (!SHOLAT_STATE.jadwalHariIni[nama]) return;
-        
         const waktuStr = SHOLAT_STATE.jadwalHariIni[nama];
-        const w = waktuStr.split(':');
-        const waktuMins = parseInt(w[0]) * 60 + parseInt(w[1]);
-        
-        // Styling untuk highlight waktu yang sedang berlangsung
-        let isAktif = false;
-        if (!sholatAktifDitemukan && currentMins >= waktuMins) {
-            // Cek apakah waktu berikutnya belum masuk
-            let idxBerikutnya = SHOLAT_STATE.waktuSholatArr.indexOf(nama) + 1;
-            let waktuMinsBerikutnya = 9999;
-            if (idxBerikutnya < SHOLAT_STATE.waktuSholatArr.length) {
-                let nxt = SHOLAT_STATE.jadwalHariIni[SHOLAT_STATE.waktuSholatArr[idxBerikutnya]];
-                waktuMinsBerikutnya = parseInt(nxt.split(':')[0]) * 60 + parseInt(nxt.split(':')[1]);
-            }
-            if (currentMins < waktuMinsBerikutnya) {
-                isAktif = true;
-                sholatAktifDitemukan = true;
-            }
-        }
+        const isAktif = (nama === namaAktif);
 
         const bgClass = isAktif ? 'bg-emerald-100 border-emerald-500' : 'bg-gray-50 border-gray-200';
         const textClass = isAktif ? 'text-emerald-800 font-bold' : 'text-gray-700';
@@ -3947,11 +3988,27 @@ function mulaiHitungMundur() {
 
         const sisaDetik = waktuBerikutnya - currentTime;
         
+        // Peringatan Alarm 2 Menit (120 Detik) Sebelum Sholat
+        if (sisaDetik === 120) {
+            showToast(`Bersiap! 2 menit lagi menuju waktu sholat ${namaBerikutnya.toUpperCase()}`, 'warning');
+            playTone(800, 'triangle', 2);
+        }
+
         // Pemicu Notifikasi (Ketika waktu sholat pas masuk)
         if (sisaDetik === 0) {
             showToast(`Waktu ${namaBerikutnya.toUpperCase()} telah masuk wilayah ${SHOLAT_STATE.kotaNama}`, 'success');
-            playTone(600, 'sine', 1.5); // Bunyi bel (fungsi bawaan aplikasi Anda)
-            renderJadwalGrid(); // Re-render untuk highlight waktu baru
+            playTone(600, 'sine', 1.5); 
+            renderJadwalGrid(); 
+            
+            // Eksekusi Popout Warning
+            const popout = document.getElementById('sholatPopout');
+            document.getElementById('sholatPopoutName').textContent = namaBerikutnya;
+            popout.classList.remove('hidden');
+            
+            // Popout hilang otomatis dalam 5 Menit
+            setTimeout(() => {
+                popout.classList.add('hidden');
+            }, 5 * 60 * 1000);
         }
 
         const h = Math.floor(sisaDetik / 3600);
