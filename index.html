@@ -1147,8 +1147,10 @@ function isLiburSekolah(dateObj) {
 
     // Cek apakah masuk dalam rentang tanggal
 for (let r of rentangLibur) {
-    if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) return true;
-}
+        if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) {
+            return true;
+        }
+    }
 
     return false;
 }
