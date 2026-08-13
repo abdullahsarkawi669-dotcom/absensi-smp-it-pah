@@ -1239,7 +1239,7 @@ for (let r of rentangLibur) {
 	jadwalPelajaran['senin']['JP 7-8']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
 	jadwalPelajaran['selasa']['JP 1-2']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
 	jadwalPelajaran['selasa']['JP 5-6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-	jadwalPelajaran['selasa']['JP 7']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.);
+	jadwalPelajaran['selasa']['JP 7']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
 	jadwalPelajaran['selasa']['JP 8']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
 	jadwalPelajaran['rabu']['JP 1-2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['rabu']['JP 3-4']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
@@ -2290,28 +2290,37 @@ function checkTomorrowSchedule() {
         localStorage.removeItem('absensi_admin_type');
     });
 
-    function updateScanModeUI() {
+function updateScanModeUI() {
     let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
     const btnMasuk = document.getElementById('modeMasuk');
     const btnKeluar = document.getElementById('modeKeluar');
 
     // Cek apakah waktu kelas sudah berakhir
     let isPastEndTime = false;
-if (activeTeaching && activeTeaching.keluar) {
-    const now = new Date();
-    const endParts = activeTeaching.keluar.split(':');
-    const endDate = new Date(); 
-    endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
-    
-    const todayStr = getLocalDateString(now);
-    
-    // PERBAIKAN: Lepas kunci otomatis jika sesi mengajar berasal dari hari sebelumnya
-    if (activeTeaching.date && activeTeaching.date !== todayStr) {
-        isPastEndTime = true;
-    } else if (now > endDate) {
-        isPastEndTime = true;
+    if (activeTeaching && activeTeaching.keluar) {
+        const now = new Date();
+        const endParts = activeTeaching.keluar.split(':');
+        const endDate = new Date(); 
+        endDate.setHours(parseInt(endParts[0]), parseInt(endParts[1]), 0, 0);
+        
+        const todayStr = getLocalDateString(now);
+        
+        // PERBAIKAN 1: Lepas kunci otomatis jika sesi mengajar berasal dari hari sebelumnya
+        if (activeTeaching.date && activeTeaching.date !== todayStr) {
+            isPastEndTime = true;
+        } else if (now > endDate) {
+            isPastEndTime = true;
+        }
+        
+        // PERBAIKAN 2: Lepas kunci otomatis jika 5 menit menuju jadwal kelas berikutnya
+        const nextClass = getNextClass();
+        if (nextClass) {
+            const currentMins = now.getHours() * 60 + now.getMinutes();
+            if ((nextClass.masukMins - currentMins) <= 5 && (nextClass.masukMins - currentMins) >= 0) {
+                isPastEndTime = true;
+            }
+        }
     }
-}
 
     if (activeTeaching && !isPastEndTime) {
         currentMode = 'keluar';
@@ -2337,10 +2346,10 @@ if (activeTeaching && activeTeaching.keluar) {
             currentMode = null; 
         } else {
             if (isPastEndTime) {
-                // Tombol Masuk otomatis aktif jika jam mengajar telah lewat
+                // Tombol Masuk otomatis aktif jika jam mengajar telah lewat atau 5 menit sebelum kelas selanjutnya
                 btnMasuk.className = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
                 btnKeluar.className = currentMode === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
-                document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> telah habis. Anda bisa scan <b>KELUAR</b>, atau langsung tekan <b>MASUK</b> untuk jam mengajar berikutnya.`;
+                document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> telah habis (atau kelas berikutnya segera mulai). Anda bisa scan <b>KELUAR</b>, atau langsung tekan <b>MASUK</b> untuk jam mengajar selanjutnya.`;
             } else {
                 btnMasuk.className = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
                 btnKeluar.className = 'btn btn-sm btn-primary';
@@ -2649,7 +2658,7 @@ window.editKeterangan = async function(encodedRecord) {
         executeFinalScanRecord(classCode, ket, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
     }
 
-    async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now) {
+async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now) {
     const formattedClass = formatKopelClass(classCode, subject);
 
     // -- CEK LUPA SCAN KELUAR PADA KELAS SEBELUMNYA --
@@ -2660,7 +2669,7 @@ window.editKeterangan = async function(encodedRecord) {
             teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject, action: 'keluar',
             date: dateStr, time: timeStr, day: getDayNameID(), jp: '-',
             jadwal_masuk: '-', jadwal_keluar: activeTeaching.keluar,
-            timestamp: now.toISOString(), keterangan: 'lupa scan keluar', synced: false
+            timestamp: now.toISOString(), keterangan: 'lupa absen keluar', synced: false
         };
         
         await saveAttendanceLocal(recordLupa).then(async (id) => {
@@ -2675,84 +2684,82 @@ window.editKeterangan = async function(encodedRecord) {
         showToast(`Sistem menutup kelas ${activeTeaching.class} secara otomatis (Lupa Scan Keluar).`, 'warning');
         localStorage.removeItem('activeTeaching_' + currentUser);
         document.getElementById('activeClassTimerCard').classList.add('hidden');
+    } // <-- PERBAIKAN: Hanya 1 kurung kurawal di sini!
+
+    // -- PENCEGAHAN DUPLIKASI DATA --
+    let isDuplicate = false;
+    const localHist = await getLocalHistory(currentUser, dateStr);
+    if (localHist.some(h => h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
+    if (serverDataCache.some(h => h.teacher === currentUser && h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
+
+    if (isDuplicate) {
+        showScanResult(`⚠️ Anda sudah melakukan absen ${(currentMode || 'masuk').toUpperCase()} untuk kelas ini hari ini.`, 'warning');
+        playBeepWarning(); document.getElementById('keteranganInput').value = ''; return; 
     }
 
-        // -- PENCEGAHAN DUPLIKASI DATA --
-        let isDuplicate = false;
-        const localHist = await getLocalHistory(currentUser, dateStr);
-        if (localHist.some(h => h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
-        if (serverDataCache.some(h => h.teacher === currentUser && h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
-
-        if (isDuplicate) {
-            showScanResult(`⚠️ Anda sudah melakukan absen ${(currentMode || 'masuk').toUpperCase()} untuk kelas ini hari ini.`, 'warning');
-            playBeepWarning(); document.getElementById('keteranganInput').value = ''; return; 
-        }
-
-		// Temukan blok ini dalam executeFinalScanRecord():
-if (currentMode === 'masuk' && jKeluar !== '00:00') {
-    // GANTIKAN DENGAN:
-    let activeTeaching = { 
-        class: formattedClass, 
-        subject: subject, 
-        keluar: jKeluar, 
-        notified: false, 
-        rawClass: classCode, 
-        keluarScanned: false,
-        date: dateStr // Pastikan tanggal ikut tersimpan
-    };
-    localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-    updateNextClassInfo(); checkActiveTeachingForIzinKasus();
-}
-		
-		//} else if (currentMode === 'keluar') {
-        //    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-        //    if (activeTeaching && activeTeaching.class === formattedClass) {
-        //        // Tahan agar tidak langsung hilang sampai tersinkron
-        //        activeTeaching.keluarScanned = true;
-        //        localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
-        //        updateScanModeUI();
-        //        checkActiveTeachingForIzinKasus();
-        //    }
-        //}
-
-        const record = {
-            teacher: currentUser, class: formattedClass, subject: subject, action: currentMode || 'masuk',
-            date: dateStr, time: timeStr, day: getDayNameID(), jp: jpFinal,
-            jadwal_masuk: jMasuk, jadwal_keluar: jKeluar,
-            timestamp: now.toISOString(), keterangan: ket, synced: false
+    // -- MANAJEMEN KELAS AKTIF (ACTIVE TEACHING) --
+    if (currentMode === 'masuk' && jKeluar !== '00:00') {
+        let activeTeachingData = { 
+            class: formattedClass, 
+            subject: subject, 
+            keluar: jKeluar, 
+            notified: false, 
+            rawClass: classCode, 
+            keluarScanned: false,
+            date: dateStr 
         };
-
-        saveAttendanceLocal(record).then(async (id) => {
-            const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
-            showScanResult(ket ? `${actionIcon} ${formattedClass} (${ket})` : `${actionIcon} ${formattedClass} (${subject})`, 'success');
-            
-            record.id = id;
-            addHistoryRow({...record, id});
-            
-            if (navigator.onLine) {
-                try {
-                    const res = await sendToGoogleSheet(record);
-                    if (res.success) { 
-                        await processSyncedItem(record);
-                        showScanResult(`✅ Data terkirim ke Server!`, 'success');
-                        
-                        // Eksekusi pembersihan Active Teaching jika status keluar berhasil sinkron
-                        if (record.action === 'keluar') {
-                            let actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-                            if (actTeach && actTeach.class === formattedClass && actTeach.keluarScanned) {
-                                localStorage.removeItem('activeTeaching_' + currentUser);
-                                document.getElementById('activeClassTimerCard').classList.add('hidden');
-                                checkActiveTeachingForIzinKasus();
-                                updateScanModeUI();
-                            }
-                        }
-                    } else { showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning'); }
-                } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
-            }
-            updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
-            renderMySchedule();
-        });
+        localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeachingData));
+        updateNextClassInfo(); checkActiveTeachingForIzinKasus();
+    } else if (currentMode === 'keluar') {
+        let activeTeachingData = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+        if (activeTeachingData && activeTeachingData.class === formattedClass) {
+            // Tahan agar tidak langsung hilang sampai tersinkron
+            activeTeachingData.keluarScanned = true;
+            localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeachingData));
+            updateScanModeUI();
+            checkActiveTeachingForIzinKasus();
+        }
     }
+
+    // -- SIMPAN DATA ABSEN --
+    const record = {
+        teacher: currentUser, class: formattedClass, subject: subject, action: currentMode || 'masuk',
+        date: dateStr, time: timeStr, day: getDayNameID(), jp: jpFinal,
+        jadwal_masuk: jMasuk, jadwal_keluar: jKeluar,
+        timestamp: now.toISOString(), keterangan: ket, synced: false
+    };
+
+    saveAttendanceLocal(record).then(async (id) => {
+        const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
+        showScanResult(ket ? `${actionIcon} ${formattedClass} (${ket})` : `${actionIcon} ${formattedClass} (${subject})`, 'success');
+        
+        record.id = id;
+        addHistoryRow({...record, id});
+        
+        if (navigator.onLine) {
+            try {
+                const res = await sendToGoogleSheet(record);
+                if (res.success) { 
+                    await processSyncedItem(record);
+                    showScanResult(`✅ Data terkirim ke Server!`, 'success');
+                    
+                    // Eksekusi pembersihan Active Teaching jika status keluar berhasil sinkron
+                    if (record.action === 'keluar') {
+                        let actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+                        if (actTeach && actTeach.class === formattedClass && actTeach.keluarScanned) {
+                            localStorage.removeItem('activeTeaching_' + currentUser);
+                            document.getElementById('activeClassTimerCard').classList.add('hidden');
+                            checkActiveTeachingForIzinKasus();
+                            updateScanModeUI();
+                        }
+                    }
+                } else { showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning'); }
+            } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
+        }
+        updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
+        renderMySchedule();
+    });
+}
 
     // FITUR PENCATATAN SANTRI IZIN & KASUS KELAS
     let tempSantriIzinList = [];
@@ -3276,13 +3283,13 @@ async function autoResolveLupaAbsen() {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
-    // Hitung jadwal batas keluar dalam format menit
     let keluarMins = parseTimeToMins(activeData.keluar);
 
-    // KETENTUAN 2: Jika 10 menit setelah batas jadwal keluar belum juga scan out
-    if (activeData.date === todayStr && currentMins >= (keluarMins + 10)) {
-        let outH = Math.floor((keluarMins + 10) / 60);
-        let outM = (keluarMins + 10) % 60;
+    // Ketentuan (2): Jika tidak ada aktivitas baru, catat otomatis 20 menit setelah jadwal
+    if (activeData.date === todayStr && currentMins >= (keluarMins + 20)) {
+        
+        let outH = Math.floor((keluarMins + 20) / 60);
+        let outM = (keluarMins + 20) % 60;
         let autoOutTime = String(outH).padStart(2, '0') + ':' + String(outM).padStart(2, '0') + ':00';
 
         const recordLupa = {
@@ -3303,29 +3310,11 @@ async function autoResolveLupaAbsen() {
         
         currentMode = 'masuk';
         updateScanModeUI();
-        showToast('Sistem mencatat otomatis absen keluar Anda (10 menit berlalu).', 'info');
-        return;
-    }
-    
-    // Pembersihan sistem di penghujung malam (Fallback)
-	if (!activeData.date || activeData.date !== todayStr || currentMins <= 200) {
-         const recordLupa = {
-             teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
-             date: activeData.date || todayStr, time: '23:59:59', day: getDayNameID(), jp: '-',
-             jadwal_masuk: '-', jadwal_keluar: activeData.keluar,
-             timestamp: new Date().toISOString(), keterangan: 'lupa scan keluar', synced: false
-         };
-         await saveAttendanceLocal(recordLupa);
-         if (navigator.onLine) sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
-
-         localStorage.removeItem('activeTeaching_' + currentUser);
-         const timerCard = document.getElementById('activeClassTimerCard');
-         if(timerCard) timerCard.classList.add('hidden');
-         
-         currentMode = 'masuk';
-         updateScanModeUI();
+        showToast('Sistem mencatat otomatis absen keluar (20 menit setelah jadwal).', 'info');
     }
 }
+    
+
 
 async function verifySheetStatus() {
     // Sinkronisasi status tombol berdasarkan data server terbaru setelah online
