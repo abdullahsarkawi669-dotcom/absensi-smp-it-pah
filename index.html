@@ -971,6 +971,8 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 
 <div class="toast-container" id="toastContainer"></div>
 
+
+
 <script>
     const TEACHERS = [
         { name: 'Budiman, S. Pd.', isAdmin: true, subjects: [], adminType: 'admin' },
@@ -1017,6 +1019,20 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 
     const CLASSES = ['7A', '7B', '7C', '7D', '7E', '8A', '8B', '8C', '8D', '8E', '9A', '9B', '9C', '9D'];
 
+// HELPER: Paksa semua operasi waktu frontend menggunakan WITA (UTC+8)
+function getCurrentWITA() {
+    const localNow = new Date();
+    const utc = localNow.getTime() + (localNow.getTimezoneOffset() * 60000);
+    return new Date(utc + (3600000 * 8)); // Paksa ke UTC+8
+}
+
+function getLocalDateString(d = getCurrentWITA()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
     // DATABASE SANTRI PER KELAS
     const DATA_SANTRI = {
         "7A": ["ABDULLAH RASYIQUL AKRAM", "ABDUROHMAN KHOLIL", "ABDURROZZAQ", "ADRIAN FACHRY AS'ARY", "ALBY FACHRIE", "ALIF ZIYAD ZAEN", "ATHAR RIZKY YUDHISTIRA", "AUFA AL HAMIDI", "BINTANG JULIANT ALFARABI", "FADHIL NASHIR ALBANI", "FAIZ ARFAN HAIKAL", "FAYADH ELFATA", "HADZUKI ADITYA RAMADHAN", "HAFIDS AL GHAZALI", "HARITS ARKAAN", "HUSAIN ANAKI", "LALU IQRA ILYAS", "M. GHAISAN INDIKA HILMY", "MU'ADZ", "MUH. GHAFAR ARIEF SETIOBUDI", "MUHAMMAD ADIB", "MUHAMMAD AL FAIZ", "MUHAMMAD ALFIAN RIZQI", "MUHAMMAD AQIL", "MUHAMMAD AQIL ALMAIR RAMADHAN", "MUHAMMAD NAYAKA HAKAM", "MUHAMMAD TRISTAN ALIEF PRABOWO", "MUHAMMAD ZAKY AL HAFIZH FAUZAN", "NADYANDA MUCHALI AL MAJIID", "RESKI ARSY NEGARA", "SULTAN FAIZULLAH ATMIJOYO", "SYABANIN ALKAUTSAR IRAWAN", "SYAFIIQ AL-ATSARI", "UKASYAH ABDURROHMAN", "UWAIS", "YUSUF ABDURRAHMAN FANSURI"],
@@ -1035,7 +1051,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzpDitrX2kLssuYUEBIW9sN1tUMim_LIcc_6kABJ-He5eW3W04p8mx6NFrwjr7tF-ZzWQ/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwVVuxImdOUkBo4YI2xk29j9XqS5exde-wMhR0OBsuwvGb6FKvx_g0AMmGuV2K6RJU4hw/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
 function getLocalDateString(d = new Date()) {
@@ -1223,12 +1239,12 @@ for (let r of rentangLibur) {
 	jadwalPelajaran['senin']['JP 7-8']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.)';
 	jadwalPelajaran['selasa']['JP 1-2']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
 	jadwalPelajaran['selasa']['JP 5-6']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
-	jadwalPelajaran['selasa']['JP 7']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
+	jadwalPelajaran['selasa']['JP 7']['7B'] = 'Bahasa Inggris (Hairul Umam Insani, S. Pd.);
 	jadwalPelajaran['selasa']['JP 8']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
 	jadwalPelajaran['rabu']['JP 1-2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['rabu']['JP 3-4']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
 	jadwalPelajaran['rabu']['JP 5-6']['7B'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
-	jadwalPelajaran['kamis']['JP 1-2']['7B'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['kamis']['JP 1-2']['7B'] = 'Bahasa Arab (Hafizh Bagis, Lc.)';
 	jadwalPelajaran['kamis']['JP 5']['7B'] = 'Bahasa Indonesia (Firman, S. Pd.)';
 	jadwalPelajaran['kamis']['JP 6']['7B'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
 	jadwalPelajaran['kamis']['JP 7-8']['7B'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
@@ -1572,7 +1588,7 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
     if (guruName === 'M. Tahir, M. Pd.') {
         if (['9A', '9B'].includes(kelas) && hari === 'selasa' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
         if (['9C', '9D'].includes(kelas) && hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
-        if (['7D', '7E'].includes(kelas) && hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
+        if (['7D', '7E'].includes(kelas) && hari === 'kamis' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
         if (['7A', '7B'].includes(kelas) && hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
         if (['8A', '8B'].includes(kelas) && hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
         if (['7C', '8E'].includes(kelas) && hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
@@ -2054,7 +2070,7 @@ function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Dat
 function getNextClass() {
     if (!currentUser) return null;
     const hari = getDayName();
-    const now = new Date();
+    const now = getCurrentWITA();//new Date();
     const totalMins = now.getHours() * 60 + now.getMinutes();
     
     let blocks = getGroupedSchedule(currentUser, hari, totalMins);
@@ -2113,7 +2129,7 @@ function getNextClass() {
 
     function updateNextClassInfo() {
         if (!currentUser) return;
-        const now = new Date();
+        const now = getCurrentWITA();//new Date();
         const hour = now.getHours();
         const infoCard = document.getElementById('nextClassCard');
         const warnCard = document.getElementById('upcomingClassWarningCard');
@@ -2354,15 +2370,43 @@ if (activeTeaching && activeTeaching.keluar) {
     document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
     document.getElementById('modeKeluar').addEventListener('click', () => { currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
     
-    document.getElementById('manualScanBtn').addEventListener('click', () => {
-        const area = document.getElementById('manualScanArea'); area.classList.toggle('hidden');
-    });
+document.getElementById('manualScanBtn').addEventListener('click', () => {
+    const area = document.getElementById('manualScanArea');
+    const select = document.getElementById('manualClassSelect');
     
-    document.getElementById('manualProcessBtn').addEventListener('click', () => {
-        const val = document.getElementById('manualClassSelect').value.trim().toUpperCase();
-        if (CLASSES.includes(val)) { processScan(val); document.getElementById('manualScanArea').classList.add('hidden'); }
-        else { showToast('Silakan pilih kelas yang valid', 'error'); }
-    });
+    if (area.classList.contains('hidden')) {
+        // Reset dan isi opsi kelas secara dinamis
+        select.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+        const rendered = new Set();
+        
+        CLASSES.forEach(cls => {
+            // Gunakan dummy subject khusus jika pengajar adalah guru PJOK untuk memicu kopel
+            const mockSubject = (currentUser === 'M. Tahir, M. Pd.') ? 'PJOK' : 'Mapel';
+            const formatted = formatKopelClass(cls, mockSubject);
+            
+            if (!rendered.has(formatted)) {
+                rendered.add(formatted);
+                const opt = document.createElement('option');
+                opt.value = cls; // value tetap memakai root class agar backend tidak bingung
+                opt.textContent = formatted;
+                select.appendChild(opt);
+            }
+        });
+        area.classList.remove('hidden');
+    } else {
+        area.classList.add('hidden');
+    }
+});
+
+document.getElementById('manualProcessBtn').addEventListener('click', () => {
+    const val = document.getElementById('manualClassSelect').value.trim().toUpperCase();
+    if (val) { 
+        processScan(val); 
+        document.getElementById('manualScanArea').classList.add('hidden'); 
+    } else { 
+        showToast('Silakan pilih kelas yang valid', 'error'); 
+    }
+});
 
     document.getElementById('syncNowBtn').addEventListener('click', () => syncNow(true, true));
     document.getElementById('adminSyncNow').addEventListener('click', () => syncNow(true, true));
@@ -2467,7 +2511,7 @@ window.editKeterangan = async function(encodedRecord) {
         if (!currentUser) { showScanResult('Silakan login.', 'error'); return; }
 
         const ket = document.getElementById('keteranganInput').value.trim();
-        const now = new Date();
+        const now = getCurrentWITA();//new Date();
         const dateStr = getLocalDateString(now);
         const timeStr = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         const timeMins = now.getHours() * 60 + now.getMinutes();
@@ -3127,7 +3171,7 @@ async function renderMySchedule() {
 }
 
 	function updateClock() {
-        const now = new Date();
+        const now = getCurrentWITA();//new Date();
         document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('loginDayInfo').innerHTML = '<i class="fa-regular fa-calendar"></i> ' + getDayNameID() + ', ' + now.toLocaleDateString('id-ID');
         
@@ -3550,73 +3594,80 @@ function buildAdminMissedClasses(allData) {
         return { ongoing, next };
     }
 
-    function renderLiveMonitor() {
-        const tbody = document.getElementById('liveMonitorBody');
-        const info = document.getElementById('liveMonitorJpInfo');
-        
-        if (currentServerDataCacheAdmin.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada data dari server...</td></tr>'; return;
-        }
+function renderLiveMonitor() {
+    const tbody = document.getElementById('liveMonitorBody');
+    const info = document.getElementById('liveMonitorJpInfo');
+    
+    if (currentServerDataCacheAdmin.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada data dari server...</td></tr>'; return;
+    }
 
-        const todayStr = getLocalDateString(new Date());
-        const serverDataToday = currentServerDataCacheAdmin.filter(d => d.date === todayStr && d.action === 'masuk');
-        const day = getDayName();
-        const jpInfo = getOngoingAndNextJP();
-        
-        const targetJp = liveMonitorMode === 'ongoing' ? jpInfo.ongoing : jpInfo.next;
-        
-        if (!targetJp) {
-            info.textContent = liveMonitorMode === 'ongoing' ? 'Tidak ada kelas yang sedang berlangsung saat ini.' : 'Tidak ada jadwal kelas berikutnya hari ini.';
-            tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted font-bold">${info.textContent}</td></tr>`; return;
-        }
-        
-        const jadwal = (day === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
-        info.innerHTML = `<span class="badge bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs">${targetJp} (${jadwal[targetJp].masuk} - ${jadwal[targetJp].keluar})</span>`;
+    const todayStr = getLocalDateString(getCurrentWITA());
+    const serverDataToday = currentServerDataCacheAdmin.filter(d => d.date === todayStr && d.action === 'masuk');
+    const day = getDayName();
+    const jpInfo = getOngoingAndNextJP();
+    
+    const targetJp = liveMonitorMode === 'ongoing' ? jpInfo.ongoing : jpInfo.next;
+    
+    if (!targetJp) {
+        info.textContent = liveMonitorMode === 'ongoing' ? 'Tidak ada kelas yang sedang berlangsung saat ini.' : 'Tidak ada jadwal kelas berikutnya hari ini.';
+        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted font-bold">${info.textContent}</td></tr>`; return;
+    }
+    
+    const jadwal = (day === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+    info.innerHTML = `<span class="badge bg-indigo-100 text-indigo-800 px-3 py-1 rounded-full text-xs">${targetJp} (${jadwal[targetJp].masuk} - ${jadwal[targetJp].keluar})</span>`;
 
-        let rowsHTML = '';
-        CLASSES.forEach(cls => {
-            let teachers = []; let mapel = '-';
-            TEACHERS.forEach(t => {
-                let m = getMapelForScan(cls, t.name, day, targetJp);
-                if (m) { teachers.push(t.name); mapel = m; }
-            });
+    let rowsHTML = '';
+    let renderedClasses = new Set(); // Mencegah duplikasi tampilan kelas kopel
 
-            if (teachers.length > 0) {
-                let formattedClass = formatKopelClass(cls, mapel);
-                let isTahfizh = mapel.toLowerCase().includes('tahfiz');
-                let teacherDisplay = isTahfizh ? '<span class="font-bold text-indigo-700">Tim Tahfizh</span>' : teachers.join(', ');
-
-                let hasClockedIn = false;
-                const isOverlap = (recordJp, checkJp) => {
-                    if (!recordJp || !checkJp) return false;
-                    let rJps = recordJp.replace('JP ', '').split('-');
-                    let cJps = checkJp.replace('JP ', '').split('-');
-                    return (parseInt(rJps[0]) <= (cJps.length > 1 ? parseInt(cJps[1]) : parseInt(cJps[0])) && 
-                           (rJps.length > 1 ? parseInt(rJps[1]) : parseInt(rJps[0])) >= parseInt(cJps[0]));
-                };
-
-                hasClockedIn = serverDataToday.some(d => {
-                    if (d.class !== formattedClass) return false;
-                    if (!isOverlap(d.jp, targetJp)) return false;
-                    if (isTahfizh) return d.subject && d.subject.toLowerCase().includes('tahfiz');
-                    return teachers.includes(d.teacher);
-                });
-
-                let statusBadge = hasClockedIn 
-                    ? '<span class="text-success text-lg" title="Sudah Masuk"><i class="fa-solid fa-circle-check"></i></span>'
-                    : '<span class="text-warning text-lg" title="Belum Masuk/Menunggu"><i class="fa-solid fa-clock"></i></span>';
-
-                rowsHTML += `<tr>
-                    <td class="font-bold text-xs">${cls}</td>
-                    <td class="text-xs">${mapel}</td>
-                    <td class="text-xs">${teacherDisplay}</td>
-                    <td class="text-center">${statusBadge}</td>
-                </tr>`;
-            }
+    CLASSES.forEach(cls => {
+        let teachers = []; let mapel = '-';
+        TEACHERS.forEach(t => {
+            let m = getMapelForScan(cls, t.name, day, targetJp);
+            if (m) { teachers.push(t.name); mapel = m; }
         });
 
-        tbody.innerHTML = rowsHTML || '<tr><td colspan="4" class="text-center text-muted">Tidak ada jadwal pada JP ini</td></tr>';
-    }
+        if (teachers.length > 0) {
+            let formattedClass = formatKopelClass(cls, mapel);
+
+            // Skip rendering jika kopel ini sudah ditambahkan ke tabel sebelumnya
+            if (renderedClasses.has(formattedClass)) return;
+            renderedClasses.add(formattedClass);
+
+            let isTahfizh = mapel.toLowerCase().includes('tahfiz');
+            let teacherDisplay = isTahfizh ? '<span class="font-bold text-indigo-700">Tim Tahfizh</span>' : teachers.join(', ');
+
+            let hasClockedIn = false;
+            const isOverlap = (recordJp, checkJp) => {
+                if (!recordJp || !checkJp) return false;
+                let rJps = recordJp.replace('JP ', '').split('-');
+                let cJps = checkJp.replace('JP ', '').split('-');
+                return (parseInt(rJps[0]) <= (cJps.length > 1 ? parseInt(cJps[1]) : parseInt(cJps[0])) && 
+                       (rJps.length > 1 ? parseInt(rJps[1]) : parseInt(rJps[0])) >= parseInt(cJps[0]));
+            };
+
+            hasClockedIn = serverDataToday.some(d => {
+                if (d.class !== formattedClass) return false;
+                if (!isOverlap(d.jp, targetJp)) return false;
+                if (isTahfizh) return d.subject && d.subject.toLowerCase().includes('tahfiz');
+                return teachers.includes(d.teacher);
+            });
+
+            let statusBadge = hasClockedIn 
+                ? '<span class="text-success text-lg" title="Sudah Masuk"><i class="fa-solid fa-circle-check"></i></span>'
+                : '<span class="text-warning text-lg" title="Belum Masuk/Menunggu"><i class="fa-solid fa-clock"></i></span>';
+
+            rowsHTML += `<tr>
+                <td class="font-bold text-xs">${formattedClass}</td>
+                <td class="text-xs">${mapel}</td>
+                <td class="text-xs">${teacherDisplay}</td>
+                <td class="text-center">${statusBadge}</td>
+            </tr>`;
+        }
+    });
+
+    tbody.innerHTML = rowsHTML || '<tr><td colspan="4" class="text-center text-muted">Tidak ada jadwal pada JP ini</td></tr>';
+}
     
     document.addEventListener('click', function(e) {
         if(e.target && e.target.closest('.live-toggle')) {
