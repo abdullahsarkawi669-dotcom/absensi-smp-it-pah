@@ -385,6 +385,8 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); transform: scale(1); }
 }
 
+
+
 </style>
 </head>
 <body>
@@ -2312,19 +2314,19 @@ function updateScanModeUI() {
     const now = new Date();
     const currentMins = now.getHours() * 60 + now.getMinutes();
 
-    // Teks Dasar
-    let masukText = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk';
-    let keluarText = '<i class="fa-solid fa-door-open"></i> Keluar';
+    // Teks Dasar Default
+    let masukText = '<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk';
+    let keluarText = '<i class="fa-solid fa-door-open"></i> Scan Keluar';
     
-    // Status Dasar (Terkunci atau Terbuka)
+    // Status Class Dasar
     let masukClass = 'btn btn-sm btn-outline';
     let keluarClass = 'btn btn-sm btn-outline';
     
-    // Indikator Animasi
+    // Indikator Animasi Merah
     let isMasukAnimated = false;
     let isKeluarAnimated = false;
 
-    // Cek apakah waktu kelas sudah berakhir atau hampir berakhir (H-5 Menit)
+    // Evaluasi waktu akhir kelas
     let isPastEndTime = false;
     let isNearEndTime = false;
 
@@ -2338,123 +2340,118 @@ function updateScanModeUI() {
         } else if (currentMins >= keluarMins) {
             isPastEndTime = true;
         } else if ((keluarMins - currentMins) <= 5 && (keluarMins - currentMins) >= 0) {
-            isNearEndTime = true; // Sisa 5 menit pelajaran berakhir
-        }
-
-        // Lepas kuncian jika jadwal kelas selanjutnya sudah mendekati (H-5 Menit)
-        if (nextClass && (nextClass.masukMins - currentMins) <= 5 && (nextClass.masukMins - currentMins) >= 0) {
-            isPastEndTime = true;
+            isNearEndTime = true; // Sisa 5 menit atau kurang
         }
     }
 
-    // Atur Status Mode saat ini
+    // Set Status Mode Terkini
     if (activeTeaching && !isPastEndTime) {
         currentMode = 'keluar';
     } else if (!activeTeaching) {
-        if (currentMode === 'keluar') currentMode = 'masuk';
+        // Biarkan currentMode sesuai pilihan terakhir user, jangan dipaksa otomatis pindah ke 'masuk' 
+        // jika mereka sedang mencoba menekan tab 'keluar'.
+        if (currentMode !== 'masuk' && currentMode !== 'keluar') currentMode = 'masuk';
     }
 
-    if (!currentMode) {
-        document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-camera"></i> Standby';
-        document.getElementById('scanInstruction').textContent = 'Pilih MASUK atau KELUAR untuk menyalakan kamera scan';
-        btnMasuk.className = 'btn btn-sm btn-outline'; btnKeluar.className = 'btn btn-sm btn-outline';
-        return;
-    }
-
-    document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
-
-    // Cek apakah kelas selanjutnya dimulai 5 menit lagi atau kurang
+    // PASTIKAN: Cek jika kelas selanjutnya mulai dalam waktu <= 5 Menit
     let isNextClassNear = nextClass && ((nextClass.masukMins - currentMins) <= 5);
 
     // ==========================================================
-    // LOGIKA DINAMIS TEKS, KUNCIAN, DAN ANIMASI
+    // LOGIKA TEKS, BUKA KUNCIAN, & ANIMASI
     // ==========================================================
     if (activeTeaching) {
         if (activeTeaching.keluarScanned) {
-            // Skenario: Menunggu Sinkronisasi
+            // Sedang sync ke server
             masukClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
             keluarClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-            document.getElementById('scanInstruction').innerHTML = `Menunggu sinkronisasi absen <b>KELUAR</b> untuk kelas <b>${activeTeaching.class}</b>...<br><button class="btn btn-sm btn-warning mt-3 w-full" onclick="forceUnlock()" style="pointer-events: auto;"><i class="fa-solid fa-unlock-keyhole"></i> Lepaskan Kunci Manual</button>`;
-            document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sync Keluar...';
+            document.getElementById('scanInstruction').innerHTML = `Menunggu sinkronisasi absen <b>KELUAR</b> kelas <b>${activeTeaching.class}</b>...<br><button class="btn btn-sm btn-warning mt-3 w-full" onclick="forceUnlock()" style="pointer-events: auto;"><i class="fa-solid fa-unlock-keyhole"></i> Lepaskan Kunci Manual</button>`;
+            document.getElementById('scanModeBadge').innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sync...';
             currentMode = null; 
         } else {
-            // Skenario: Kelas sedang berlangsung
-            keluarText = `<i class="fa-solid fa-door-open"></i> Scan Keluar ${activeTeaching.class}`;
+            // Saat kelas sedang berlangsung / mau berakhir
+            keluarText = `<i class="fa-solid fa-door-open"></i> Scan Keluar Kelas ${activeTeaching.class}`;
             
             if (isPastEndTime || isNearEndTime) {
-                // H-5 Menit keluar ATAU waktu sudah lewat -> Animasi Merah di Tombol Keluar
+                // Saatnya keluar (H-5 atau sudah lewat) -> Animasi Merah di Tombol Keluar
                 isKeluarAnimated = true;
-                keluarClass = 'btn btn-sm'; // Class warna merah di-inject di bawah
-
+                keluarClass = 'btn btn-sm'; 
+                
                 if (isNextClassNear) {
-                    // Jika ada kelas selanjutnya, tombol Masuk dibuka tapi TIDAK dianimasikan merah
-                    masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk ${nextClass.class}`;
-                    masukClass = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline'; 
-                    document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> hampir/telah habis. Silakan fokus <b>KELUAR</b> terlebih dahulu sebelum menuju kelas ${nextClass.class}.`;
-                } else if (isPastEndTime) {
+                    // Transisi: Harus keluar, tapi kelas berikutnya mau mulai
+                    masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk Kelas ${nextClass.class}`;
                     masukClass = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
-                    document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> telah habis. Silakan scan <b>KELUAR</b>.`;
+                    document.getElementById('scanInstruction').innerHTML = `Fokus scan <b>KELUAR</b> terlebih dahulu sebelum menuju kelas ${nextClass.class}.`;
                 } else {
                     masukClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-                    document.getElementById('scanInstruction').innerHTML = `Silakan bersiap scan <b>KELUAR</b> dari kelas <b>${activeTeaching.class}</b>`;
+                    document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> hampir/telah habis. Silakan scan <b>KELUAR</b>.`;
                 }
             } else {
-                // Di pertengahan pelajaran -> Tombol masuk masih dikunci
-                keluarClass = 'btn btn-sm btn-primary';
-                masukClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
-                document.getElementById('scanInstruction').innerHTML = `Anda sedang mengajar di kelas <b>${activeTeaching.class}</b>`;
+                // Pertengahan jam mengajar santai
+                keluarClass = currentMode === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+                
+                // --- PAKSA BUKA KUNCIAN JIKA SISA WAKTU MASUK <= 5 MENIT ---
+                if (isNextClassNear) {
+                    masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk Kelas ${nextClass.class}`;
+                    masukClass = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
+                    document.getElementById('scanInstruction').innerHTML = `Kelas <b>${nextClass.class}</b> akan segera dimulai. Jangan lupa <b>KELUAR</b> dari kelas saat ini.`;
+                } else {
+                    masukClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+                    document.getElementById('scanInstruction').innerHTML = `Anda sedang mengajar di kelas <b>${activeTeaching.class}</b>`;
+                }
             }
         }
     } else {
-        // Skenario: Tidak ada kelas aktif (posisi Standby di luar jadwal)
+        // Tidak sedang mengajar (Posisi Standby / Awal Pagi / LUPA SCAN MASUK)
         if (isNextClassNear) {
-            // H-5 menit masuk kelas -> Animasi Merah di Tombol Masuk
-            masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk Kelas ${nextClass.class} (pkl ${nextClass.masuk})`;
+            // H-5 kelas mulai -> Animasi Merah di Tombol Masuk
+            masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk Kelas ${nextClass.class} pukul ${nextClass.masuk}`;
             isMasukAnimated = true;
-            document.getElementById('scanInstruction').innerHTML = `Kelas <b>${nextClass.class}</b> akan segera dimulai. Silakan scan masuk!`;
+            
+            if (currentMode === 'keluar') {
+                document.getElementById('scanInstruction').innerHTML = `Arahkan kamera ke QR Code kelas untuk absen <b>KELUAR</b> (Jika Anda lupa absen masuk).`;
+            } else {
+                document.getElementById('scanInstruction').innerHTML = `Kelas <b>${nextClass.class}</b> akan segera dimulai. Silakan scan masuk!`;
+            }
         } else {
-            document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
+            if (currentMode === 'keluar') {
+                document.getElementById('scanInstruction').innerHTML = `Arahkan kamera ke QR Code kelas untuk absen <b>KELUAR</b> (Jika Anda lupa absen masuk).`;
+            } else {
+                document.getElementById('scanInstruction').textContent = 'Arahkan kamera ke QR Code kelas untuk absen MASUK';
+            }
         }
-        masukClass = 'btn btn-sm'; 
-        keluarClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
+        
+        // Kuncian dilepas. Di luar jam mengajar, tombol MASUK dan KELUAR selalu bisa diklik
+        masukClass = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline'; 
+        keluarClass = currentMode === 'keluar' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
     }
 
     // ==========================================================
-    // TERAPKAN PERUBAHAN KE ELEMEN TOMBOL
+    // TERAPKAN PERUBAHAN KE ELEMEN UI
     // ==========================================================
-    
-    // Hapus kelas animasi merah lama jika ada
+    if (currentMode) {
+        document.getElementById('scanModeBadge').innerHTML = currentMode === 'masuk' ? '<i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk' : '<i class="fa-solid fa-door-open"></i> Keluar';
+    }
+
+    // Reset kelas merah lama
     btnMasuk.classList.remove('btn-pulse-red');
     btnKeluar.classList.remove('btn-pulse-red');
 
-    // Ubah Teks
+    // Terapkan teks & class default
     btnMasuk.innerHTML = masukText;
     btnKeluar.innerHTML = keluarText;
-    
-    // Terapkan Class Dasar (Warna default/kuncian)
     btnMasuk.className = masukClass;
     btnKeluar.className = keluarClass;
 
-    // Terapkan Class Animasi (Ini akan menimpa warna default menjadi merah menyala)
+    // Timpa dengan efek animasi merah mencolok sesuai yang wajib difokuskan
     if (isMasukAnimated) {
         btnMasuk.classList.add('btn-pulse-red');
-        currentMode = 'masuk'; // Paksa arahkan mode ke masuk
+        // Kuncian pemaksaan currentMode = 'masuk' telah dihapus di sini agar guru tetap leluasa menekan tombol 'Keluar'
+        if (currentMode === 'masuk') { btnMasuk.classList.remove('btn-outline'); }
     }
     
     if (isKeluarAnimated) {
         btnKeluar.classList.add('btn-pulse-red');
-        currentMode = 'keluar'; // Paksa arahkan mode ke keluar
-    }
-
-    // Jika tidak ada animasi merah, terapkan warna biru standar untuk mode yang sedang dipilih
-    if (!isMasukAnimated && !isKeluarAnimated && !activeTeaching?.keluarScanned) {
-        if (currentMode === 'masuk' && !btnMasuk.classList.contains('pointer-events-none')) {
-            btnMasuk.classList.remove('btn-outline');
-            btnMasuk.classList.add('btn-primary');
-        } else if (currentMode === 'keluar' && !btnKeluar.classList.contains('pointer-events-none')) {
-            btnKeluar.classList.remove('btn-outline');
-            btnKeluar.classList.add('btn-primary');
-        }
+        if (currentMode !== 'keluar') { currentMode = 'keluar'; btnKeluar.classList.remove('btn-outline'); }
     }
 }
 
