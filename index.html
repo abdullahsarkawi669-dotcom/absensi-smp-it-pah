@@ -854,6 +854,35 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     </div>
 </div>
 
+<!-- DASHBOARD PEMBIASAAN PAGI WALI KELAS -->
+<div class="card bg-emerald-50 border-emerald-200 mt-4" id="adminPembiasaanCard">
+    <div class="card-header text-emerald-800" style="margin-bottom: 12px; font-size: 0.95rem;">
+        <span><i class="fa-solid fa-sun"></i> Rekap Pembiasaan Pagi Wali Kelas</span>
+    </div>
+    
+    <div class="flex gap-2 mb-3">
+        <select id="filterPembiasaanPeriode" class="p-2 border-2 border-emerald-300 rounded text-sm w-full font-bold text-emerald-800" style="background: white;" onchange="renderPembiasaanPagiAdmin()">
+            <option value="day">Hari Ini</option>
+            <option value="week">Pekan Ini</option>
+            <option value="month">Bulan Ini</option>
+        </select>
+        <button class="btn btn-success btn-sm" onclick="exportTableToExcel('tabelPembiasaan', 'Rekap_Pembiasaan_Pagi.xls')" style="white-space: nowrap;">
+            <i class="fa-solid fa-file-excel"></i> Download XLS
+        </button>
+    </div>
+    
+    <div class="table-wrap" style="max-height: 350px;">
+        <table id="tabelPembiasaan">
+            <thead class="bg-emerald-100">
+                <tr><th>Wali Kelas</th><th>Kls</th><th>Hadir (x)</th><th>Telat (x)</th><th>Alpa/Tdk Hadir</th></tr>
+            </thead>
+            <tbody id="bodyPembiasaan">
+                <tr><td colspan="5" class="text-center text-muted">Memuat rekap...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
             <div class="card">
                 <div class="card-header">
                     <span><i class="fa-solid fa-clipboard-user"></i> Dashboard Admin</span>
@@ -1217,8 +1246,18 @@ for (let r of rentangLibur) {
     return false;
 }
 
+const WALI_KELAS_MAP = {
+        "Hairul Umam Insani, S. Pd.": "7A", "Hafiz Bagis, Lc.": "7B", "Salman, S. Pd. I.": "7C",
+        "Haqikahurrahman, S. Pd.": "7D", "Zulkarnaen Teguh Wibowo, S. Pd. I.": "7E",
+        "Firman, S. Pd.": "8A", "Syahrul Hasyim, Lc.": "8B", "Adiandri Suhaili, M. Pd.": "8C",
+        "M. Tahir, M. Pd.": "8D", "Ahmad Mahsan Haikal, Lc.": "8E",
+        "Saifuddin Hidayat, S. Pd.": "9A", "Syamsul Bahri, Lc.": "9B",
+        "Ludfi Rusdiyono, S. Pd.": "9C", "Ahmad Arroiyan, Lc.": "9D"
+    };
+
     const JADWAL_WAKTU = {
         reguler: {
+            'Pembiasaan Pagi': { masuk: '07:15', keluar: '07:30' },
             'JP 1': { masuk: '07:30', keluar: '08:10' },
             'JP 2': { masuk: '08:10', keluar: '08:50' },
             'JP 3': { masuk: '08:50', keluar: '09:30' },
@@ -1229,6 +1268,7 @@ for (let r of rentangLibur) {
             'JP 8': { masuk: '12:25', keluar: '13:00' }
         },
         jumat: {
+			'Pembiasaan Pagi': { masuk: '07:15', keluar: '07:30' },
             'JP 1': { masuk: '07:30', keluar: '08:05' },
             'JP 2': { masuk: '08:05', keluar: '08:40' },
             'JP 3': { masuk: '08:40', keluar: '09:15' },
@@ -1241,7 +1281,7 @@ for (let r of rentangLibur) {
     let jadwalPelajaran = JSON.parse(localStorage.getItem('jadwal_cache')) || {};
     const allDays = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'ahad'];
     
-    const allJPs = [];
+    const allJPs = ['Pembiasaan Pagi']; // Tambahkan ini di array awal
     for (let i = 1; i <= 8; i++) {
         allJPs.push('JP ' + i);
         for (let j = i + 1; j <= 8; j++) {
@@ -1621,6 +1661,13 @@ for (let r of rentangLibur) {
 function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
     hari = (hari || "").toLowerCase();
     
+    // ATURAN KHUSUS PEMBIASAAN PAGI
+    if (jp === 'Pembiasaan Pagi') {
+        if (WALI_KELAS_MAP[guruName] && WALI_KELAS_MAP[guruName] === kelas) return 'Pembiasaan Pagi';
+        return null;
+    }
+    // ... sisa kodenya biarkan
+    
     const isGuruTahfizh = TEACHERS.some(t => t.name === guruName && t.subjects.includes("Tahfizhul Qur'an"));
     if (isGuruTahfizh) {
         const isKopel1 = ['7A', '7B', '7C'].includes(kelas) && ((hari === 'senin' && (jp === 'JP 3' || jp === 'JP 4')) || (hari === 'selasa' && (jp === 'JP 3' || jp === 'JP 4')) || (hari === 'rabu' && (jp === 'JP 7' || jp === 'JP 8')) || (hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')));
@@ -1710,12 +1757,14 @@ function getCurrentJPInfo(mode = '') {
             let k = parseInt(kArr[0], 10)*60 + parseInt(kArr[1], 10);
             
             let isValid = false;
+            let allowEarly = jp === 'Pembiasaan Pagi' ? 30 : 10; // Boleh absen 30 menit lebih awal khusus Pembiasaan Pagi
+            
             if (mode === 'masuk') {
-                isValid = (totalMins >= (m - 10) && totalMins <= k); // Toleransi masuk 10 menit lebih awal
+                isValid = (totalMins >= (m - allowEarly) && totalMins <= k); 
             } else if (mode === 'keluar') {
-                isValid = (totalMins >= m && totalMins <= (k + 20)); // Toleransi keluar hingga 20 menit sesudah kelas
+                isValid = (totalMins >= m && totalMins <= (k + 20)); 
             } else {
-                isValid = (totalMins >= (m - 10) && totalMins <= (k + 20));
+                isValid = (totalMins >= (m - allowEarly) && totalMins <= (k + 20));
             }
             
             if (isValid) {
@@ -2748,8 +2797,8 @@ let activeBlock = null;
             let b = myBlocks[i];
             let m = b.masuk; let k = b.keluar; let isValid = false;
             
-            // Aturan baku: Toleransi duluan masuk 10 menit
-            let allowEarlyMins = 10; 
+            // Toleransi duluan masuk: 30 menit untuk Pembiasaan Pagi, 10 menit untuk JP biasa
+            let allowEarlyMins = b.jps.includes('Pembiasaan Pagi') ? 30 : 10; 
             
             if (currentMode === 'masuk') { 
                 isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= k); 
@@ -2835,17 +2884,19 @@ let activeBlock = null;
         // =========================================================
         // --- AWAL TAMBAHAN LOGIKA CEK TERLAMBAT SAAT SCAN ---
         // =========================================================
+        // =========================================================
         const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
         let isLate = false;
         let m = parseTimeToMins(jMasuk);
         
-        // Jika sedang absen masuk dan jadwal masuk (m) terbaca valid
         if (currentMode === 'masuk' && m > 0) {
-            // Hitung selisih waktu scan dengan waktu jadwal
-            if ((timeMins - m) > tolMasuk) {
+            // Batas maksimal telat Pembiasaan Pagi = 07.15 + 3 menit = 07.18
+            let toleranceLimit = (jpFinal === 'Pembiasaan Pagi') ? 3 : tolMasuk;
+            if ((timeMins - m) > toleranceLimit) {
                 isLate = true;
             }
         }
+        // =========================================================
 
         if (isLate) {
             // Tahan proses! Panggil fungsi poptext yang dibuat di Langkah A
@@ -3502,12 +3553,14 @@ async function autoResolveLupaAbsen() {
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
     let keluarMins = parseTimeToMins(activeData.keluar);
+    let isPembiasaan = activeData.jp === 'Pembiasaan Pagi';
+    
+    // Trigger Auto-Checkout: Pukul 08:29 untuk Pembiasaan Pagi, atau Jam Keluar + 20 menit untuk JP biasa
+    let triggerMins = isPembiasaan ? parseTimeToMins('08:29') : (keluarMins + 20);
 
-    // KETENTUAN UTAMA: Jika hari ini, dan menit saat ini melebihi atau sama dengan jam keluar + 20 menit
-    if (activeData.date === todayStr && currentMins >= (keluarMins + 20)) {
-        
-        let outH = Math.floor((keluarMins + 20) / 60);
-        let outM = (keluarMins + 20) % 60;
+    if (activeData.date === todayStr && currentMins >= triggerMins) {
+        let outH = Math.floor(triggerMins / 60);
+        let outM = triggerMins % 60;
         let autoOutTime = String(outH).padStart(2, '0') + ':' + String(outM).padStart(2, '0') + ':00';
 
         const recordLupa = {
@@ -3516,7 +3569,7 @@ async function autoResolveLupaAbsen() {
             jp: activeData.jp || '-', 
             jadwal_masuk: activeData.masuk || '-', 
             jadwal_keluar: activeData.keluar,
-            timestamp: new Date().toISOString(), keterangan: 'lupa scan keluar', synced: false
+            timestamp: now.toISOString(), keterangan: 'lupa scan keluar', synced: false
         };
         
         await saveAttendanceLocal(recordLupa);
@@ -3524,13 +3577,12 @@ async function autoResolveLupaAbsen() {
             sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
         }
 
-        // Hapus kuncian kelas
         localStorage.removeItem('activeTeaching_' + currentUser);
         const timerCard = document.getElementById('activeClassTimerCard');
         if(timerCard) timerCard.classList.add('hidden');
         
         updateScanModeUI();
-        showToast('Sistem mencatat otomatis absen keluar (Lupa Scan Keluar > 20 Menit).', 'warning');
+        showToast('Sistem mencatat otomatis absen keluar (' + (isPembiasaan ? 'Batas Pembiasaan Pagi 08:29' : 'Lupa > 20 Menit') + ').', 'warning');
     }
 }
     
@@ -3898,6 +3950,8 @@ function renderLiveMonitor() {
             let isTahfizh = mapel.toLowerCase().includes('tahfiz');
             let teacherDisplay = isTahfizh ? '<span class="font-bold text-indigo-700">Tim Tahfizh</span>' : teachers.join(', ');
 
+            // --- GANTI BLOK hasClockedIn INI DI DALAM renderLiveMonitor() ---
+            // --- PERBAIKAN FINAL LIVE MONITOR KELAS KOPEL & TAHFIZH ---
             let hasClockedIn = false;
             const isOverlap = (recordJp, checkJp) => {
                 if (!recordJp || !checkJp) return false;
@@ -3907,24 +3961,67 @@ function renderLiveMonitor() {
                        (rJps.length > 1 ? parseInt(rJps[1]) : parseInt(rJps[0])) >= parseInt(cJps[0]));
             };
 
-            // -------------------------------------------------------------
-            // PERBAIKAN STEP 3 MULAI DARI SINI
-            // -------------------------------------------------------------
             hasClockedIn = serverDataToday.some(d => {
-                // 1. Pecah nama kelas kopel menjadi array (contoh: "7a, 7b" menjadi ["7a", "7b"])
-                // Pastikan formatnya seragam menjadi huruf kecil (lowercase) dan hilangkan spasi
-                let kopelArray = formattedClass.split(',').map(c => c.trim().toLowerCase());
-                let serverClass = d.class.toLowerCase();
-
-                // 2. Cek apakah kelas dari data absen guru ada di dalam array kelas kopel tersebut
-                // Jika guru scan "7a", dan kopelArray berisi ["7a", "7b"], maka kembalikan TRUE
-                if (!kopelArray.includes(serverClass)) return false;
-                
-                // Jika kelas cocok, lanjut ke pengecekan JP dan Guru
                 if (!isOverlap(d.jp, targetJp)) return false;
-                if (isTahfizh) return d.subject && d.subject.toLowerCase().includes('tahfiz');
+
+                // 1. Normalisasi teks kelas yang tampil di baris tabel saat ini
+                let kopelArray = formattedClass.replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
+                // 2. Normalisasi teks kelas dari data server (yang di-scan guru)
+                let serverClass = (d.class || "").replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
+
+                let classMatch = false;
+
+                // Cek irisan langsung (apakah kelas yang di-scan persis ada di dalam grup baris ini)
+                if (kopelArray.some(c => serverClass.includes(c))) {
+                    classMatch = true;
+                }
+
+                let mapelStr = (mapel || "").toLowerCase();
+                let hMapelStr = (d.subject || "").toLowerCase();
+
+                // Cek khusus Guru Tahfizh (Harus dipastikan memang mapel Tahfizh yang di-scan)
+                if (!classMatch && mapelStr.includes('tahfiz') && hMapelStr.includes('tahfiz')) {
+                    const kopelTahfizh = [ 
+                        ['7a', '7b', '7c'], 
+                        ['7d', '7e', '8a'], 
+                        ['8b', '8c', '8d', '8e'], 
+                        ['9a', '9b', '9c', '9d'] 
+                    ];
+                    
+                    for (let group of kopelTahfizh) {
+                        // KUNCI UTAMA: Hanya centang hijau jika grup kopel di jadwal SAMA PERSIS 
+                        // dengan grup kopel tempat guru tersebut benar-benar melakukan scan masuk.
+                        let groupMatchSchedule = group.some(c => kopelArray.includes(c));
+                        let groupMatchServer = group.some(c => serverClass.includes(c));
+
+                        if (groupMatchSchedule && groupMatchServer) {
+                            classMatch = true;
+                            break;
+                        }
+                    }
+                }
+                
+                // Cek khusus PJOK (M. Tahir, M. Pd.)
+                if (!classMatch && mapelStr.includes('pjok') && hMapelStr.includes('pjok') && teachers.includes('M. Tahir, M. Pd.')) {
+                    const kopelPJOK = [ 
+                        ['9a', '9b'], ['9c', '9d'], ['7d', '7e'], 
+                        ['7a', '7b'], ['8a', '8b'], ['7c', '8e'] 
+                    ];
+                    for (let group of kopelPJOK) {
+                        if (group.some(c => kopelArray.includes(c)) && group.some(c => serverClass.includes(c))) {
+                            classMatch = true;
+                            break;
+                        }
+                    }
+                }
+
+                if (!classMatch) return false;
+                
+                // Pastikan juga guru yang mengajar di server cocok dengan jadwal
                 return teachers.includes(d.teacher);
             });
+            // -----------------------------------------------------------------
+            // ----------------------------------------------------------------
             // -------------------------------------------------------------
             // PERBAIKAN STEP 3 SELESAI
             // -------------------------------------------------------------
@@ -4963,7 +5060,59 @@ function renderMasterAdminMonitor() {
     tbody.innerHTML = rowsHTML || '<tr><td colspan="3" style="text-align: center; padding: 10px;">Tidak ada data guru.</td></tr>';
 }
 
-
+function renderPembiasaanPagiAdmin() {
+    const tbody = document.getElementById('bodyPembiasaan');
+    if (!tbody || currentServerDataCacheAdmin.length === 0) return;
+    
+    const period = document.getElementById('filterPembiasaanPeriode').value;
+    const todayStr = getLocalDateString(new Date());
+    const now = new Date();
+    
+    // Tentukan hari aktif sekolah (mengecualikan minggu & hari libur nasional)
+    let validDates = [];
+    let startDate = new Date();
+    if (period === 'day') startDate = new Date();
+    if (period === 'week') startDate = new Date(now.setDate(now.getDate() - now.getDay() + 1));
+    if (period === 'month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    
+    let tempDate = new Date(startDate);
+    while (getLocalDateString(tempDate) <= todayStr) {
+        // Cek bukan hari minggu (0) dan bukan hari libur kalender sekolah
+        if (tempDate.getDay() !== 0 && !isLiburSekolah(tempDate)) {
+            validDates.push(getLocalDateString(tempDate));
+        }
+        tempDate.setDate(tempDate.getDate() + 1);
+    }
+    
+    let totalHariAktif = validDates.length;
+    let dataPembiasaan = currentServerDataCacheAdmin.filter(d => d.jp === 'Pembiasaan Pagi' && d.action === 'masuk' && validDates.includes(d.date));
+    
+    let html = '';
+    for (let guru in WALI_KELAS_MAP) {
+        let kelas = WALI_KELAS_MAP[guru];
+        let records = dataPembiasaan.filter(d => d.teacher === guru);
+        
+        let totalHadir = records.length;
+        let alfa = totalHariAktif - totalHadir;
+        let telat = 0;
+        
+        records.forEach(r => {
+            let m = parseTimeToMins('07:15'); // Jadwal fix
+            let w = parseTimeToMins(r.time);
+            if (w > (m + 3)) telat++; // Absen di atas pukul 07.18 dicatat telat
+        });
+        
+        html += `<tr>
+            <td class="font-bold text-xs">${guru}</td>
+            <td class="font-bold text-xs">${kelas}</td>
+            <td class="text-success font-bold text-center">${totalHadir}</td>
+            <td class="${telat > 0 ? 'text-warning' : 'text-gray-400'} font-bold text-center">${telat}</td>
+            <td class="${alfa > 0 ? 'text-danger' : 'text-gray-400'} font-bold text-center">${alfa > 0 ? alfa : 0}</td>
+        </tr>`;
+    }
+    
+    tbody.innerHTML = html;
+}
 
 </script>
 </body>
