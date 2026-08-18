@@ -402,7 +402,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 <div id="loginScreen">
     <div class="login-box">
         <div class="logo"><i class="fa-solid fa-graduation-cap"></i></div>
-        <h1>SMP islam terpadu putra abu Hurairah mataram</h1>
+        <h1>SMP Islam Terpadu Putra Abu Hurairah Mataram</h1>
         <p class="sub">Sistem Absensi Guru Berbasis QR Code</p>
         <hr class="divider" />
 
@@ -834,21 +834,25 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             </div>
         </div>
             <!-- REKAP GURU TIDAK MASUK KELAS (MISSED CLASSES) CARD -->
-            <div class="card bg-red-50 border-red-200" id="adminMissedClassesCard">
-                <div class="card-header text-red-600" style="margin-bottom: 12px; font-size: 0.95rem;">
-                    <span><i class="fa-solid fa-user-xmark"></i> Rekap Guru Tidak Masuk (Hari Ini)</span>
-                </div>
-                <div class="table-wrap" style="max-height: 250px;">
-                    <table id="missedClassesTable">
-                        <thead>
-                            <tr><th>Guru</th><th>Kls</th><th>Mapel</th><th>JP</th><th>Waktu</th></tr>
-                        </thead>
-                        <tbody id="missedClassesBody">
-                            <tr><td colspan="5" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menghitung rekap...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+			<!--fitur copy screenshot (berbentuk teks yang diformat rapi untuk WhatsApp)-->
+<div class="card bg-red-50 border-red-200" id="adminMissedClassesCard">
+    <div class="card-header text-red-600" style="margin-bottom: 12px; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;">
+        <span><i class="fa-solid fa-user-xmark"></i> Rekap Guru Tidak Scan Masuk Hari Ini</span>
+        <button class="btn btn-sm btn-primary" style="font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: none; background-color: #2563eb; color: white; cursor: pointer;" onclick="copyRekapWA()">
+            <i class="fa-solid fa-copy"></i> Copy via WA
+        </button>
+    </div>
+    <div class="table-wrap" style="max-height: 250px;">
+        <table id="missedClassesTable">
+            <thead>
+                <tr><th>Guru</th><th>Kls</th><th>Mapel</th><th>JP</th><th>Waktu</th></tr>
+            </thead>
+            <tbody id="missedClassesBody">
+                <tr><td colspan="5" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menghitung rekap...</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
             <div class="card">
                 <div class="card-header">
@@ -940,6 +944,30 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 </div>
 
                 <hr class="divider" />
+
+<!--render seluruh guru dengan posisi terkini mereka (diurutkan sesuai abjad)-->
+<div class="card mt-4" id="panelMasterAdmin" style="display: none;">
+    <div class="card-header bg-indigo-600 text-white d-flex justify-content-between align-items-center" style="background-color: #4f46e5; padding: 12px 16px; border-radius: 8px 8px 0 0; color: white; font-weight: bold;">
+        <span><i class="fa-solid fa-users-viewfinder"></i> Live Monitor Seluruh Guru (Master Admin)</span>
+        <span class="badge bg-white text-indigo-600" id="totalGuruMonitor" style="background: white; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 11px;">0 Guru</span>
+    </div>
+    <div class="table-wrap" style="max-height: 450px; overflow-y: auto; border: 1px solid #e5e7eb; border-top: none;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left;">
+            <thead>
+                <tr style="background-color: #f9fafb; border-bottom: 2px solid #e5e7eb;">
+                    <th style="padding: 10px; font-size: 12px; font-weight: 600; color: #374151;">Nama Guru</th>
+                    <th style="padding: 10px; font-size: 12px; font-weight: 600; color: #374151;">Status / Posisi Terkini</th>
+                    <th style="padding: 10px; font-size: 12px; font-weight: 600; color: #374151;">Waktu Scan</th>
+                </tr>
+            </thead>
+            <tbody id="listMasterAdminBody">
+                <tr>
+                    <td colspan="3" style="text-align: center; padding: 20px; color: #6b7280;">Memuat data monitor guru...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
 
                 <div class="input-group">
                     <label>Filter Laporan Guru</label>
@@ -1069,7 +1097,7 @@ function getLocalDateString(d = getCurrentWITA()) {
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxtGTu7bnGYpR4TGaF1gnXBnSIBXB1FcfYoZ6z5uyH6YakIfLQhBIwYDVjvPRKKQwvFIA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzlk-YDW4S3wH6Omyp4xJfjY0OgU3_1frNG43ZFfHs_DX2ADyklG1gyMxNRbgrgY9yKJA/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
 function getLocalDateString(d = new Date()) {
@@ -1666,7 +1694,7 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
     function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
     function getDayNameID() { return ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]; }
 
-    function getCurrentJPInfo(mode = '') {
+function getCurrentJPInfo(mode = '') {
         const now = new Date();
         const totalMins = (now.getHours() * 60) + now.getMinutes();
         const isJumat = (getDayName() === 'jumat');
@@ -1683,11 +1711,11 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
             
             let isValid = false;
             if (mode === 'masuk') {
-                isValid = (totalMins >= (m - 10) && totalMins <= k); 
+                isValid = (totalMins >= (m - 10) && totalMins <= k); // Toleransi masuk 10 menit lebih awal
             } else if (mode === 'keluar') {
-                isValid = (totalMins >= m && totalMins <= (k + 10));
+                isValid = (totalMins >= m && totalMins <= (k + 20)); // Toleransi keluar hingga 20 menit sesudah kelas
             } else {
-                isValid = (totalMins >= (m - 10) && totalMins <= (k + 10));
+                isValid = (totalMins >= (m - 10) && totalMins <= (k + 20));
             }
             
             if (isValid) {
@@ -2124,18 +2152,74 @@ function getNextClass() {
         } catch(e) {}
     }
 
-    function playJpChangeAlarm() { 
-        playTone(500, 'sine', 0.5); 
-        setTimeout(()=>playTone(700, 'sine', 1), 600); 
-    }
+// 1. Deklarasikan file audio
+const audioRing = new Audio('ring.wav');
+const audioAlarm = new Audio('alarm.wav');
+
+// 2. Variabel penanda izin audio
+let isAudioUnlocked = false;
+
+// 3. Fungsi untuk memancing izin audio dari browser
+function unlockAudio() {
+    if (isAudioUnlocked) return;
     
-    function playContinuousBeep() { playTone(900, 'square', 0.5); }
+    // Mainkan dan langsung pause agar browser mencatat adanya "interaksi user" dengan audio
+    audioRing.play().then(() => { 
+        audioRing.pause(); 
+        audioRing.currentTime = 0; 
+    }).catch(e => {});
     
-    function playShortBeep3x() {
-        playTone(1000, 'triangle', 0.2);
-        setTimeout(()=>playTone(1000, 'triangle', 0.2), 300);
-        setTimeout(()=>playTone(1000, 'triangle', 0.2), 600);
-    }
+    audioAlarm.play().then(() => { 
+        audioAlarm.pause(); 
+        audioAlarm.currentTime = 0; 
+    }).catch(e => {});
+    
+    isAudioUnlocked = true;
+    
+    // Lepaskan event listener agar fungsi ini tidak dieksekusi terus-menerus setiap kali layar diklik
+    document.removeEventListener('click', unlockAudio);
+    document.removeEventListener('touchstart', unlockAudio);
+}
+
+// 4. Pasang pendeteksi klik pertama di seluruh halaman aplikasi
+document.addEventListener('click', unlockAudio);
+document.addEventListener('touchstart', unlockAudio);
+
+// ==========================================
+// Fungsi pemanggil audio yang dipakai sistem
+// ==========================================
+function playJpChangeAlarm() { 
+    audioRing.currentTime = 0; 
+    audioRing.play().catch(e => console.log("Audio diblokir browser:", e));
+}
+
+function playContinuousBeep() { 
+    audioAlarm.currentTime = 0; 
+    audioAlarm.play().catch(e => console.log("Audio diblokir browser:", e));
+}
+
+function playShortBeep3x() {
+    audioAlarm.currentTime = 0;
+    audioAlarm.play().catch(e => console.log("Audio diblokir browser:", e));
+}
+
+// 2. Ganti fungsi notifikasi perpindahan JP
+function playJpChangeAlarm() { 
+    audioRing.currentTime = 0; // Reset audio ke detik awal
+    audioRing.play().catch(e => console.log("Audio tertahan oleh browser:", e));
+}
+
+// 3. Ganti fungsi bel peringatan 5 menit (looping)
+function playContinuousBeep() { 
+    audioAlarm.currentTime = 0; 
+    audioAlarm.play().catch(e => console.log("Audio tertahan oleh browser:", e));
+}
+
+// 4. Ganti fungsi bel peringatan saat sedang mengajar kelas lain
+function playShortBeep3x() {
+    audioAlarm.currentTime = 0;
+    audioAlarm.play().catch(e => console.log("Audio tertahan oleh browser:", e));
+}
     
     // Fungsi untuk mematikan bel
     window.stopContinuousAlarm = function() {
@@ -2657,19 +2741,23 @@ window.editKeterangan = async function(encodedRecord) {
         }
         if (currentBlock) myBlocks.push(currentBlock);
 
-        let activeBlock = null;
+let activeBlock = null;
         let minDiff = 9999;
         
         for (let i = 0; i < myBlocks.length; i++) {
             let b = myBlocks[i];
             let m = b.masuk; let k = b.keluar; let isValid = false;
             
-            // Toleransi masuk sangat awal untuk jam pertama (9 Menit)
-            let allowEarlyMins = (i === 0) ? 9 : 10;
+            // Aturan baku: Toleransi duluan masuk 10 menit
+            let allowEarlyMins = 10; 
             
-            if (currentMode === 'masuk') { isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= k); } 
-            else if (currentMode === 'keluar') { isValid = (timeMins >= m && timeMins <= (k + 10)); } 
-            else { isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= (k + 10)); }
+            if (currentMode === 'masuk') { 
+                isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= k); 
+            } else if (currentMode === 'keluar') { 
+                isValid = (timeMins >= m && timeMins <= (k + 20)); // Batas keluar 20 Menit
+            } else { 
+                isValid = (timeMins >= (m - allowEarlyMins) && timeMins <= (k + 20)); 
+            }
             
             if (isValid) {
                 let center = (m + k) / 2;
@@ -3415,7 +3503,7 @@ async function autoResolveLupaAbsen() {
     
     let keluarMins = parseTimeToMins(activeData.keluar);
 
-    // Ketentuan (2): Jika tidak ada aktivitas baru, catat otomatis 20 menit setelah jadwal
+    // KETENTUAN UTAMA: Jika hari ini, dan menit saat ini melebihi atau sama dengan jam keluar + 20 menit
     if (activeData.date === todayStr && currentMins >= (keluarMins + 20)) {
         
         let outH = Math.floor((keluarMins + 20) / 60);
@@ -3425,8 +3513,8 @@ async function autoResolveLupaAbsen() {
         const recordLupa = {
             teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
             date: activeData.date, time: autoOutTime, day: getDayNameID(), 
-            jp: activeData.jp || '-', // PERBAIKAN: Gunakan identitas JP spesifik yang tersimpan
-            jadwal_masuk: activeData.masuk || '-', // PERBAIKAN: Gunakan jadwal masuk spesifik
+            jp: activeData.jp || '-', 
+            jadwal_masuk: activeData.masuk || '-', 
             jadwal_keluar: activeData.keluar,
             timestamp: new Date().toISOString(), keterangan: 'lupa scan keluar', synced: false
         };
@@ -3436,13 +3524,13 @@ async function autoResolveLupaAbsen() {
             sendToGoogleSheet(recordLupa).then(res => { if(res.success) processSyncedItem(recordLupa); });
         }
 
+        // Hapus kuncian kelas
         localStorage.removeItem('activeTeaching_' + currentUser);
         const timerCard = document.getElementById('activeClassTimerCard');
         if(timerCard) timerCard.classList.add('hidden');
         
-        // currentMode = 'masuk'; // DIHAPUS
         updateScanModeUI();
-        showToast('Sistem mencatat otomatis absen keluar (20 menit setelah jadwal).', 'info');
+        showToast('Sistem mencatat otomatis absen keluar (Lupa Scan Keluar > 20 Menit).', 'warning');
     }
 }
     
@@ -3637,57 +3725,109 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
     }
 	
 function buildAdminMissedClasses(allData) {
-        const tbody = document.getElementById('missedClassesBody');
-        const todayStr = getLocalDateString(new Date()); 
-        const serverDataToday = allData.filter(d => d.date === todayStr && d.action === 'masuk');
-        const hari = getDayName();
-        const now = new Date();
-        const currentMins = now.getHours() * 60 + now.getMinutes();
-        
-        let missedList = [];
-        
-        TEACHERS.forEach(t => {
-            let blocks = getGroupedSchedule(t.name, hari, currentMins);
-            blocks.forEach(sch => {
-                if (sch.kMins < currentMins) {
-                    let hasClockedIn = serverDataToday.some(h => {
-                        if (h.teacher !== t.name) return false;
-                        if (h.class !== sch.class) return false;
+    const tbody = document.getElementById('missedClassesBody');
+    const todayStr = getLocalDateString(new Date()); 
+    const serverDataToday = allData.filter(d => d.date === todayStr && d.action === 'masuk');
+    const hari = getDayName();
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+    
+    let missedList = [];
+    
+    TEACHERS.forEach(t => {
+        let blocks = getGroupedSchedule(t.name, hari, currentMins);
+        blocks.forEach(sch => {
+            // Syarat masuk list: Waktu saat ini > Jadwal Masuk + 15 Menit
+            let batasPengecekan = parseTimeToMins(sch.masuk) + 15;
+            
+            if (currentMins > batasPengecekan) {
+                let hasClockedIn = serverDataToday.some(h => {
+                    // Pengecekan 1: Nama Guru harus persis sama
+                    if (h.teacher !== t.name) return false;
 
-                        let overlap = false;
-                        sch.jps.forEach(j => {
-                            if (h.jp) {
-                                let hJps = h.jp.replace('JP ', '').split('-');
-                                let hStart = parseInt(hJps[0]);
-                                let hEnd = hJps.length > 1 ? parseInt(hJps[1]) : hStart;
-                                if (j >= hStart && j <= hEnd) overlap = true; 
-                            }
-                        });
-                        return overlap;
+                    // Pengecekan 2: Toleransi Benturan Jam Pelajaran (JP)
+                    let overlap = false;
+                    sch.jps.forEach(j => {
+                        if (h.jp) {
+                            let hJps = h.jp.replace('JP ', '').split('-');
+                            let hStart = parseInt(hJps[0]);
+                            let hEnd = hJps.length > 1 ? parseInt(hJps[1]) : hStart;
+                            if (j >= hStart && j <= hEnd) overlap = true; 
+                        }
                     });
+                    if (!overlap) return false;
+
+                    // Pengecekan 3: KELAS KOPEL (Berdasarkan Aturan Tahfizh & PJOK)
+                    let classMatch = false;
                     
-                    if (!hasClockedIn) {
-                        let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
-                        missedList.push({
-                            teacher: t.name, class: sch.class, mapel: sch.mapel, jp: jpStr, waktu: `${sch.masuk} - ${sch.keluar}`
-                        });
+                    // Ekstrak kelas menjadi array (menghilangkan tanda kurung jika ada)
+                    let schArr = sch.class.replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
+                    let hArr = (h.class || "").replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
+
+                    // Cek Irisan Dasar (Apakah nama kelas yang discan ada di jadwal)
+                    if (schArr.some(c => hArr.includes(c))) {
+                        classMatch = true;
                     }
+
+                    let mapelStr = (sch.mapel || "").toLowerCase();
+                    let hMapelStr = (h.subject || "").toLowerCase();
+                    
+                    // Aturan Grup Kopel Tahfizh
+                    if (!classMatch && mapelStr.includes('tahfiz') && hMapelStr.includes('tahfiz')) {
+                        const kopelTahfizh = [
+                            ['7a', '7b', '7c'],
+                            ['7d', '7e', '8a'],
+                            ['8b', '8c', '8d', '8e'],
+                            ['9a', '9b', '9c', '9d']
+                        ];
+                        // Jika kelas di jadwal dan kelas yang discan berada dalam satu grup yang sama -> Cocok!
+                        for (let group of kopelTahfizh) {
+                            if (group.some(c => schArr.includes(c)) && group.some(c => hArr.includes(c))) {
+                                classMatch = true; break;
+                            }
+                        }
+                    }
+                    
+                    // Aturan Grup Kopel PJOK (Khusus M. Tahir, M. Pd.)
+                    if (!classMatch && mapelStr.includes('pjok') && hMapelStr.includes('pjok') && t.name === 'M. Tahir, M. Pd.') {
+                        const kopelPJOK = [
+                            ['9a', '9b'], ['9c', '9d'], ['7d', '7e'],
+                            ['7a', '7b'], ['8a', '8b'], ['7c', '8e']
+                        ];
+                        // Jika kelas di jadwal dan kelas yang discan berada dalam satu grup yang sama -> Cocok!
+                        for (let group of kopelPJOK) {
+                            if (group.some(c => schArr.includes(c)) && group.some(c => hArr.includes(c))) {
+                                classMatch = true; break;
+                            }
+                        }
+                    }
+
+                    return classMatch;
+                });
+                
+                // Jika setelah semua pengecekan guru tersebut belum scan masuk
+                if (!hasClockedIn) {
+                    let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
+                    missedList.push({
+                        teacher: t.name, class: sch.class, mapel: sch.mapel, jp: jpStr, waktu: `${sch.masuk} - ${sch.keluar}`
+                    });
                 }
-            });
+            }
         });
-        
-        tbody.innerHTML = '';
-        if (missedList.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-success font-bold"><i class="fa-solid fa-check-double"></i> Alhamdulillah, seluruh jadwal kelas yang telah lewat berhasil diisi (Tidak ada yang absen).</td></tr>';
-            return;
-        }
-        
-        missedList.forEach(m => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="font-bold text-danger text-sm">${m.teacher}</td><td class="font-bold text-sm">${m.class}</td><td class="text-sm">${m.mapel}</td><td class="font-bold text-danger text-sm">${m.jp}</td><td class="text-sm">${m.waktu}</td>`;
-            tbody.appendChild(tr);
-        });
+    });
+    
+    tbody.innerHTML = '';
+    if (missedList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-success font-bold"><i class="fa-solid fa-check-double"></i> Alhamdulillah, seluruh jadwal kelas yang sedang/telah lewat berhasil diisi (Tidak ada yang absen).</td></tr>';
+        return;
     }
+    
+    missedList.forEach(m => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td class="font-bold text-danger text-sm">${m.teacher}</td><td class="font-bold text-sm">${m.class}</td><td class="text-sm">${m.mapel}</td><td class="font-bold text-danger text-sm">${m.jp}</td><td class="text-sm">${m.waktu}</td>`;
+        tbody.appendChild(tr);
+    });
+}
 
     let liveMonitorMode = 'ongoing';
     let currentServerDataCacheAdmin = [];
@@ -3767,12 +3907,27 @@ function renderLiveMonitor() {
                        (rJps.length > 1 ? parseInt(rJps[1]) : parseInt(rJps[0])) >= parseInt(cJps[0]));
             };
 
+            // -------------------------------------------------------------
+            // PERBAIKAN STEP 3 MULAI DARI SINI
+            // -------------------------------------------------------------
             hasClockedIn = serverDataToday.some(d => {
-                if (d.class !== formattedClass) return false;
+                // 1. Pecah nama kelas kopel menjadi array (contoh: "7a, 7b" menjadi ["7a", "7b"])
+                // Pastikan formatnya seragam menjadi huruf kecil (lowercase) dan hilangkan spasi
+                let kopelArray = formattedClass.split(',').map(c => c.trim().toLowerCase());
+                let serverClass = d.class.toLowerCase();
+
+                // 2. Cek apakah kelas dari data absen guru ada di dalam array kelas kopel tersebut
+                // Jika guru scan "7a", dan kopelArray berisi ["7a", "7b"], maka kembalikan TRUE
+                if (!kopelArray.includes(serverClass)) return false;
+                
+                // Jika kelas cocok, lanjut ke pengecekan JP dan Guru
                 if (!isOverlap(d.jp, targetJp)) return false;
                 if (isTahfizh) return d.subject && d.subject.toLowerCase().includes('tahfiz');
                 return teachers.includes(d.teacher);
             });
+            // -------------------------------------------------------------
+            // PERBAIKAN STEP 3 SELESAI
+            // -------------------------------------------------------------
 
             let statusBadge = hasClockedIn 
                 ? '<span class="text-success text-lg" title="Sudah Masuk"><i class="fa-solid fa-circle-check"></i></span>'
@@ -4666,6 +4821,149 @@ document.getElementById('sholatTab').addEventListener('click', () => {
     updateTanggalIslami();
     fetchJadwalSholat();
 });
+
+// Tambahkan di script JS index29.html
+function copyRekapWA() {
+    const tbody = document.getElementById('missedClassesBody');
+    const rows = tbody.querySelectorAll('tr');
+    
+    // Format tanggal hari ini (Contoh: Selasa, 18 Agustus 2026)
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    const tanggalSekarang = new Date().toLocaleDateString('id-ID', options);
+    
+    let textToCopy = "*REKAP GURU TIDAK SCAN MASUK HARI INI*\n";
+    textToCopy += "*SMP Islam Terpadu Putra Abu Hurairah Mataram*\n";
+    textToCopy += "Tanggal: " + tanggalSekarang + "\n\n";
+    
+    // Cek jika tabel kosong, tidak ada data, atau masih proses loading
+    if (rows.length === 0 || (rows.length === 1 && (rows[0].innerText.includes('Menghitung') || rows[0].innerText.includes('Tidak ada')))) {
+        textToCopy += "Alhamdulillah, tidak ada catatan guru yang tidak scan masuk hari ini.";
+    } else {
+        let index = 1;
+        rows.forEach(row => {
+            const cells = row.querySelectorAll('td');
+            // Pastikan baris tersebut adalah data valid (memiliki 5 kolom)
+            if (cells.length >= 5) {
+                let guru = cells[0].innerText.trim();
+                let kls = cells[1].innerText.trim();
+                let mapel = cells[2].innerText.trim();
+                let jp = cells[3].innerText.trim();
+                let waktu = cells[4].innerText.trim();
+                
+                // Susunan teks untuk dikirim ke WhatsApp
+                textToCopy += `${index}. ${guru}\n`;
+                textToCopy += `   📚 Kls: ${kls} | ${mapel} | ${jp}\n\n`;
+                index++;
+            }
+        });
+    }
+    
+    // Proses menyalin ke clipboard (papan klip HP/PC)
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        // Jika Anda menggunakan library notifikasi/toast di dalam index29.html
+        if (typeof showToast === 'function') {
+            showToast("Rekap berhasil disalin untuk WhatsApp!", "success");
+        } else {
+            alert("Rekap berhasil disalin untuk WhatsApp!");
+        }
+    }).catch(err => {
+        console.error('Gagal menyalin teks', err);
+        alert("Gagal menyalin teks. Silakan coba lagi.");
+    });
+}
+
+function cekPembiasaanPagi(namaGuru) {
+    const WALI_KELAS = ["Hairul Umam Insani, S. Pd.", "Hafiz Bagis, Lc.", "Salman, S. Pd. I.", "Haqikahurrahman, S. Pd.", "Zulkarnaen Teguh Wibowo, S. Pd. I.", "Firman, S. Pd.", "Syahrul Hasyim, Lc.", "Adiandri Suhaili, M. Pd.", "M. Tahir, M. Pd.", "Ahmad Mahsan Haikal, Lc.", "Saifuddin Hidayat, S. Pd.", "Syamsul Bahri, Lc.", "Ludfi Rusdiyono, S. Pd.", "Ahmad Arroiyan, Lc."];
+    
+    if (WALI_KELAS.includes(namaGuru)) {
+        let now = new Date();
+        // Hanya berlaku Senin-Sabtu (1-6)
+        if (now.getDay() >= 1 && now.getDay() <= 6) {
+            let jam = now.getHours();
+            let menit = now.getMinutes();
+            let waktuDesimal = jam + (menit / 60);
+            
+            // Waktu 07:15 (7.25) sampai 07:18 (7.30)
+            if (waktuDesimal >= 7.25 && waktuDesimal <= 7.30) {
+                return true; // Valid scan masuk pembiasaan pagi
+            } else if (waktuDesimal > 7.30 && waktuDesimal <= 7.50) {
+                // Di atas 07:18 berarti telat
+                return "Telat Pembiasaan Pagi";
+            }
+        }
+    }
+    return false;
+}
+
+// Fungsi Monitor Live Posisi Seluruh Guru secara Abjad
+function renderMasterAdminMonitor() {
+    const tbody = document.getElementById('listMasterAdminBody');
+    const totalBadge = document.getElementById('totalGuruMonitor');
+    
+    if (!tbody) return;
+
+    // 1. Ambil data absensi hari ini yang ada di cache admin
+    const todayStr = getLocalDateString(getCurrentWITA());
+    
+    // Filter semua aktivitas masuk maupun keluar untuk hari ini
+    const serverDataToday = currentServerDataCacheAdmin.filter(d => d.date === todayStr);
+
+    // 2. Urutkan daftar master guru (TEACHERS) berdasarkan abjad nama
+    const sortedTeachers = [...TEACHERS].sort((a, b) => a.name.localeCompare(b.name));
+    
+    totalBadge.textContent = `${sortedTeachers.length} Guru`;
+    let rowsHTML = '';
+
+    // 3. Iterasi setiap guru untuk dicari posisi terakhirnya
+    sortedTeachers.forEach(t => {
+        // Cari urutan log aktivitas paling terakhir milik guru tersebut (paling atas/terbaru)
+        // Kita reverse lognya agar aktivitas paling akhir yang ditemukan duluan
+        const lastActivity = [...serverDataToday].reverse().find(d => d.teacher === t.name);
+        
+        let statusDisplay = '';
+        let waktuDisplay = '-';
+
+        if (lastActivity) {
+            waktuDisplay = lastActivity.time || '-';
+            
+            if (lastActivity.action === 'masuk') {
+                // Jika aksi terakhir adalah masuk, berarti sedang berada di dalam kelas tersebut
+                statusDisplay = `
+                    <span style="display: inline-flex; align-items: center; background-color: #ecfdf5; color: #065f46; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500;">
+                        <span style="width: 6px; height: 6px; background-color: #10b981; border-radius: 50%; margin-right: 6px; display: inline-block;"></span>
+                        Mengajar Kelas ${lastActivity.class} (${lastActivity.subject || '-'})
+                    </span>`;
+            } else if (lastActivity.action === 'keluar') {
+                // Jika aksi terakhir keluar, berarti sudah meninggalkan kelas terakhirnya
+                statusDisplay = `
+                    <span style="display: inline-flex; align-items: center; background-color: #f3f4f6; color: #374151; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500;">
+                        Selesai Mengajar Kelas ${lastActivity.class}
+                    </span>`;
+            }
+        } else {
+            // Jika tidak ditemukan record sama sekali hari ini
+            statusDisplay = `
+                <span style="display: inline-flex; align-items: center; background-color: #fef2f2; color: #991b1b; padding: 4px 8px; border-radius: 9999px; font-size: 11px; font-weight: 500;">
+                    Belum Scan Masuk Hari Ini
+                </span>`;
+        }
+
+        rowsHTML += `
+            <style>
+                .tr-monitor:hover { background-color: #f9fafb; }
+            </style>
+            <tr class="tr-monitor" style="border-bottom: 1px solid #e5e7eb;">
+                <td style="padding: 10px; font-size: 12px; font-weight: 600; color: #111827;">${t.name}</td>
+                <td style="padding: 10px; font-size: 12px;">${statusDisplay}</td>
+                <td style="padding: 10px; font-size: 12px; color: #4b5563; font-family: monospace;">${waktuDisplay}</td>
+            </tr>
+        `;
+    });
+
+    tbody.innerHTML = rowsHTML || '<tr><td colspan="3" style="text-align: center; padding: 10px;">Tidak ada data guru.</td></tr>';
+}
+
+
 
 </script>
 </body>
