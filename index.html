@@ -1957,95 +1957,101 @@ function getCurrentJPInfo(mode = '') {
         btn.innerHTML = originalText;
     });
 
+    // Guard global agar tombol sync otomatis/manual tidak melakukan POST
+    // bersamaan dengan sync lainnya.
+    let syncInProgress = false;
+
     async function syncNow(showToastMsg = true, showLog = false) {
+        if (syncInProgress) {
+            if (showLog) addSyncLog('⏳ Sinkronisasi sedang berjalan. Permintaan kedua diabaikan.', 'info');
+            return { success: false, message: 'Sync already running' };
+        }
+
         if (!navigator.onLine) {
             if (showLog) addSyncLog('❌ Offline. Gagal sinkron.', 'error');
             if (showToastMsg) showToast('❌ Offline. Gagal sinkron.', 'error');
             return { success: false, message: 'Offline' };
         }
+
+        syncInProgress = true;
         try {
             const unsynced = await getUnsynced();
+
             if (unsynced.length === 0) {
                 if (showLog) addSyncLog('✅ Tidak ada data pending.', 'success');
                 if (showToastMsg) showToast('✅ Tidak ada data pending.', 'success');
-                updateSyncStatus(); 
+                updateSyncStatus();
                 await refreshServerCache();
                 renderMySchedule();
-                
-                // --- PERBAIKAN: Buka kunci otomatis jika tidak ada antrean data ---
-                if (currentUser) {
-                    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-                    if (activeTeaching && activeTeaching.keluarScanned) {
-                        localStorage.removeItem('activeTeaching_' + currentUser);
-                        const timerCard = document.getElementById('activeClassTimerCard');
-                        if (timerCard) timerCard.classList.add('hidden');
-                        checkActiveTeachingForIzinKasus();
-                        currentMode = null;
-                        updateScanModeUI();
-                    }
-                }
-                // ------------------------------------------------------------------
-                
                 return { success: true, message: 'Tidak ada data' };
             }
+
             if (showLog) addSyncLog(`📤 Pushing ${unsynced.length} data...`, 'info');
             if (showToastMsg) showToast(`🔄 Pushing ${unsynced.length} data...`, 'info');
-            
-            let successCount = 0, failCount = 0;
-            for (const item of unsynced) {
-                const result = await sendToGoogleSheet(item);
-                if (result.success) { 
-                    successCount++; 
-                    if (showLog) addSyncLog(`✅ Item ${item.id} terkirim`, 'success'); 
-                    
-                    await processSyncedItem(item);
-                    
-                    if (item.action === 'keluar') {
-                        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + item.teacher) || "null");
-                        if (activeTeaching && activeTeaching.class === item.class && activeTeaching.keluarScanned) {
-                            localStorage.removeItem('activeTeaching_' + item.teacher);
-                            document.getElementById('activeClassTimerCard').classList.add('hidden');
-                            checkActiveTeachingForIzinKasus();
-                            updateScanModeUI();
-                        }
-                    }
-                } 
-                else { failCount++; if (showLog) addSyncLog(`❌ Item ${item.id} gagal: ${result.error}`, 'error'); }
-            }
-            
-            const msg = `Sync selesai: ${successCount} berhasil, ${failCount} gagal.`;
-            if (failCount === 0) {
-                if (showLog) addSyncLog(`✅ ${msg}`, 'success');
-                if (showToastMsg) showToast('✅ Semua data sukses terkirim!', 'success');
 
-                // --- PERBAIKAN: Buka kunci paksa jika semua data sukses terkirim ---
-                if (currentUser) {
-                    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-                    if (activeTeaching && activeTeaching.keluarScanned) {
-                        localStorage.removeItem('activeTeaching_' + currentUser);
-                        const timerCard = document.getElementById('activeClassTimerCard');
-                        if (timerCard) timerCard.classList.add('hidden');
-                        checkActiveTeachingForIzinKasus();
-                        currentMode = null;
-                        updateScanModeUI();
-                    }
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const item of unsynced) {
+                // Ambil ulang record. Jika scan langsung sudah menandainya
+                // synced, record ini dilewati.
+                const fresh = await new Promise(resolve => {
+                    try {
+                        const tx = db.transaction(STORE_NAME, 'readonly');
+                        const store = tx.objectStore(STORE_NAME);
+                        const req = store.get(item.id);
+                        req.onsuccess = () => resolve(req.result || null);
+                        req.onerror = () => resolve(item);
+                    } catch (e) { resolve(item); }
+                });
+
+                if (!fresh || fresh.synced !== false) continue;
+
+                // Jika ada record identik yang sudah synced, jangan POST ulang.
+                const all = await getLocalHistory(fresh.teacher, fresh.date).catch(() => []);
+                const sameLocal = all.some(r =>
+                    r.id !== fresh.id &&
+                    r.action === fresh.action &&
+                    r.class === fresh.class &&
+                    r.jp === fresh.jp &&
+                    r.subject === fresh.subject &&
+                    r.synced === true
+                );
+
+                if (sameLocal) {
+                    await processSyncedItem(fresh);
+                    continue;
                 }
-                // --------------------------------------------------------------------
-            } else {
-                if (showLog) addSyncLog(`⚠️ ${msg}`, 'error');
-                if (showToastMsg) showToast(`⚠️ ${failCount} gagal. Cek log Admin.`, 'error');
+
+                const result = await sendToGoogleSheet(fresh);
+
+                if (result.success) {
+                    successCount++;
+                    await processSyncedItem(fresh);
+                    if (showLog) addSyncLog(`✅ Item ${fresh.id} terkirim`, 'success');
+                } else {
+                    failCount++;
+                    if (showLog) addSyncLog(`❌ Item ${fresh.id} gagal: ${result.error}`, 'error');
+                }
             }
-            
-            updateSyncStatus(); 
+
             await refreshServerCache();
-            loadHistory(); 
-            loadRekap(); 
-            
+            updateSyncStatus();
+            loadHistory();
+            loadRekap();
+
+            const msg = `Sync selesai: ${successCount} berhasil, ${failCount} gagal.`;
+            if (showLog) addSyncLog((failCount ? '⚠️ ' : '✅ ') + msg, failCount ? 'error' : 'success');
+            if (showToastMsg) showToast((failCount ? '⚠️ ' : '✅ ') + msg, failCount ? 'warning' : 'success');
+
             return { success: failCount === 0, message: msg };
         } catch (e) {
-            if (showLog) addSyncLog(`❌ Error: ${e.message}`, 'error');
+            console.error('syncNow error:', e);
+            if (showLog) addSyncLog('❌ Error: ' + e.message, 'error');
             if (showToastMsg) showToast('❌ Gagal: ' + e.message, 'error');
             return { success: false, message: e.message };
+        } finally {
+            syncInProgress = false;
         }
     }
 
@@ -2735,7 +2741,11 @@ window.editKeterangan = async function(encodedRecord) {
         
         html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } },
-            (text) => { stopScanner(); processScan(text.trim().toUpperCase()); }, () => {}
+            (text) => {
+                if (scanInProgress) return;
+                stopScanner();
+                processScan(text.trim().toUpperCase());
+            }, () => {}
         ).then(() => isScanning = true).catch(() => showToast('Izinkan akses kamera', 'error'));
     }
 
@@ -2743,7 +2753,23 @@ window.editKeterangan = async function(encodedRecord) {
         if (html5QrCode) { try { html5QrCode.stop().then(() => html5QrCode.clear()); } catch(e){} html5QrCode = null; isScanning = false; }
     }
 
+    // ==========================================================
+    // ANTI-DUPLIKASI & ANTI-RACE CONDITION SCAN
+    // ==========================================================
+    let scanInProgress = false;
+    let lastScanFingerprint = '';
+    let lastScanAt = 0;
+
+    function buildScanFingerprint(classCode, action, teacher, date, jp, subject) {
+        return [teacher, date, action, classCode, jp, subject]
+            .map(v => String(v || '').trim().toUpperCase()).join('|');
+    }
+
     async function processScan(classCode) {
+        if (scanInProgress) {
+            showScanResult('⏳ Scan sebelumnya masih diproses. Tunggu sebentar...', 'warning');
+            return;
+        }
         if (!CLASSES.includes(classCode)) { showScanResult('❌ Kelas invalid: ' + classCode, 'error'); return; }
         if (!currentUser) { showScanResult('Silakan login.', 'error'); return; }
 
@@ -2922,111 +2948,230 @@ let activeBlock = null;
     }
 
 async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now) {
-    const formattedClass = formatKopelClass(classCode, subject);
+    if (scanInProgress) {
+        showScanResult('⏳ Scan sedang diproses. Jangan scan ulang.', 'warning');
+        return;
+    }
+    scanInProgress = true;
 
-    // -- CEK LUPA SCAN KELUAR PADA KELAS SEBELUMNYA --
-    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-    if (currentMode === 'masuk' && activeTeaching && !activeTeaching.keluarScanned) {
-        // KETENTUAN 1: Waktu keluar otomatis = waktu scan masuk kelas yang baru
-        const recordLupa = {
-            teacher: currentUser, class: activeTeaching.class, subject: activeTeaching.subject, action: 'keluar',
-            date: activeTeaching.date || dateStr, 
-            time: timeStr, day: getDayNameID(), 
-            jp: activeTeaching.jp || '-', // PERBAIKAN: Tarik JP kelas yang ditinggalkan
-            jadwal_masuk: activeTeaching.masuk || '-', // PERBAIKAN
-            jadwal_keluar: activeTeaching.keluar,
-            timestamp: now.toISOString(), keterangan: 'lupa absen keluar', synced: false
-        };
-        
-        await saveAttendanceLocal(recordLupa).then(async (id) => {
-            recordLupa.id = id; addHistoryRow({...recordLupa, id});
-            if (navigator.onLine) {
-                try {
-                    const res = await sendToGoogleSheet(recordLupa);
-                    if (res.success) await processSyncedItem(recordLupa);
-                } catch(e) {}
+    try {
+        const action = currentMode || 'masuk';
+        const formattedClass = formatKopelClass(classCode, subject);
+
+        // QR scanner dapat memanggil callback lebih dari sekali.
+        const fingerprint = buildScanFingerprint(classCode, action, currentUser, dateStr, jpFinal, subject);
+        const nowMs = Date.now();
+        if (fingerprint === lastScanFingerprint && (nowMs - lastScanAt) < 15000) {
+            showScanResult('⚠️ QR yang sama baru saja diproses. Scan diabaikan.', 'warning');
+            return;
+        }
+        lastScanFingerprint = fingerprint;
+        lastScanAt = nowMs;
+
+        // ----------------------------------------------------------
+        // AUTO-CHECKOUT KELAS SEBELUMNYA
+        // ----------------------------------------------------------
+        let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+
+        if (action === 'masuk' && activeTeaching && !activeTeaching.keluarScanned) {
+            const oldClass = activeTeaching.class;
+            const oldSubject = activeTeaching.subject;
+            const oldJp = activeTeaching.jp || '-';
+
+            const oldHist = await getLocalHistory(currentUser, dateStr).catch(() => []);
+            const oldAlreadyOutLocal = oldHist.some(r =>
+                r.action === 'keluar' && r.class === oldClass && r.jp === oldJp
+            );
+            const oldAlreadyOutServer = serverDataCache.some(r =>
+                r.teacher === currentUser &&
+                r.action === 'keluar' &&
+                r.class === oldClass &&
+                r.jp === oldJp &&
+                r.date === dateStr
+            );
+
+            if (!oldAlreadyOutLocal && !oldAlreadyOutServer) {
+                const recordLupa = {
+                    teacher: currentUser,
+                    class: oldClass,
+                    subject: oldSubject,
+                    action: 'keluar',
+                    date: activeTeaching.date || dateStr,
+                    time: timeStr,
+                    day: getDayNameID(),
+                    jp: oldJp,
+                    jadwal_masuk: activeTeaching.masuk || '-',
+                    jadwal_keluar: activeTeaching.keluar || '-',
+                    timestamp: now.toISOString(),
+                    keterangan: 'lupa absen keluar',
+                    synced: false
+                };
+
+                const oldId = await saveAttendanceLocal(recordLupa);
+                recordLupa.id = oldId;
+                addHistoryRow({...recordLupa, id: oldId});
+
+                let oldSent = false;
+                if (navigator.onLine) {
+                    const oldRes = await sendToGoogleSheet(recordLupa);
+                    oldSent = !!oldRes.success;
+                    if (oldSent) await processSyncedItem(recordLupa);
+                }
+
+                // Jangan menghapus activeTeaching kalau auto-out gagal.
+                if (oldSent) {
+                    activeTeaching.keluarScanned = true;
+                    localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeaching));
+                } else if (!navigator.onLine) {
+                    showToast(`📱 Kelas ${oldClass} ditutup lokal; akan disinkronkan saat online.`, 'warning');
+                } else {
+                    showToast(`⚠️ Auto-out kelas ${oldClass} gagal dikirim. Data tetap disimpan lokal.`, 'warning');
+                }
             }
-        });
-        showToast(`Sistem menutup kelas ${activeTeaching.class} secara otomatis (Lupa Scan Keluar).`, 'warning');
-        localStorage.removeItem('activeTeaching_' + currentUser);
-        document.getElementById('activeClassTimerCard').classList.add('hidden');
-    }
+        }
 
-    // -- PENCEGAHAN DUPLIKASI DATA --
-    let isDuplicate = false;
-    const localHist = await getLocalHistory(currentUser, dateStr);
-    if (localHist.some(h => h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
-    if (serverDataCache.some(h => h.teacher === currentUser && h.action === (currentMode || 'masuk') && h.class === formattedClass && h.jp === jpFinal && h.subject === subject)) { isDuplicate = true; }
+        // ----------------------------------------------------------
+        // CEK DUPLIKASI: LOKAL + SERVER
+        // ----------------------------------------------------------
+        const localHist = await getLocalHistory(currentUser, dateStr).catch(() => []);
+        const duplicateLocal = localHist.some(h =>
+            h.action === action &&
+            h.class === formattedClass &&
+            h.jp === jpFinal &&
+            h.subject === subject
+        );
 
-    if (isDuplicate) {
-        showScanResult(`⚠️ Anda sudah melakukan absen ${(currentMode || 'masuk').toUpperCase()} untuk kelas ini hari ini.`, 'warning');
-        playBeepWarning(); document.getElementById('keteranganInput').value = ''; return; 
-    }
+        const duplicateServer = serverDataCache.some(h =>
+            h.teacher === currentUser &&
+            h.action === action &&
+            h.class === formattedClass &&
+            h.jp === jpFinal &&
+            h.subject === subject &&
+            h.date === dateStr
+        );
 
-    // -- MANAJEMEN KELAS AKTIF (ACTIVE TEACHING) --
-    if (currentMode === 'masuk' && jKeluar !== '00:00') {
-        let activeTeachingData = { 
-            class: formattedClass, 
-            subject: subject, 
-            jp: jpFinal,          // PERBAIKAN: Kunci identitas JP
-            masuk: jMasuk,        // PERBAIKAN: Kunci jadwal jam masuk
-            keluar: jKeluar, 
-            notified: false, 
-            rawClass: classCode, 
-            keluarScanned: false,
-            date: dateStr 
-        };
-        localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeachingData));
-        updateNextClassInfo(); checkActiveTeachingForIzinKasus();
-    } else if (currentMode === 'keluar') {
-        let activeTeachingData = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-        // Gunakan identitas JP untuk memverifikasi kecocokan
-        if (activeTeachingData && activeTeachingData.class === formattedClass && activeTeachingData.jp === jpFinal) {
-            activeTeachingData.keluarScanned = true;
+        if (duplicateLocal || duplicateServer) {
+            showScanResult(`⚠️ Anda sudah melakukan absen ${action.toUpperCase()} untuk ${formattedClass} / ${jpFinal}.`, 'warning');
+            playBeepWarning();
+            document.getElementById('keteranganInput').value = '';
+            return;
+        }
+
+        // ----------------------------------------------------------
+        // KELUAR: cukup ada bukti MASUK di lokal ATAU server.
+        // Tidak bergantung sepenuhnya pada activeTeaching.
+        // ----------------------------------------------------------
+        if (action === 'keluar') {
+            const hasMatchingIn =
+                localHist.some(h =>
+                    h.action === 'masuk' &&
+                    h.class === formattedClass &&
+                    h.jp === jpFinal &&
+                    h.date === dateStr
+                ) ||
+                serverDataCache.some(h =>
+                    h.teacher === currentUser &&
+                    h.action === 'masuk' &&
+                    h.class === formattedClass &&
+                    h.jp === jpFinal &&
+                    h.date === dateStr
+                );
+
+            if (!hasMatchingIn) {
+                showScanResult(`⚠️ Scan KELUAR ditolak: data MASUK ${formattedClass} / ${jpFinal} tidak ditemukan.`, 'error');
+                playBeepWarning();
+                return;
+            }
+        }
+
+        // ----------------------------------------------------------
+        // UPDATE ACTIVE TEACHING
+        // ----------------------------------------------------------
+        if (action === 'masuk' && jKeluar !== '00:00') {
+            const activeTeachingData = {
+                class: formattedClass,
+                subject: subject,
+                jp: jpFinal,
+                masuk: jMasuk,
+                keluar: jKeluar,
+                notified: false,
+                rawClass: classCode,
+                keluarScanned: false,
+                date: dateStr
+            };
             localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeachingData));
-            updateScanModeUI();
+            updateNextClassInfo();
             checkActiveTeachingForIzinKasus();
         }
-    }
 
-    // -- SIMPAN DATA ABSEN --
-    const record = {
-        teacher: currentUser, class: formattedClass, subject: subject, action: currentMode || 'masuk',
-        date: dateStr, time: timeStr, day: getDayNameID(), jp: jpFinal,
-        jadwal_masuk: jMasuk, jadwal_keluar: jKeluar,
-        timestamp: now.toISOString(), keterangan: ket, synced: false
-    };
+        // ----------------------------------------------------------
+        // SIMPAN LOKAL SEKALI -> KIRIM SERVER SEKALI
+        // ----------------------------------------------------------
+        const record = {
+            teacher: currentUser,
+            class: formattedClass,
+            subject: subject,
+            action: action,
+            date: dateStr,
+            time: timeStr,
+            day: getDayNameID(),
+            jp: jpFinal,
+            jadwal_masuk: jMasuk,
+            jadwal_keluar: jKeluar,
+            timestamp: now.toISOString(),
+            keterangan: ket,
+            synced: false
+        };
 
-    saveAttendanceLocal(record).then(async (id) => {
-        const actionIcon = currentMode === 'masuk' ? '✅ In' : '🚪 Out';
-        showScanResult(ket ? `${actionIcon} ${formattedClass} (${ket})` : `${actionIcon} ${formattedClass} (${subject})`, 'success');
-        
+        const id = await saveAttendanceLocal(record);
         record.id = id;
+
+        showScanResult(
+            ket
+                ? `${action === 'masuk' ? '✅ In' : '🚪 Out'} ${formattedClass} (${ket})`
+                : `${action === 'masuk' ? '✅ In' : '🚪 Out'} ${formattedClass} (${subject})`,
+            'success'
+        );
         addHistoryRow({...record, id});
-        
+
         if (navigator.onLine) {
-            try {
-                const res = await sendToGoogleSheet(record);
-                if (res.success) { 
-                    await processSyncedItem(record);
-                    showScanResult(`✅ Data terkirim ke Server!`, 'success');
-                    
-                    // Eksekusi pembersihan Active Teaching jika status keluar berhasil sinkron
-                    if (record.action === 'keluar') {
-                        let actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-                        if (actTeach && actTeach.class === formattedClass && actTeach.keluarScanned) {
-                            localStorage.removeItem('activeTeaching_' + currentUser);
-                            document.getElementById('activeClassTimerCard').classList.add('hidden');
-                            checkActiveTeachingForIzinKasus();
-                            updateScanModeUI();
-                        }
+            const res = await sendToGoogleSheet(record);
+
+            if (res.success) {
+                await processSyncedItem(record);
+                await refreshServerCache();
+
+                showScanResult('✅ Data terkirim ke Server dan tersimpan sekali.', 'success');
+
+                if (action === 'keluar') {
+                    const actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+                    if (actTeach && actTeach.class === formattedClass && actTeach.jp === jpFinal) {
+                        localStorage.removeItem('activeTeaching_' + currentUser);
+                        const timerCard = document.getElementById('activeClassTimerCard');
+                        if (timerCard) timerCard.classList.add('hidden');
+                        checkActiveTeachingForIzinKasus();
+                        currentMode = null;
+                        updateScanModeUI();
                     }
-                } else { showScanResult(`⚠️ Tersimpan lokal (Gagal sync)`, 'warning'); }
-            } catch(e) { showScanResult(`⚠️ Tersimpan lokal (Menunggu sync)`, 'info'); }
+                }
+            } else {
+                showScanResult('⚠️ Data tersimpan lokal. Gagal kirim ke server; tidak dibuat kiriman kedua.', 'warning');
+            }
+        } else {
+            showScanResult('📱 Offline: data tersimpan lokal dan akan dikirim saat online.', 'info');
         }
-        updateSyncStatus(); playBeep(); document.getElementById('keteranganInput').value = '';
+
+        updateSyncStatus();
+        playBeep();
+        document.getElementById('keteranganInput').value = '';
         renderMySchedule();
-    });
+
+    } catch (err) {
+        console.error('executeFinalScanRecord error:', err);
+        showScanResult('❌ Terjadi kesalahan saat memproses absensi: ' + (err.message || err), 'error');
+    } finally {
+        setTimeout(() => { scanInProgress = false; }, 500);
+    }
 }
 
     // FITUR PENCATATAN SANTRI IZIN & KASUS KELAS
