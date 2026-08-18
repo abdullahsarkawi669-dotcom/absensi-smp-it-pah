@@ -1126,7 +1126,7 @@ function getLocalDateString(d = getCurrentWITA()) {
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzlk-YDW4S3wH6Omyp4xJfjY0OgU3_1frNG43ZFfHs_DX2ADyklG1gyMxNRbgrgY9yKJA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwiprLM1DKUepGEVQaXnyb9R5n4KEXLNTjA6aNiraqJvuFyyN88OS6iEckBu0woD5zNtQ/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
 function getLocalDateString(d = new Date()) {
@@ -3736,19 +3736,37 @@ async function autoResolveLupaAbsen() {
 async function verifySheetStatus() {
     // Sinkronisasi status tombol berdasarkan data server terbaru setelah online
     if (!currentUser) return;
+
+    let activeStr = localStorage.getItem('activeTeaching_' + currentUser);
+    if (!activeStr) return; // Tidak ada kelas terkunci, tidak ada yang perlu diverifikasi
+
     await refreshServerCache();
     const todayStr = getLocalDateString(new Date());
-    const serverDataToday = serverDataCache.filter(d => d.date === todayStr && d.teacher === currentUser);
-    
-    if (serverDataToday.length > 0) {
-        // Cari aktivitas terakhir
-        const lastActivity = serverDataToday.reduce((a, b) => (new Date(a.timestamp) > new Date(b.timestamp) ? a : b));
-        let activeStr = localStorage.getItem('activeTeaching_' + currentUser);
-        
-        // Jika di server terakhir sudah "keluar" tapi di lokal masih terkunci
-        if (lastActivity.action === 'keluar' && activeStr) {
+    let activeData;
+    try { activeData = JSON.parse(activeStr); } catch (e) { return; }
+
+    // PERBAIKAN KRITIS: hanya lihat histori milik KELAS & JP yang SEDANG terkunci saat ini,
+    // JANGAN mengambil "aktivitas terakhir hari ini" dari kelas lain manapun.
+    // Sebelumnya fungsi ini bisa salah membaca baris "keluar" milik kelas SEBELUMNYA
+    // (karena cache server belum sempat memuat data "masuk" kelas yang baru saja discan),
+    // lalu memaksa melepas kunci kelas aktif + mereset currentMode ke 'masuk'.
+    // Akibatnya saat guru scan KELUAR untuk kelas yang sebenarnya masih aktif,
+    // sistem malah mencatatnya sebagai MASUK lagi (dobel).
+    const relevantToday = serverDataCache.filter(d =>
+        d.date === todayStr &&
+        d.teacher === currentUser &&
+        d.class === activeData.class &&
+        d.jp === activeData.jp
+    );
+
+    if (relevantToday.length > 0) {
+        const lastActivity = relevantToday.reduce((a, b) => (new Date(a.timestamp) > new Date(b.timestamp) ? a : b));
+
+        // Hanya lepas kunci jika aktivitas terakhir UNTUK KELAS/JP INI SENDIRI memang "keluar"
+        if (lastActivity.action === 'keluar') {
             localStorage.removeItem('activeTeaching_' + currentUser);
-            document.getElementById('activeClassTimerCard').classList.add('hidden');
+            const timerCard = document.getElementById('activeClassTimerCard');
+            if (timerCard) timerCard.classList.add('hidden');
             currentMode = 'masuk';
             updateScanModeUI();
         }
