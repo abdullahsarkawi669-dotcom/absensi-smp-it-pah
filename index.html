@@ -511,6 +511,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 			<button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
 			<button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
 			<!-- TAMBAHKAN TOMBOL INI -->
+			<button class="tab" data-tab="nilai" id="nilaiTab"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> Nilai</button>
 			<button class="tab" data-tab="riwayat" id="riwayatTab"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat</button>
 			<!-- =================== -->
 			<button class="tab" data-tab="jadwal" id="jadwalTab"><i class="fa-solid fa-calendar-week"></i> Jadwal</button>
@@ -712,6 +713,126 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 </div>
             </div>
         </div>
+
+<!-- KONTEN TAB NILAI -->
+<div id="tabNilai" class="tab-content hidden">
+    <!-- Form Input Nilai -->
+    <div class="card bg-blue-50 border-blue-200" style="border: 2px dashed #bfdbfe; margin-bottom: 16px;">
+        <div class="card-header text-blue-800" style="margin-bottom: 12px;">
+            <span><i class="fa-solid fa-file-pen"></i> Form Penilaian Santri</span>
+            <span class="badge" id="badgeStatusKelasNilai" style="background:#eff6ff; color:#2563eb;">Mode: Manual</span>
+        </div>
+
+        <div class="grid-2 mb-3">
+            <div class="input-group" style="margin-bottom: 0;">
+                <label>Pilih Kelas</label>
+                <select id="nilaiKelasSelect" class="font-bold text-blue-800">
+                    <option value="">-- Pilih Kelas --</option>
+                    <!-- Opsi kelas akan diisi otomatis via JS -->
+                </select>
+            </div>
+<div class="input-group" style="margin-bottom: 0;">
+    <label>Mata Pelajaran</label>
+    <select id="nilaiMapelInput" class="font-bold text-blue-800">
+        <option value="">-- Pilih Mapel --</option>
+    </select>
+</div>
+        </div>
+
+        <div class="grid-2 mb-3">
+            <div class="input-group" style="margin-bottom: 0;">
+                <label>Tgl Penilaian</label>
+                <input type="date" id="nilaiTanggalInput" />
+            </div>
+            <div class="input-group" style="margin-bottom: 0;">
+                <label>Jenis Nilai</label>
+                <select id="nilaiJenisSelect">
+                    <option value="Ulangan Harian">Ulangan Harian</option>
+                    <option value="Tugas">Tugas</option>
+                    <option value="PR">PR</option>
+                    <option value="Praktek">Praktek</option>
+                    <option value="PTS">PTS</option>
+                    <option value="PAS">PAS</option>
+                    <option value="Lainnya">Lainnya</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="input-group mb-3">
+            <label>Nama Penilaian (Opsional)</label>
+            <input type="text" id="nilaiNamaPenilaianInput" placeholder="Misal: Ulangan Harian 1, Tugas Bab 2, dll." />
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="input-group" style="position: relative;">
+            <label>Cari Nama Santri</label>
+            <input type="text" id="searchSantriNilaiInput" placeholder="Ketik sebagian nama santri..." autocomplete="off" />
+            <div id="santriNilaiDropdown" class="floating-dropdown hidden" style="border-color: #3b82f6;"></div>
+        </div>
+
+        <div class="grid-2 mb-3" style="align-items: end;">
+            <div class="input-group" style="margin-bottom: 0;">
+                <label>Nilai (Angka)</label>
+                <input type="number" id="nilaiAngkaInput" placeholder="0 - 100" min="0" max="100" class="font-black text-center text-xl text-blue-700" />
+            </div>
+            <button class="btn btn-primary" id="tambahNilaiBtn"><i class="fa-solid fa-plus"></i> Tambah</button>
+        </div>
+
+        <div class="mt-3">
+            <div class="text-xs font-bold text-gray-700 mb-1 flex justify-between">
+                <span>Daftar Nilai Sementara:</span>
+                <span class="badge bg-blue-100 text-blue-800" id="countTempNilai">0 Santri</span>
+            </div>
+            <div class="table-wrap" style="max-height: 200px;">
+                <table>
+                    <thead>
+                        <tr><th>Nama Santri</th><th class="text-center">Nilai</th><th class="text-center">Aksi</th></tr>
+                    </thead>
+                    <tbody id="tempNilaiBody">
+                        <tr><td colspan="3" class="text-center text-muted">Belum ada nilai ditambahkan</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <button class="btn btn-success w-full mt-3 hidden" id="kirimNilaiBtn" style="animation: pulseGlow 2s infinite;"><i class="fa-solid fa-cloud-arrow-up"></i> Simpan ke Server (Google Sheet)</button>
+        </div>
+    </div>
+
+    <!-- Rekap Nilai Card -->
+    <div class="card">
+        <div class="card-header">
+            <span><i class="fa-solid fa-list-ol"></i> Rekap Nilai Kelas</span>
+            <button class="btn btn-sm btn-outline" id="refreshRekapNilaiBtn" style="padding: 4px 8px; font-size: 0.75rem;"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+        </div>
+        
+        <div class="grid-2 mb-3">
+            <select id="filterRekapNilaiKelas" class="p-2 border-2 border-gray-200 rounded text-sm w-full font-bold">
+                <option value="ALL">-- Semua Kelas --</option>
+            </select>
+            <select id="filterRekapNilaiJenis" class="p-2 border-2 border-gray-200 rounded text-sm w-full font-bold">
+                <option value="ALL">-- Semua Jenis --</option>
+                <option value="Ulangan Harian">Ulangan Harian</option>
+                <option value="Tugas">Tugas</option>
+                <option value="PR">PR</option>
+                <option value="Praktek">Praktek</option>
+            </select>
+        </div>
+
+        <div class="table-wrap" style="max-height: 350px;">
+            <table id="tabelRekapNilai">
+                <thead>
+                    <tr><th>Jenis / Nama</th><th>Nama Santri</th><th class="text-center">Nilai</th></tr>
+                </thead>
+                <tbody id="rekapNilaiBody">
+                    <tr><td colspan="3" class="text-center text-muted">Tekan Refresh untuk memuat data...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <button class="btn btn-success w-full mt-3" id="copyRekapNilaiBtn" onclick="copyRekapNilaiWA()"><i class="fa-brands fa-whatsapp text-lg"></i> Copy Rekap via WA</button>
+    </div>
+</div>
+<!-- AKHIR KONTEN TAB NILAI -->
 
 <!-- ============================================== -->
 <!-- KONTEN TAB RIWAYAT PEKANAN -->
@@ -1129,7 +1250,7 @@ function getLocalDateString(d = getCurrentWITA()) {
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwiprLM1DKUepGEVQaXnyb9R5n4KEXLNTjA6aNiraqJvuFyyN88OS6iEckBu0woD5zNtQ/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwiiQfLAnbIFCNU3dhZXfeDkVxVxoa-yvWVE4GQ_YjaHRBvL5UFaPUUIU_S8ZxQ6Cr5bA/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
 function getLocalDateString(d = new Date()) {
@@ -5399,6 +5520,425 @@ window.copyRekapPribadiWA = function() {
         }
     }).catch(err => {
         console.error('Gagal menyalin teks', err);
+    });
+};
+
+// ==========================================
+// LOGIKA DASHBOARD NILAI
+// ==========================================
+let tempNilaiList = [];
+
+// Variabel global untuk menyimpan data mapping kelas & mapel guru yang sedang login
+let currentGuruScheduleData = null;
+
+// Fungsi untuk mengekstrak Kelas dan Mapel yang diajarkan oleh guru dari data jadwal
+function getGuruScheduleData(guruName) {
+    let scheduleData = {}; 
+    let allMapel = new Set();
+    
+    let teacherInfo = TEACHERS.find(t => t.name === guruName);
+    let teacherSubjects = teacherInfo ? teacherInfo.subjects : [];
+    
+    // Deteksi mapel khusus yang penulisannya tidak standar atau sistem kopel
+    const isGuruTahfizh = teacherSubjects.includes("Tahfizhul Qur'an");
+    const isInformatika = guruName === 'Agus Sarkawi, S. T.';
+    const isSBDP = guruName === 'Saifuddin Hidayat, S. Pd.';
+
+    const days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu', 'ahad'];
+    days.forEach(hari => {
+        if (jadwalPelajaran[hari]) {
+            Object.keys(jadwalPelajaran[hari]).forEach(jp => {
+                Object.keys(jadwalPelajaran[hari][jp]).forEach(kelas => {
+                    let jadwalRaw = jadwalPelajaran[hari][jp][kelas];
+                    let mapelFound = null;
+
+                    // 1. Deteksi nama guru langsung (Format: Mapel (Nama Guru))
+                    if (jadwalRaw.includes(guruName)) {
+                        mapelFound = jadwalRaw.split('(')[0].trim();
+                    } 
+                    // 2. Deteksi khusus untuk kelas tanpa nama guru (SBDP / Informatika)
+                    else if (jadwalRaw.includes('SBDP / Informatika')) {
+                        if (isInformatika) mapelFound = 'Informatika';
+                        if (isSBDP) mapelFound = 'SBDP';
+                    }
+
+                    if (mapelFound) {
+                        if (!scheduleData[kelas]) scheduleData[kelas] = new Set();
+                        scheduleData[kelas].add(mapelFound);
+                        allMapel.add(mapelFound);
+                    }
+                });
+            });
+        }
+    });
+    
+    // 3. Khusus guru Tahfizh, berikan akses ke seluruh kelas (karena logika kopel jam terbangnya fleksibel)
+    if (isGuruTahfizh) {
+         CLASSES.forEach(c => {
+             if (!scheduleData[c]) scheduleData[c] = new Set();
+             scheduleData[c].add("Tahfizhul Qur'an");
+             allMapel.add("Tahfizhul Qur'an");
+         });
+    }
+    
+    // Ubah Set ke Array
+    for (let kls in scheduleData) {
+        scheduleData[kls] = Array.from(scheduleData[kls]);
+    }
+    
+    return {
+        classesMapping: scheduleData,
+        uniqueMapel: Array.from(allMapel)
+    };
+}
+
+// Fungsi untuk Inisialisasi Tab Nilai
+function initNilaiTab() {
+    const classSelect = document.getElementById('nilaiKelasSelect');
+    const mapelSelect = document.getElementById('nilaiMapelInput');
+    const filterClassSelect = document.getElementById('filterRekapNilaiKelas');
+    
+    // Set Tanggal Default hari ini
+    document.getElementById('nilaiTanggalInput').value = getLocalDateString(new Date());
+
+    // Tarik data kelas dan mapel khusus guru yang sedang login
+    currentGuruScheduleData = getGuruScheduleData(currentUser);
+
+    // Reset dropdown (harus dibersihkan setiap tab dibuka agar menyesuaikan akun yang login)
+    classSelect.innerHTML = '<option value="">-- Pilih Kelas --</option>';
+    filterClassSelect.innerHTML = '<option value="ALL">-- Semua Kelas --</option>';
+    mapelSelect.innerHTML = '<option value="">-- Pilih Mapel --</option>';
+
+    // Isi Dropdown Kelas OTOMATIS SESUAI JADWAL
+    const diajarKelas = Object.keys(currentGuruScheduleData.classesMapping).sort();
+    
+    if (diajarKelas.length > 0) {
+        diajarKelas.forEach(cls => {
+            classSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
+            filterClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
+        });
+    } else {
+        // Jika tidak punya jadwal (contoh: Admin/Master), tampilkan semua kelas
+        CLASSES.forEach(cls => {
+            classSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
+            filterClassSelect.innerHTML += `<option value="${cls}">${cls}</option>`;
+        });
+    }
+
+    // Isi Dropdown Mapel OTOMATIS
+    if (currentGuruScheduleData.uniqueMapel.length > 0) {
+        currentGuruScheduleData.uniqueMapel.forEach(mpl => {
+             mapelSelect.innerHTML += `<option value="${mpl}">${mpl}</option>`;
+        });
+        // Pilih otomatis jika guru ini hanya mengajar 1 Mata Pelajaran secara total
+        if (currentGuruScheduleData.uniqueMapel.length === 1) {
+            mapelSelect.value = currentGuruScheduleData.uniqueMapel[0];
+        }
+    }
+
+    // Cek Active Teaching (Apakah sedang ngajar kelas?)
+    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    if (activeTeaching && !activeTeaching.keluarScanned) {
+        document.getElementById('badgeStatusKelasNilai').innerHTML = '<i class="fa-solid fa-link"></i> Terhubung ke Kelas Aktif';
+        document.getElementById('badgeStatusKelasNilai').style.background = '#ecfdf5';
+        document.getElementById('badgeStatusKelasNilai').style.color = '#059669';
+        
+        let rawClass = activeTeaching.rawClass || activeTeaching.class.split(',')[0].replace(/[()]/g, '');
+        
+        // Auto-select kelas
+        if([...classSelect.options].some(opt => opt.value === rawClass)) {
+            classSelect.value = rawClass;
+            classSelect.dispatchEvent(new Event('change')); // Trigger event agar mapel ikut tersaring
+        }
+        
+        // Auto-select mapel
+        setTimeout(() => {
+            if([...mapelSelect.options].some(opt => opt.value === activeTeaching.subject)) {
+                 mapelSelect.value = activeTeaching.subject;
+            } else {
+                 mapelSelect.innerHTML += `<option value="${activeTeaching.subject}">${activeTeaching.subject}</option>`;
+                 mapelSelect.value = activeTeaching.subject;
+            }
+        }, 50);
+        
+    } else {
+        document.getElementById('badgeStatusKelasNilai').innerHTML = 'Mode: Manual / Luar Jam';
+        document.getElementById('badgeStatusKelasNilai').style.background = '#eff6ff';
+        document.getElementById('badgeStatusKelasNilai').style.color = '#2563eb';
+    }
+}
+
+// === TAMBAHKAN LISTENER AGAR MAPEL MENYESUAIKAN DENGAN KELAS YANG DIPILIH ===
+document.getElementById('nilaiKelasSelect').addEventListener('change', function() {
+    const selectedKls = this.value;
+    const mapelSelect = document.getElementById('nilaiMapelInput');
+    
+    // Update mapel dropdown secara dinamis tergantung kelas yang di-klik
+    if (selectedKls && currentGuruScheduleData && currentGuruScheduleData.classesMapping[selectedKls]) {
+        const availableMapel = currentGuruScheduleData.classesMapping[selectedKls];
+        mapelSelect.innerHTML = '<option value="">-- Pilih Mapel --</option>';
+        availableMapel.forEach(mpl => {
+            mapelSelect.innerHTML += `<option value="${mpl}">${mpl}</option>`;
+        });
+        
+        // Jika guru hanya mengajar 1 Mapel di kelas tersebut, pilihkan otomatis!
+        if (availableMapel.length === 1) {
+            mapelSelect.value = availableMapel[0];
+        }
+    }
+});
+
+// Event saat tab nilai ditekan
+document.querySelector('[data-tab="nilai"]').addEventListener('click', () => {
+    initNilaiTab();
+});
+
+// Fitur Pencarian Nama Santri (Mirip Izin Keluar)
+const searchSantriNilaiInput = document.getElementById('searchSantriNilaiInput');
+const santriNilaiDropdown = document.getElementById('santriNilaiDropdown');
+
+searchSantriNilaiInput.addEventListener('input', function() {
+    let keyword = this.value.trim().toLowerCase();
+    let selectedClass = document.getElementById('nilaiKelasSelect').value;
+    
+    santriNilaiDropdown.innerHTML = '';
+    if (!keyword || !selectedClass) {
+        santriNilaiDropdown.classList.add('hidden');
+        if (!selectedClass && keyword) showToast('Silakan pilih kelas terlebih dahulu!', 'warning');
+        return;
+    }
+
+    let listSantriKelas = DATA_SANTRI[selectedClass] || [];
+    let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
+
+    if (matched.length > 0) {
+        santriNilaiDropdown.classList.remove('hidden');
+        matched.forEach(nama => {
+            let div = document.createElement('div');
+            div.className = 'dropdown-item';
+            div.textContent = nama;
+            div.onclick = () => {
+                searchSantriNilaiInput.value = nama;
+                santriNilaiDropdown.classList.add('hidden');
+                document.getElementById('nilaiAngkaInput').focus(); // Otomatis pindah fokus ke input nilai
+            };
+            santriNilaiDropdown.appendChild(div);
+        });
+    } else {
+        santriNilaiDropdown.classList.add('hidden');
+    }
+});
+
+// Sembunyikan dropdown jika klik di luar
+document.addEventListener('click', (e) => {
+    if (!searchSantriNilaiInput.contains(e.target) && !santriNilaiDropdown.contains(e.target)) {
+        santriNilaiDropdown.classList.add('hidden');
+    }
+});
+
+// Tambah nilai ke daftar sementara
+document.getElementById('tambahNilaiBtn').addEventListener('click', () => {
+    const kls = document.getElementById('nilaiKelasSelect').value;
+    const mapel = document.getElementById('nilaiMapelInput').value.trim();
+    const tgl = document.getElementById('nilaiTanggalInput').value;
+    const jenis = document.getElementById('nilaiJenisSelect').value;
+    let namaUjian = document.getElementById('nilaiNamaPenilaianInput').value.trim();
+    const namaSantri = searchSantriNilaiInput.value.trim();
+    const nilaiAngka = document.getElementById('nilaiAngkaInput').value;
+
+    if (!kls || !mapel) { showToast('Pilih Kelas dan isi Mapel!', 'error'); return; }
+    if (!namaSantri) { showToast('Pilih nama santri terlebih dahulu!', 'error'); return; }
+    if (nilaiAngka === '') { showToast('Masukkan angka nilai!', 'error'); return; }
+    if (!namaUjian) namaUjian = jenis;
+
+    tempNilaiList.push({
+        tanggal_penilaian: tgl,
+        jenis_nilai: jenis,
+        nama_penilaian: namaUjian,
+        nama_santri: namaSantri,
+        nilai: nilaiAngka
+    });
+
+    renderTempNilaiTable();
+    
+    // Reset input santri dan nilai untuk entri berikutnya
+    searchSantriNilaiInput.value = '';
+    document.getElementById('nilaiAngkaInput').value = '';
+    searchSantriNilaiInput.focus();
+    showToast('Berhasil ditambahkan ke draf', 'success');
+});
+
+function renderTempNilaiTable() {
+    const tbody = document.getElementById('tempNilaiBody');
+    const kirimBtn = document.getElementById('kirimNilaiBtn');
+    tbody.innerHTML = '';
+
+    document.getElementById('countTempNilai').textContent = `${tempNilaiList.length} Santri`;
+
+    if (tempNilaiList.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Belum ada nilai ditambahkan</td></tr>';
+        kirimBtn.classList.add('hidden'); 
+        return;
+    }
+
+    kirimBtn.classList.remove('hidden');
+    tempNilaiList.forEach((item, index) => {
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="font-bold text-xs">${item.nama_santri}</td>
+            <td class="text-center font-black text-blue-700">${item.nilai}</td>
+            <td class="text-center"><button class="btn btn-sm btn-danger" style="padding:4px 8px; font-size:0.75rem;" onclick="removeTempNilai(${index})"><i class="fa-solid fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+window.removeTempNilai = function(index) { 
+    tempNilaiList.splice(index, 1); 
+    renderTempNilaiTable(); 
+};
+
+// Kirim Data Nilai ke Server
+document.getElementById('kirimNilaiBtn').addEventListener('click', async () => {
+    if (tempNilaiList.length === 0) return;
+    if (!navigator.onLine) { showToast('Offline, gagal mengirim data nilai', 'error'); return; }
+
+    const kls = document.getElementById('nilaiKelasSelect').value;
+    const mapel = document.getElementById('nilaiMapelInput').value.trim();
+    const now = new Date();
+    
+    const payload = {
+        api_action: 'addNilai', 
+        teacher: currentUser, 
+        class: kls, 
+        subject: mapel,
+        timestamp: now.toISOString(), 
+        nilai_list: tempNilaiList
+    };
+
+    const btn = document.getElementById('kirimNilaiBtn'); 
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke Spreadsheet...';
+
+    try {
+        const response = await fetch(GAS_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(payload) });
+        const res = await response.json();
+        if (res.success) {
+            showToast('✅ Data nilai berhasil disimpan ke Server!', 'success');
+            tempNilaiList = []; 
+            renderTempNilaiTable();
+            document.getElementById('nilaiNamaPenilaianInput').value = '';
+            loadRekapNilai(); // Auto refresh rekap
+        } else { 
+            throw new Error(res.error || 'Gagal menyimpan'); 
+        }
+    } catch (e) { 
+        showToast('❌ Gagal kirim: ' + e.message, 'error'); 
+    } finally { 
+        btn.innerHTML = originalText; 
+    }
+});
+
+// Fitur Load Rekap Nilai
+document.getElementById('refreshRekapNilaiBtn').addEventListener('click', loadRekapNilai);
+document.getElementById('filterRekapNilaiKelas').addEventListener('change', loadRekapNilai);
+document.getElementById('filterRekapNilaiJenis').addEventListener('change', loadRekapNilai);
+
+let serverDataNilai = [];
+
+async function loadRekapNilai() {
+    if (!currentUser) return;
+    const tbody = document.getElementById('rekapNilaiBody');
+    tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-muted"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil rekap nilai...</td></tr>';
+    
+    try {
+        const response = await fetch(GAS_URL + '?action=getNilai&t=' + new Date().getTime());
+        const res = await response.json();
+        if (!res.success) throw new Error(res.error);
+        
+        serverDataNilai = res.data;
+        renderRekapNilaiTable();
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Gagal: ${e.message}</td></tr>`;
+    }
+}
+
+function renderRekapNilaiTable() {
+    const tbody = document.getElementById('rekapNilaiBody');
+    const filterKelas = document.getElementById('filterRekapNilaiKelas').value;
+    const filterJenis = document.getElementById('filterRekapNilaiJenis').value;
+    
+    // Filter Data
+    let filtered = serverDataNilai.filter(d => d.guru === currentUser);
+    if (filterKelas !== 'ALL') filtered = filtered.filter(d => d.kelas === filterKelas);
+    if (filterJenis !== 'ALL') filtered = filtered.filter(d => d.jenis_nilai === filterJenis);
+    
+    // Sorting: Jenis Ujian -> Nama Ujian -> Nama Santri (Abjad)
+    filtered.sort((a, b) => {
+        if (a.jenis_nilai !== b.jenis_nilai) return (a.jenis_nilai || '').localeCompare(b.jenis_nilai || '');
+        if (a.nama_penilaian !== b.nama_penilaian) return (a.nama_penilaian || '').localeCompare(b.nama_penilaian || '');
+        return (a.nama_santri || '').localeCompare(b.nama_santri || '');
+    });
+
+    tbody.innerHTML = '';
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-4">Belum ada data nilai.</td></tr>';
+        return;
+    }
+
+    filtered.forEach(d => {
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td class="text-xs">
+                <span class="font-bold text-blue-700">${d.nama_penilaian}</span><br>
+                <span class="text-muted" style="font-size: 0.7rem;">${d.jenis_nilai} | Kls ${d.kelas}</span>
+            </td>
+            <td class="font-bold text-xs">${d.nama_santri}</td>
+            <td class="text-center font-black">${d.nilai}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// Fitur Copy via WA
+window.copyRekapNilaiWA = function() {
+    const filterKelas = document.getElementById('filterRekapNilaiKelas').value;
+    const filterJenis = document.getElementById('filterRekapNilaiJenis').value;
+    const rows = document.getElementById('rekapNilaiBody').querySelectorAll('tr');
+    
+    let textToCopy = `*REKAP NILAI SANTRI*\n`;
+    textToCopy += `👨‍🏫 Guru: ${currentUser}\n`;
+    textToCopy += `🏫 Kelas: ${filterKelas === 'ALL' ? 'Semua Kelas' : filterKelas}\n`;
+    textToCopy += `📝 Jenis: ${filterJenis === 'ALL' ? 'Semua Penilaian' : filterJenis}\n\n`;
+    
+    if (rows.length === 0 || rows[0].innerText.includes('Belum ada')) {
+        textToCopy += "Belum ada data nilai.";
+    } else {
+        let currentUjian = "";
+        rows.forEach((row) => {
+            const cells = row.querySelectorAll('td');
+            if (cells.length >= 3) {
+                // Ekstrak data dari kolom
+                let ujianRaw = cells[0].innerText.split('\n');
+                let namaUjian = ujianRaw[0].trim();
+                let namaSantri = cells[1].innerText.trim();
+                let skor = cells[2].innerText.trim();
+                
+                // Grouping berdasarkan Nama Penilaian agar rapi di WA
+                if (namaUjian !== currentUjian) {
+                    textToCopy += `\n*=== ${namaUjian.toUpperCase()} ===*\n`;
+                    currentUjian = namaUjian;
+                }
+                
+                textToCopy += `• ${namaSantri} : *${skor}*\n`;
+            }
+        });
+    }
+    
+    navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast("Rekap Nilai disalin ke WhatsApp!", "success");
+    }).catch(err => {
+        alert("Gagal menyalin. Silakan coba lagi.");
     });
 };
 
