@@ -507,18 +507,18 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             <div id="activeClassWarning" class="text-xs font-bold text-red-600 mt-2 text-center hidden"></div>
         </div>
 
-        <div class="tabs" id="mainTabs">
-			<button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
-			<button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
-			<!-- TAMBAHKAN TOMBOL INI -->
-			<button class="tab" data-tab="nilai" id="nilaiTab"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> Nilai</button>
-			<button class="tab" data-tab="riwayat" id="riwayatTab"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat</button>
-			<!-- =================== -->
-			<button class="tab" data-tab="jadwal" id="jadwalTab"><i class="fa-solid fa-calendar-week"></i> Jadwal</button>
-			<button class="tab" data-tab="sholat" id="sholatTab"><i class="fa-solid fa-mosque"></i> Sholat</button>
-			<button class="tab hidden" data-tab="admin" id="adminTab"><i class="fa-solid fa-shield-halved"></i> Admin</button>
-			<button class="tab hidden" data-tab="agus" id="agusTab"><i class="fa-solid fa-crown"></i> Master</button>
-		</div>
+<div class="tabs" id="mainTabs">
+    <button class="tab active" data-tab="scan"><i class="fa-solid fa-qrcode"></i> Scan</button>
+    <!-- TAB BARU WALI KELAS (Disembunyikan default, hanya muncul untuk Wali Kelas) -->
+    <button class="tab hidden" data-tab="wali" id="waliTab"><i class="fa-solid fa-users"></i> Wali</button>
+    <button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
+    <button class="tab" data-tab="nilai" id="nilaiTab"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> Nilai</button>
+    <button class="tab" data-tab="riwayat" id="riwayatTab"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat</button>
+    <button class="tab" data-tab="jadwal" id="jadwalTab"><i class="fa-solid fa-calendar-week"></i> Jadwal</button>
+    <button class="tab" data-tab="sholat" id="sholatTab"><i class="fa-solid fa-mosque"></i> Sholat</button>
+    <button class="tab hidden" data-tab="admin" id="adminTab"><i class="fa-solid fa-shield-halved"></i> Admin</button>
+    <button class="tab hidden" data-tab="agus" id="agusTab"><i class="fa-solid fa-crown"></i> Master</button>
+</div>
 
         <div id="tabScan" class="tab-content">
             <div class="card">
@@ -676,6 +676,73 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             </div>
         </div>
 
+<!-- ============================================== -->
+<!-- KONTEN TAB KHUSUS WALI KELAS -->
+<!-- ============================================== -->
+<div id="tabWali" class="tab-content hidden">
+    <div class="card bg-emerald-50 border-emerald-200" id="dashboardWaliKelasCard">
+        <div class="card-header text-emerald-800" style="margin-bottom: 12px; font-size: 0.95rem;">
+            <span><i class="fa-solid fa-users"></i> Dashboard Wali Kelas</span>
+            <span class="badge" id="waliKelasBadge" style="background:#d1fae5; color:#065f46;">Kelas: -</span>
+        </div>
+        
+        <!-- TABS KECIL WALI KELAS -->
+        <div class="flex gap-2 mb-4 border-b border-emerald-200 pb-2">
+            <button class="btn btn-sm btn-primary tab-wali" data-target="waliAbsensiSantri"><i class="fa-solid fa-user-check"></i> Absensi Santri</button>
+            <button class="btn btn-sm btn-outline tab-wali" data-target="waliRekapPembiasaan"><i class="fa-solid fa-sun"></i> Riwayat Pembiasaan</button>
+        </div>
+
+        <!-- TAB KECIL: ABSENSI SANTRI HARIAN -->
+        <div id="waliAbsensiSantri">
+            <div class="input-group">
+                <label>Tanggal Absensi</label>
+                <input type="date" id="tglAbsensiSantri" />
+                <p class="text-xs text-muted mt-1">*Ubah ke esok hari jika santri meminta izin/sakit untuk besok.</p>
+            </div>
+            <div class="input-group" style="position: relative;">
+                <label>Cari Nama Santri</label>
+                <input type="text" id="searchAbsensiSantri" placeholder="Ketik sebagian nama santri..." autocomplete="off" />
+                <div id="dropdownAbsensiSantri" class="floating-dropdown hidden" style="border-color: #10b981;"></div>
+            </div>
+            <div class="input-group">
+                <label>Status Kehadiran</label>
+                <select id="statusAbsensiSantri">
+                    <option value="SAKIT">SAKIT</option>
+                    <option value="IJIN">IJIN</option>
+                    <option value="ALPA">ALPA</option>
+                </select>
+            </div>
+            <button class="btn btn-success w-full mt-2" id="btnKirimAbsensiSantri"><i class="fa-solid fa-paper-plane"></i> Kirim Absensi Santri</button>
+        </div>
+
+        <!-- TAB KECIL: REKAP PEMBIASAAN WALI KELAS -->
+        <div id="waliRekapPembiasaan" class="hidden">
+            <div class="flex gap-2 mb-3">
+                <select id="filterPembiasaanPeriodeWali" class="p-2 border-2 border-emerald-300 rounded text-sm w-full font-bold text-emerald-800" style="background: white;" onchange="renderPembiasaanWali()">
+                    <option value="week">Pekan Ini</option>
+                    <option value="month">Bulan Ini</option>
+                    <option value="all">Semua Waktu</option>
+                </select>
+            </div>
+            <div class="table-wrap" style="max-height: 250px;">
+                <table id="tabelPembiasaanWali">
+                    <thead class="bg-emerald-100">
+                        <tr><th>Tgl</th><th>In</th><th>Out</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="bodyPembiasaanWali">
+                        <tr><td colspan="4" class="text-center text-muted">Memilih data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="flex gap-2 mt-4">
+                <button class="btn btn-primary" onclick="copyPembiasaanWaliWA()" style="flex:1;"><i class="fa-brands fa-whatsapp"></i> Copy via WA</button>
+                <button class="btn btn-success" onclick="exportTableToExcel('tabelPembiasaanWali', 'Rekap_Pembiasaan_Pagi.xls')" style="flex:1;"><i class="fa-solid fa-file-excel"></i> Download Excel</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- AKHIR KONTEN TAB KHUSUS WALI KELAS -->
+
         <div id="tabRekap" class="tab-content hidden">
             <div class="card">
                 <div class="card-header">
@@ -829,7 +896,10 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             </table>
         </div>
         
-        <button class="btn btn-success w-full mt-3" id="copyRekapNilaiBtn" onclick="copyRekapNilaiWA()"><i class="fa-brands fa-whatsapp text-lg"></i> Copy Rekap via WA</button>
+<div class="flex gap-2 mt-3">
+    <button class="btn btn-success" style="flex:1;" id="copyRekapNilaiBtn" onclick="copyRekapNilaiWA()"><i class="fa-brands fa-whatsapp text-lg"></i> Copy via WA</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="exportTableToExcel('tabelRekapNilai', 'Rekap_Nilai_Kelas.xls')"><i class="fa-solid fa-file-excel"></i> Download Excel</button>
+</div>
     </div>
 </div>
 <!-- AKHIR KONTEN TAB NILAI -->
@@ -973,35 +1043,6 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             </thead>
             <tbody id="missedClassesBody">
                 <tr><td colspan="5" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menghitung rekap...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- DASHBOARD PEMBIASAAN PAGI WALI KELAS -->
-<div class="card bg-emerald-50 border-emerald-200 mt-4" id="adminPembiasaanCard">
-    <div class="card-header text-emerald-800" style="margin-bottom: 12px; font-size: 0.95rem;">
-        <span><i class="fa-solid fa-sun"></i> Rekap Pembiasaan Pagi Wali Kelas</span>
-    </div>
-    
-    <div class="flex gap-2 mb-3">
-        <select id="filterPembiasaanPeriode" class="p-2 border-2 border-emerald-300 rounded text-sm w-full font-bold text-emerald-800" style="background: white;" onchange="renderPembiasaanPagiAdmin()">
-            <option value="day">Hari Ini</option>
-            <option value="week">Pekan Ini</option>
-            <option value="month">Bulan Ini</option>
-        </select>
-        <button class="btn btn-success btn-sm" onclick="exportTableToExcel('tabelPembiasaan', 'Rekap_Pembiasaan_Pagi.xls')" style="white-space: nowrap;">
-            <i class="fa-solid fa-file-excel"></i> Download XLS
-        </button>
-    </div>
-    
-    <div class="table-wrap" style="max-height: 350px;">
-        <table id="tabelPembiasaan">
-            <thead class="bg-emerald-100">
-                <tr><th>Wali Kelas</th><th>Kls</th><th>Hadir (x)</th><th>Telat (x)</th><th>Alpa/Tdk Hadir</th></tr>
-            </thead>
-            <tbody id="bodyPembiasaan">
-                <tr><td colspan="5" class="text-center text-muted">Memuat rekap...</td></tr>
             </tbody>
         </table>
     </div>
@@ -1250,7 +1291,7 @@ function getLocalDateString(d = getCurrentWITA()) {
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwiiQfLAnbIFCNU3dhZXfeDkVxVxoa-yvWVE4GQ_YjaHRBvL5UFaPUUIU_S8ZxQ6Cr5bA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
 function getLocalDateString(d = new Date()) {
@@ -1338,8 +1379,8 @@ function isLiburSekolah(dateObj) {
 }
 
 const WALI_KELAS_MAP = {
-        "Hairul Umam Insani, S. Pd.": "7A", "Hafiz Bagis, Lc.": "7B", "Salman, S. Pd. I.": "7C",
-        "Haqikahurrahman, S. Pd.": "7D", "Zulkarnaen Teguh Wibowo, S. Pd. I.": "7E",
+        "Hairul Umam Insani, S. Pd.": "7A", "Hafizh Bagis, Lc.": "7B", "Salman, S. Pd. I.": "7C",
+        "Haqikahurrahman, S. Pd.": "7D", "Zulkarnaen Teguh W, S. Pd.": "7E",
         "Firman, S. Pd.": "8A", "Syahrul Hasyim, Lc.": "8B", "Adiandri Suhaili, M. Pd.": "8C",
         "M. Tahir, M. Pd.": "8D", "Ahmad Mahsan Haikal, Lc.": "8E",
         "Saifuddin Hidayat, S. Pd.": "9A", "Syamsul Bahri, Lc.": "9B",
@@ -2218,43 +2259,49 @@ function getCurrentJPInfo(mode = '') {
 // Tambahkan targetDate pada getGroupedSchedule
 function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Date()) {
     let blocks = [];
-	// --- TAMBAHKAN KODE INI ---
-    // Jika tanggal tersebut adalah hari libur/kegiatan sekolah, kembalikan array kosong (tidak ada jadwal)
-    if (isLiburSekolah(targetDate)) {
-        return blocks; 
-    }
-    // --------------------------
+    if (isLiburSekolah(targetDate)) return blocks; 
+    
     let currentBlock = null;
     const jadwal = (hari === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
+    // Tambahkan Pembiasaan Pagi ke loop
+    const jpKeys = ['Pembiasaan Pagi', 'JP 1', 'JP 2', 'JP 3', 'JP 4', 'JP 5', 'JP 6', 'JP 7', 'JP 8'];
 
-    for (let i = 1; i <= 8; i++) {
-        let jp = 'JP ' + i;
+    for (let jp of jpKeys) {
         if (!jadwal[jp]) continue;
 
         let foundMapel = false;
         for (let c of CLASSES) {
-            // PASSING targetDate ke fungsi di atas
             let mapel = getMapelForScan(c, teacherName, hari, jp, targetDate);
             if (mapel) {
                 foundMapel = true;
                 let formattedClass = formatKopelClass(c, mapel);
                 let k = parseTimeToMins(jadwal[jp].keluar);
 
-                if (currentBlock && currentBlock.class === formattedClass && currentBlock.mapel === mapel && currentBlock.jps[currentBlock.jps.length - 1] === (i - 1)) {
-                    currentBlock.jps.push(i);
+                let isSequential = false;
+                if (currentBlock && currentBlock.class === formattedClass && currentBlock.mapel === mapel && currentBlock.jps[0] !== 'Pembiasaan Pagi') {
+                    let lastJp = currentBlock.jps[currentBlock.jps.length - 1];
+                    let currJpNum = parseInt(jp.replace('JP ', ''));
+                    if (lastJp === currJpNum - 1) isSequential = true;
+                }
+
+                if (isSequential) {
+                    currentBlock.jps.push(parseInt(jp.replace('JP ', '')));
+                    currentBlock.jpStr = `JP ${currentBlock.jps[0]}-${currentBlock.jps[currentBlock.jps.length-1]}`;
                     currentBlock.keluar = jadwal[jp].keluar;
                     currentBlock.kMins = k;
                 } else {
                     if (currentBlock) blocks.push(currentBlock);
+                    let jpsPush = jp === 'Pembiasaan Pagi' ? ['Pembiasaan Pagi'] : [parseInt(jp.replace('JP ', ''))];
                     currentBlock = {
-                        class: formattedClass, mapel: mapel,
-                        jps: [i], masuk: jadwal[jp].masuk, keluar: jadwal[jp].keluar, kMins: k
+                        class: formattedClass, mapel: mapel, jps: jpsPush,
+                        jpStr: jp === 'Pembiasaan Pagi' ? 'Pembiasaan Pagi' : jp,
+                        masuk: jadwal[jp].masuk, keluar: jadwal[jp].keluar, kMins: k
                     };
                 }
                 break;
             }
         }
-        if (!foundMapel) { if (currentBlock) { blocks.push(currentBlock); currentBlock = null; } }
+        if (!foundMapel && currentBlock) { blocks.push(currentBlock); currentBlock = null; }
     }
     if (currentBlock) blocks.push(currentBlock);
     return blocks;
@@ -2272,7 +2319,9 @@ function getNextClass() {
         let mMins = parseTimeToMins(b.masuk);
         // Mencari jadwal yang menit masuknya lebih besar dari waktu saat ini
         if (mMins > totalMins) {
-            let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+            //let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+			// Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
+			let jpStr = b.jpStr;
             return { jp: jpStr, class: b.class, mapel: b.mapel, masuk: b.masuk, masukMins: mMins };
         }
     }
@@ -3584,8 +3633,10 @@ async function renderMySchedule() {
         let mMins = parseTimeToMins(sch.masuk);
         let isOngoing = currentMins >= mMins && currentMins <= sch.kMins;
         
-        let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
-        
+        //let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
+        // Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
+		let jpStr = b.jpStr;
+		
         // --- PERBAIKAN: Deteksi Fleksibel untuk Guru Tahfizh / Kelas Kopel ---
         let hasClockedIn = attendedList.some(h => {
             let overlap = false;
@@ -3818,8 +3869,8 @@ async function autoResolveLupaAbsen() {
     let keluarMins = parseTimeToMins(activeData.keluar);
     let isPembiasaan = activeData.jp === 'Pembiasaan Pagi';
     
-    // Trigger Auto-Checkout: Pukul 08:29 untuk Pembiasaan Pagi, atau Jam Keluar + 20 menit untuk JP biasa
-    let triggerMins = isPembiasaan ? parseTimeToMins('08:29') : (keluarMins + 20);
+    // Trigger Auto-Checkout: Pukul 07:29 untuk Pembiasaan Pagi, atau Jam Keluar + 20 menit untuk JP biasa
+    let triggerMins = isPembiasaan ? parseTimeToMins('07:29') : (keluarMins + 20);
 
     if (activeData.date === todayStr && currentMins >= triggerMins) {
         let outH = Math.floor(triggerMins / 60);
@@ -4719,7 +4770,9 @@ function renderJadwalPekanIni() {
         } else if (blocks.length > 0) {
             html += `<table class="w-full text-sm"><tbody>`;
             blocks.forEach(b => {
-                let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+                //let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+				// Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
+				let jpStr = b.jpStr;
                 html += `<tr class="border-b last:border-0 border-gray-200">
                             <td class="py-2 pr-2 font-bold text-gray-700 align-top whitespace-nowrap" style="width: 25%; font-size: 0.75rem;">
                                 ${jpStr}<br><span class="text-xs text-muted font-normal">${b.masuk} - ${b.keluar}</span>
@@ -5941,6 +5994,148 @@ window.copyRekapNilaiWA = function() {
         alert("Gagal menyalin. Silakan coba lagi.");
     });
 };
+
+// ==========================================
+// LOGIKA DASHBOARD WALI KELAS
+// ==========================================
+
+// Setup Tab Switching Wali Kelas
+document.querySelectorAll('.tab-wali').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-wali').forEach(b => b.classList.replace('btn-primary', 'btn-outline'));
+        btn.classList.replace('btn-outline', 'btn-primary');
+        document.getElementById('waliAbsensiSantri').classList.add('hidden');
+        document.getElementById('waliRekapPembiasaan').classList.add('hidden');
+        document.getElementById(btn.dataset.target).classList.remove('hidden');
+        
+        if(btn.dataset.target === 'waliRekapPembiasaan') renderPembiasaanWali();
+    });
+});
+
+// Listener untuk inisialisasi Wali Kelas saat login
+const originalDoLogin = doLogin;
+doLogin = async function(name, isAdminUser, adminType) {
+    await originalDoLogin(name, isAdminUser, adminType);
+
+    // Tampilkan tombol Tab Wali Kelas jika Guru adalah Wali Kelas ATAU Master Admin
+    const klsWali = WALI_KELAS_MAP[name];
+    if (klsWali || adminType === 'agus') { // Modifikasi di baris ini
+        document.getElementById('waliTab').classList.remove('hidden');
+        document.getElementById('waliKelasBadge').textContent = klsWali ? 'Kelas: ' + klsWali : 'Akses Pantauan Master';
+        document.getElementById('tglAbsensiSantri').value = getLocalDateString(new Date());
+    } else {
+        document.getElementById('waliTab').classList.add('hidden');
+    }
+};
+
+// Autocomplete Nama Santri Harian
+const searchAbsensiSantri = document.getElementById('searchAbsensiSantri');
+const dropdownAbsensiSantri = document.getElementById('dropdownAbsensiSantri');
+
+searchAbsensiSantri.addEventListener('input', function() {
+    let keyword = this.value.trim().toLowerCase();
+    dropdownAbsensiSantri.innerHTML = '';
+    let kls = WALI_KELAS_MAP[currentUser];
+    if (!keyword || !kls) { dropdownAbsensiSantri.classList.add('hidden'); return; }
+    
+    let matched = (DATA_SANTRI[kls] || []).filter(n => n.toLowerCase().includes(keyword));
+    if (matched.length > 0) {
+        dropdownAbsensiSantri.classList.remove('hidden');
+        matched.forEach(nama => {
+            let div = document.createElement('div');
+            div.className = 'dropdown-item'; div.textContent = nama;
+            div.onclick = () => { searchAbsensiSantri.value = nama; dropdownAbsensiSantri.classList.add('hidden'); };
+            dropdownAbsensiSantri.appendChild(div);
+        });
+    } else { dropdownAbsensiSantri.classList.add('hidden'); }
+});
+
+// Tombol Kirim Absensi Santri
+document.getElementById('btnKirimAbsensiSantri').addEventListener('click', async () => {
+    const tgl = document.getElementById('tglAbsensiSantri').value;
+    const nama = searchAbsensiSantri.value.trim();
+    const status = document.getElementById('statusAbsensiSantri').value;
+    const kls = WALI_KELAS_MAP[currentUser];
+
+    if (!kls) return showToast('Anda bukan wali kelas!', 'error');
+    if (!tgl || !nama) return showToast('Pilih tanggal dan nama santri!', 'error');
+
+    const btn = document.getElementById('btnKirimAbsensiSantri');
+    const oriText = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
+
+    try {
+        const payload = { api_action: 'addAbsensiSantriHarian', teacher: currentUser, class: kls, date: tgl, nama_santri: nama, status: status };
+        const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
+        const j = await res.json();
+        if(j.success) {
+            showToast('Absensi santri berhasil dikirim ke server!', 'success');
+            searchAbsensiSantri.value = '';
+        } else { throw new Error(j.error); }
+    } catch(e) {
+        showToast('Gagal mengirim absensi santri.', 'error');
+    } finally { btn.innerHTML = oriText; }
+});
+
+// Render Rekap Pembiasaan Wali Kelas
+async function renderPembiasaanWali() {
+    const tbody = document.getElementById('bodyPembiasaanWali');
+    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menarik data...</td></tr>';
+    
+    try {
+        const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
+        const period = document.getElementById('filterPembiasaanPeriodeWali').value;
+        const now = new Date();
+        
+        let filtered = res.data.filter(d => d.teacher === currentUser && d.jp === 'Pembiasaan Pagi');
+        
+        // Logika Filter Tanggal
+        filtered = filtered.filter(d => {
+            let tglData = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+            if (period === 'week') return tglData >= getLocalDateString(new Date(now.setDate(now.getDate() - now.getDay() + 1)));
+            if (period === 'month') return tglData >= getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+            return true;
+        });
+
+        // Grouping Data Masuk Keluar
+        let mapPagi = {};
+        filtered.forEach(d => {
+            let tgl = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+            if(!mapPagi[tgl]) mapPagi[tgl] = { in: '-', out: '-', status: 'Hadir' };
+            if(d.action === 'masuk') mapPagi[tgl].in = d.time ? d.time.substring(0,5) : '-';
+            if(d.action === 'keluar') mapPagi[tgl].out = d.time ? d.time.substring(0,5) : '-';
+        });
+
+        tbody.innerHTML = '';
+        Object.keys(mapPagi).sort().reverse().forEach(tgl => {
+            let r = mapPagi[tgl];
+            let telat = false;
+            let mMins = parseTimeToMins('07:15');
+            let wMins = parseTimeToMins(r.in);
+            if (wMins > (mMins + 3)) telat = true;
+            
+            let statusBadge = telat ? `<span class="badge bg-amber-100 text-amber-700 font-bold px-2 py-1 text-xs">Telat</span>` : `<span class="badge bg-emerald-100 text-emerald-700 font-bold px-2 py-1 text-xs">Tepat</span>`;
+            
+            tbody.innerHTML += `<tr><td class="font-bold text-xs">${tgl}</td><td>${r.in}</td><td>${r.out}</td><td>${statusBadge}</td></tr>`;
+        });
+        if(Object.keys(mapPagi).length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data</td></tr>';
+    } catch(e) { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Gagal terkoneksi.</td></tr>'; }
+}
+
+window.copyPembiasaanWaliWA = function() {
+    let textToCopy = `*REKAP PEMBIASAAN PAGI*\n👤 Wali Kelas: ${currentUser} (${WALI_KELAS_MAP[currentUser]})\n\n`;
+    const rows = document.getElementById('bodyPembiasaanWali').querySelectorAll('tr');
+    
+    if (rows.length === 0 || rows[0].innerText.includes('Belum ada')) {
+        textToCopy += "Belum ada riwayat pembiasaan pagi.";
+    } else {
+        rows.forEach(r => {
+            const c = r.querySelectorAll('td');
+            if (c.length >= 4) textToCopy += `📅 ${c[0].innerText} | In: ${c[1].innerText} | Out: ${c[2].innerText} | St: ${c[3].innerText}\n`;
+        });
+    }
+    navigator.clipboard.writeText(textToCopy).then(() => showToast('Berhasil dicopy ke WA', 'success'));
+}
 
 </script>
 </body>
