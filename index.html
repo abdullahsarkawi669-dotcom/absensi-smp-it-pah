@@ -465,7 +465,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         <!-- JADWAL SAYA HARI INI CARD -->
         <div id="myScheduleCard" class="card hidden bg-white mb-4" style="padding: 16px;">
             <div class="card-header" style="margin-bottom: 12px; font-size: 0.95rem;">
-                <span><i class="fa-solid fa-list-check text-primary"></i> Jadwal Saya Hari Ini</span>
+                <span><i class="fa-solid fa-list-check text-primary"></i> <span id="myScheduleTitle">Jadwal Saya Hari Ini</span></span>
             </div>
             <div class="table-wrap" style="max-height: 220px; overflow-y: auto;">
                 <table id="myScheduleTable">
@@ -1293,8 +1293,8 @@ function getLocalDateString(d = getCurrentWITA()) {
 
     let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
-// Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD
-function getLocalDateString(d = new Date()) {
+// Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD (WITA)
+function getLocalDateString(d = getCurrentWITA()) {
     const year = d.getFullYear();
     const month = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -1871,11 +1871,17 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
         return 0;
     }
 
-    function getDayName() { return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][new Date().getDay()]; }
-    function getDayNameID() { return ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][new Date().getDay()]; }
+    function getDayName() { 
+        const now = getCurrentWITA();
+        return ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][now.getDay()]; 
+    }
+    function getDayNameID() { 
+        const now = getCurrentWITA();
+        return ['Ahad', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][now.getDay()]; 
+    }
 
 function getCurrentJPInfo(mode = '') {
-        const now = new Date();
+        const now = getCurrentWITA();
         const totalMins = (now.getHours() * 60) + now.getMinutes();
         const isJumat = (getDayName() === 'jumat');
         const jadwal = isJumat ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
@@ -2482,43 +2488,25 @@ function playShortBeep3x() {
     }
 
 function checkTomorrowSchedule() {
+    // Jadwal hari ini/besok sekarang dikelola sepenuhnya oleh renderMySchedule().
+    // Fungsi ini dipertahankan agar pemanggilan lama di updateClock() tetap aman.
     if (!currentUser) return;
-    const now = new Date();
-    const hour = now.getHours();
-    const myScheduleCard = document.getElementById('myScheduleCard');
-    const tomorrowScheduleCard = document.getElementById('tomorrowScheduleCard');
-    
-    // Logika 00.00-13.00 & 13.00-00.00 (Requirement 4 & 5)
-    if (hour < 13) {
-        myScheduleCard.classList.remove('hidden');
-        tomorrowScheduleCard.classList.add('hidden');
-    } else {
-        myScheduleCard.classList.add('hidden');
-        tomorrowScheduleCard.classList.remove('hidden');
 
-        let tomorrowDate = new Date(now);
-        tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+    const oldTomorrowCard = document.getElementById('tomorrowScheduleCard');
+    if (oldTomorrowCard) oldTomorrowCard.classList.add('hidden');
+
+    // Segarkan kartu utama saat melewati batas 13:00 WITA.
+    // renderMySchedule() sendiri juga dipanggil setiap 60 detik.
+    const now = getCurrentWITA();
+    const title = document.getElementById('myScheduleTitle');
+    if (title) {
         const days = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
-        const tomorrowDay = days[tomorrowDate.getDay()];
-        
-        if (tomorrowDay === 'ahad') {
-            tomorrowScheduleCard.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
-                              <div class="text-sm text-indigo-800 font-bold text-center py-2">Besok anda libur, semoga Allah menjaga kita semua.</div>`;
-        } else {
-            let blocks = getGroupedSchedule(currentUser, tomorrowDay, 0);
-            if (blocks.length > 0) {
-                let html = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Esok Hari (${tomorrowDay.toUpperCase()})</div><ul class="text-xs text-indigo-800" style="padding-left:16px; margin-bottom: 0;">`;
-                blocks.forEach(b => {
-                    let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
-                    html += `<li class="mb-1"><b>${jpStr}</b>: Kelas ${b.class} (${b.mapel}) - <b>${b.masuk}</b></li>`;
-                });
-                html += `</ul>`;
-                tomorrowScheduleCard.innerHTML = html;
-            } else {
-                tomorrowScheduleCard.innerHTML = `<div class="card-header text-indigo-700 mb-2" style="font-size: 0.95rem;"><i class="fa-solid fa-calendar-check"></i> Jadwal Besok</div>
-                                  <div class="text-sm text-indigo-800 font-bold text-center py-2">Tidak ada jadwal mengajar besok.</div>`;
-            }
-        }
+        const target = new Date(now);
+        if (now.getHours() >= 13) target.setDate(target.getDate() + 1);
+
+        title.textContent = now.getHours() >= 13
+            ? `Jadwal Saya Esok Hari (${days[target.getDay()].toUpperCase()})`
+            : `Jadwal Saya Hari Ini (${days[target.getDay()].toUpperCase()})`;
     }
 }
 
@@ -3603,95 +3591,161 @@ function updateTeachingTimer() {
 
 async function renderMySchedule() {
     if (!currentUser) return;
-    const now = new Date();
-    const hari = getDayName();
-    const todayStr = getLocalDateString(now);
-    const currentMins = now.getHours() * 60 + now.getMinutes();
-    
-    let history = [];
-    try { history = await getLocalHistory(currentUser, todayStr); } catch(e){}
-    
-    const attendedList = [...history, ...serverDataCache.filter(d => d.teacher === currentUser && d.action === 'masuk')];
-    let blocks = getGroupedSchedule(currentUser, hari, currentMins);
-    
+
+    // SEMUA LOGIKA JADWAL MENGGUNAKAN WITA (UTC+8).
+    // 00:00 s.d. 12:59 WITA  -> tampilkan jadwal HARI INI.
+    // 13:00 s.d. 23:59 WITA -> tampilkan jadwal ESOK HARI.
+    const now = getCurrentWITA();
+    const isAfternoon = now.getHours() >= 13;
+
+    const targetDate = new Date(now);
+    if (isAfternoon) targetDate.setDate(targetDate.getDate() + 1);
+
+    const days = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
+    const targetDay = days[targetDate.getDay()];
+    const targetDateStr = getLocalDateString(targetDate);
+
+    // Riwayat absen hanya dipakai ketika yang ditampilkan adalah jadwal hari ini.
+    // Jadwal besok tidak boleh dianggap sudah diabsen.
+    let attendedList = [];
+    if (!isAfternoon) {
+        try {
+            const history = await getLocalHistory(currentUser, targetDateStr);
+            attendedList = [
+                ...history,
+                ...serverDataCache.filter(
+                    d => d.teacher === currentUser &&
+                         d.action === 'masuk' &&
+                         d.date === targetDateStr
+                )
+            ];
+        } catch(e) {}
+    }
+
+    // Untuk jadwal besok, currentMins=0 agar seluruh jadwal besok ditampilkan.
+    const blocks = getGroupedSchedule(
+        currentUser,
+        targetDay,
+        isAfternoon ? 0 : (now.getHours() * 60 + now.getMinutes()),
+        targetDate
+    );
+
     const card = document.getElementById('myScheduleCard');
     const tbody = document.getElementById('myScheduleBody');
+    const title = document.getElementById('myScheduleTitle');
+
+    if (!card || !tbody) return;
+
     tbody.innerHTML = '';
-    
-    if (blocks.length === 0 || now.getHours() >= 13) {
-        card.classList.add('hidden'); 
-        card.style.display = 'none';
+
+    // Ubah judul sesuai rentang waktu.
+    if (title) {
+        title.textContent = isAfternoon
+            ? `Jadwal Saya Esok Hari (${targetDay.toUpperCase()})`
+            : `Jadwal Saya Hari Ini (${targetDay.toUpperCase()})`;
+    }
+
+    // Pastikan kartu jadwal besok lama tidak muncul bersamaan.
+    const oldTomorrowCard = document.getElementById('tomorrowScheduleCard');
+    if (oldTomorrowCard) oldTomorrowCard.classList.add('hidden');
+
+    if (blocks.length === 0) {
+        card.classList.remove('hidden');
+        card.style.display = 'block';
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted" style="padding:18px;">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size:1.4rem;"></i><br>
+                    ${isAfternoon
+                        ? 'Tidak ada jadwal mengajar esok hari.'
+                        : 'Tidak ada jadwal mengajar hari ini.'}
+                </td>
+            </tr>`;
         return;
     }
-    
+
     card.classList.remove('hidden');
     card.style.display = 'block';
-    
+
     let countDisplayed = 0;
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
     blocks.forEach(sch => {
-        let isPassed = sch.kMins < currentMins;
-        let mMins = parseTimeToMins(sch.masuk);
-        let isOngoing = currentMins >= mMins && currentMins <= sch.kMins;
-        
-        //let jpStr = sch.jps.length > 1 ? `JP ${sch.jps[0]}-${sch.jps[sch.jps.length-1]}` : `JP ${sch.jps[0]}`;
-        // Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
-		let jpStr = b.jpStr;
-		
-        // --- PERBAIKAN: Deteksi Fleksibel untuk Guru Tahfizh / Kelas Kopel ---
-        let hasClockedIn = attendedList.some(h => {
-            let overlap = false;
-            sch.jps.forEach(j => {
-                if (h.jp) {
-                    let hJps = h.jp.replace('JP ', '').split('-');
-                    let hStart = parseInt(hJps[0]);
-                    let hEnd = hJps.length > 1 ? parseInt(hJps[1]) : hStart;
-                    if (j >= hStart && j <= hEnd) overlap = true; 
-                }
-            });
-            if (!overlap) return false;
+        const mMins = parseTimeToMins(sch.masuk);
+        const isOngoing = !isAfternoon &&
+            currentMins >= mMins &&
+            currentMins <= sch.kMins;
 
-            // Jika kelas sama persis, anggap cocok
-            if (h.class === sch.class) return true;
+        const isPassed = !isAfternoon && sch.kMins < currentMins;
 
-            // Jika mengajar kelas kopel (misal format (7A),7B,7C atau sejenisnya)
-            const isGuruTahfizh = TEACHERS.some(t => t.name === currentUser && t.subjects.includes("Tahfizhul Qur'an"));
-            if (isGuruTahfizh) {
-                // Ekstrak semua kode kelas dalam string kelas history maupun jadwal
-                const cleanSchClass = sch.class.replace(/[()]/g, '');
-                const cleanHClass = h.class.replace(/[()]/g, '');
-                
-                const kopelGroups = [
-                    ['7A', '7B', '7C'],
-                    ['7D', '7E', '8A'],
-                    ['8B', '8C', '8D', '8E'],
-                    ['9A', '9B', '9C', '9D']
-                ];
+        // FIX: sebelumnya menggunakan b.jpStr (variabel tidak ada).
+        const jpStr = sch.jpStr;
 
-                for (let group of kopelGroups) {
-                    // Jika jadwal dan history berada dalam satu grup kopel tahfizh yang sama, anggap sudah diabsen
-                    if (group.some(c => cleanSchClass.includes(c)) && group.some(c => cleanHClass.includes(c))) {
-                        return true;
+        let hasClockedIn = false;
+
+        if (!isAfternoon) {
+            hasClockedIn = attendedList.some(h => {
+                let overlap = false;
+
+                sch.jps.forEach(j => {
+                    if (h.jp) {
+                        const hJps = String(h.jp).replace('JP ', '').split('-');
+                        const hStart = parseInt(hJps[0], 10);
+                        const hEnd = hJps.length > 1 ? parseInt(hJps[1], 10) : hStart;
+                        if (j >= hStart && j <= hEnd) overlap = true;
+                    }
+                });
+
+                if (!overlap) return false;
+                if (h.class === sch.class) return true;
+
+                // Dukungan khusus guru Tahfizh / kelas kopel.
+                const teacher = TEACHERS.find(t => t.name === currentUser);
+                const isGuruTahfizh = teacher &&
+                    (teacher.subjects || []).includes("Tahfizhul Qur'an");
+
+                if (isGuruTahfizh) {
+                    const cleanSchClass = String(sch.class).replace(/[()]/g, '');
+                    const cleanHClass = String(h.class || '').replace(/[()]/g, '');
+
+                    const kopelGroups = [
+                        ['7A', '7B', '7C'],
+                        ['7D', '7E', '8A'],
+                        ['8B', '8C', '8D', '8E'],
+                        ['9A', '9B', '9C', '9D']
+                    ];
+
+                    for (const group of kopelGroups) {
+                        if (
+                            group.some(c => cleanSchClass.includes(c)) &&
+                            group.some(c => cleanHClass.includes(c))
+                        ) return true;
                     }
                 }
-            }
-            return false;
-        });
-        // ------------------------------------------------------------------
-        
-        if (isPassed && hasClockedIn) return; 
-        
+
+                return false;
+            });
+        }
+
+        // Jadwal yang sudah dilewati dan sudah scan tidak perlu ditampilkan.
+        // Untuk jadwal besok, semua baris selalu ditampilkan.
+        if (!isAfternoon && isPassed && hasClockedIn) return;
+
         countDisplayed++;
+
         const tr = document.createElement('tr');
-        
-        if (isPassed && !hasClockedIn) {
+
+        if (!isAfternoon && isPassed && !hasClockedIn) {
             tr.className = "bg-red-50";
             tr.innerHTML = `
                 <td class="text-danger font-bold text-xs">${jpStr}</td>
                 <td class="text-danger text-xs">${sch.masuk}-${sch.keluar}</td>
                 <td class="text-danger font-bold text-xs">${sch.class}</td>
                 <td class="text-danger text-xs">${sch.mapel}</td>
-                <td class="text-xs"><span class="badge bg-red-100 text-red-700 font-bold px-2 py-1">Terlewat</span></td>
-            `;
+                <td class="text-xs">
+                    <span class="badge bg-red-100 text-red-700 font-bold px-2 py-1">Terlewat</span>
+                </td>`;
         } else if (isOngoing) {
             tr.className = "bg-amber-50";
             tr.innerHTML = `
@@ -3699,23 +3753,48 @@ async function renderMySchedule() {
                 <td class="text-amber-800 text-xs">${sch.masuk}-${sch.keluar}</td>
                 <td class="font-bold text-amber-800 text-xs">${sch.class}</td>
                 <td class="text-amber-800 text-xs">${sch.mapel}</td>
-                <td class="text-xs"><span class="badge bg-amber-100 text-amber-700 font-bold px-2 py-1"><i class="fa-solid fa-spinner fa-spin"></i> Berlangsung</span></td>
-            `;
+                <td class="text-xs">
+                    <span class="badge bg-amber-100 text-amber-700 font-bold px-2 py-1">
+                        <i class="fa-solid fa-spinner fa-spin"></i> Berlangsung
+                    </span>
+                </td>`;
+        } else if (isAfternoon) {
+            tr.className = "bg-indigo-50";
+            tr.innerHTML = `
+                <td class="font-bold text-indigo-800 text-xs">${jpStr}</td>
+                <td class="text-indigo-800 text-xs">${sch.masuk}-${sch.keluar}</td>
+                <td class="font-bold text-indigo-800 text-xs">${sch.class}</td>
+                <td class="text-indigo-800 text-xs">${sch.mapel}</td>
+                <td class="text-xs">
+                    <span class="badge" style="background:#e0e7ff;color:#4338ca;font-weight:700;padding:4px 8px;">
+                        Esok
+                    </span>
+                </td>`;
         } else {
             tr.innerHTML = `
                 <td class="font-bold text-xs">${jpStr}</td>
                 <td class="text-xs">${sch.masuk}-${sch.keluar}</td>
                 <td class="font-bold text-xs">${sch.class}</td>
                 <td class="text-xs">${sch.mapel}</td>
-                <td class="text-xs"><span class="badge bg-blue-100 text-blue-700 font-bold px-2 py-1">Akan Datang</span></td>
-            `;
+                <td class="text-xs">
+                    <span class="badge bg-blue-100 text-blue-700 font-bold px-2 py-1">Akan Datang</span>
+                </td>`;
         }
+
         tbody.appendChild(tr);
     });
-    
+
     if (countDisplayed === 0) {
-        card.classList.add('hidden');
-        card.style.display = 'none';
+        card.classList.remove('hidden');
+        card.style.display = 'block';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" class="text-center text-muted" style="padding:18px;">
+                    ${isAfternoon
+                        ? 'Tidak ada jadwal mengajar esok hari.'
+                        : 'Semua jadwal hari ini sudah selesai/tercatat.'}
+                </td>
+            </tr>`;
     }
 }
 
@@ -3739,7 +3818,7 @@ async function renderMySchedule() {
         updateTeachingTimer();
         updateNextClassInfo();
         checkTomorrowSchedule();
-		if (new Date().getSeconds() === 0) renderJadwalGrid(); // Auto refresh penyorot tiap berganti menit
+		if (now.getSeconds() === 0) renderJadwalGrid(); // Auto refresh penyorot tiap berganti menit
 		autoResolveLupaAbsen(); // Tambahkan pemanggilan ini		
     }
     setInterval(updateClock, 1000);
@@ -4856,8 +4935,10 @@ function renderRiwayatData(allData, range) {
     
     const startStr = getLocalDateString(range.start);
     const endStr = getLocalDateString(range.end);
-    const todayStr = getLocalDateString(new Date());
-    const now = new Date();
+    // Konsisten menggunakan waktu WITA (UTC+8) pada Dashboard RIWAYAT.
+    const witaNow = getCurrentWITA();
+    const todayStr = getLocalDateString(witaNow);
+    const now = witaNow;
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
     // Filter data khusus guru ini dan di range pekan yang dipilih
