@@ -2214,20 +2214,6 @@ document.addEventListener('touchstart', unlockAudio);
 // ==========================================
 // Fungsi pemanggil audio yang dipakai sistem
 // ==========================================
-function playJpChangeAlarm() { 
-    audioRing.currentTime = 0; 
-    audioRing.play().catch(e => console.log("Audio diblokir browser:", e));
-}
-
-function playContinuousBeep() { 
-    audioAlarm.currentTime = 0; 
-    audioAlarm.play().catch(e => console.log("Audio diblokir browser:", e));
-}
-
-function playShortBeep3x() {
-    audioAlarm.currentTime = 0;
-    audioAlarm.play().catch(e => console.log("Audio diblokir browser:", e));
-}
 
 // 2. Ganti fungsi notifikasi perpindahan JP
 function playJpChangeAlarm() { 
