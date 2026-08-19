@@ -689,10 +689,11 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                     <button class="btn btn-sm btn-outline rekap-filter" data-filter="all">Semua</button>
                 </div>
 
-                <div class="report-summary" id="rekapSummary">
+                <div class="report-summary" id="rekapSummary" style="grid-template-columns: repeat(4, 1fr);">
                     <div class="stat"><div class="num text-primary" id="statTotal">0</div><div class="label">Total Sesi</div></div>
                     <div class="stat"><div class="num text-warning" id="statLate">0</div><div class="label">Mnt Telat</div></div>
                     <div class="stat"><div class="num text-danger" id="statEarly">0</div><div class="label">Mnt Cepat</div></div>
+                    <div class="stat"><div class="num text-danger" id="statMissed">0</div><div class="label">Tdk Absen</div></div>
                 </div>
 
                 <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
@@ -1151,50 +1152,52 @@ function isEvenWeek(d = new Date()) {
 // ==========================================
 // DAFTAR HARI LIBUR / KEGIATAN SEKOLAH
 // ==========================================
+
+// Daftar Tanggal Libur / Merah (Termasuk 17 Agustus)
+const liburSpesifik = [
+    '2026-08-17', // 17 Agustus: Upacara / Hari Kemerdekaan
+    '2026-09-25', // Pembagian Rapor
+];
+
+// Rentang Tanggal Libur (Warna Merah)
+const rentangLibur = [
+    { mulai: '2026-08-01', selesai: '2026-08-09' }, // Belum Mulai Aktif Aplikasi Absensinya
+    { mulai: '2026-12-21', selesai: '2027-01-03' }, // Libur Semester Ganjil
+    { mulai: '2027-02-08', selesai: '2027-02-09' }, // Libur Awal Ramadhan
+    { mulai: '2027-02-22', selesai: '2027-03-20' }, // Libur Ramadhan
+];
+
+// Rentang Kegiatan / STS / Festival (Warna Hijau)
+const rentangKegiatan = [
+    { mulai: '2026-09-14', selesai: '2026-09-23', nama: 'Sumatif Tengah Semester (STS)' },
+    { mulai: '2026-10-05', selesai: '2026-10-07', nama: 'Audisi Festival Internal Abu Hurairah' },
+    { mulai: '2026-10-23', selesai: '2026-10-24', nama: "Itqan al-Qur'an & Hadits" },
+    { mulai: '2026-11-09', selesai: '2026-11-13', nama: 'Final Festival Internal' },
+    { mulai: '2026-11-30', selesai: '2026-12-12', nama: 'Sumatif Akhir Semester (SAS)' },
+    { mulai: '2027-01-28', selesai: '2027-01-30', nama: 'Festival External Bali Nusa Tenggara' },
+    { mulai: '2027-03-24', selesai: '2027-04-02', nama: 'STS Genap' },
+    { mulai: '2027-04-23', selesai: '2027-04-24', nama: "Itqan al-Qur'an & Hadits" }
+];
+
 function getStatusHariIni(dateObj) {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
     const d = String(dateObj.getDate()).padStart(2, '0');
     const tanggalFormat = `${y}-${m}-${d}`;
 
-    // Daftar Tanggal Libur / Merah (Termasuk 17 Agustus)
-    const liburSpesifik = [
-        '2026-08-17', // 17 Agustus: Upacara / Hari Kemerdekaan
-        '2026-09-25', // Pembagian Rapor
-    ];
-
-    // Rentang Tanggal Libur (Warna Merah)
-    const rentangLibur = [
-        { mulai: '2026-12-21', selesai: '2027-01-03' }, // Libur Semester Ganjil
-        { mulai: '2027-02-08', selesai: '2027-02-09' }, // Libur Awal Ramadhan
-        { mulai: '2027-02-22', selesai: '2027-03-20' }, // Libur Ramadhan
-    ];
-
-    // Rentang Kegiatan / STS / Festival (Warna Hijau)
-    const rentangKegiatan = [
-        { mulai: '2026-09-14', selesai: '2026-09-23', nama: 'Sumatif Tengah Semester (STS)' },
-        { mulai: '2026-10-05', selesai: '2026-10-07', nama: 'Audisi Festival Internal Abu Hurairah' },
-		{ mulai: '2026-10-23', selesai: '2026-10-24', nama: "Itqan al-Qur'an & Hadits" },
-        { mulai: '2026-11-09', selesai: '2026-11-13', nama: 'Final Festival Internal' },
-        { mulai: '2026-11-30', selesai: '2026-12-12', nama: 'Sumatif Akhir Semester (SAS)' },
-        { mulai: '2027-01-28', selesai: '2027-01-30', nama: 'Festival External Bali Nusa Tenggara' },
-        { mulai: '2027-03-24', selesai: '2027-04-02', nama: 'STS Genap' },
-        { mulai: '2027-04-23', selesai: '2027-04-24', nama: "Itqan al-Qur'an & Hadits" }
-    ];
-
     // Cek Libur Spesifik
-    if (liburSpesifik.includes(tanggalFormat) || tanggalFormat.endsWith('-08-17')) {
-        return { status: 'libur', label: 'Libur Nasional / Hari Kemerdekaan (17 Agustus)' };
+    if (liburSpesifik.includes(tanggalFormat)) {
+        return { status: 'libur', label: 'Libur Spesifik / Tanggal Merah' };
     }
 
-    // Cek Rentang Libur
+    // Cek Rentang Libur (Libur Panjang)
     for (let r of rentangLibur) {
         if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) {
-            return { status: 'libur', label: 'Libur Semester / Libur Panjang' };
+            return { status: 'libur', label: 'Libur Sekolah / Ramadhan' };
         }
     }
 
-    // Cek Rentang Kegiatan (STS/Festival -> Hijau)
+    // Cek Rentang Kegiatan (KBM Ditiadakan)
     for (let r of rentangKegiatan) {
         if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) {
             return { status: 'kegiatan', label: r.nama };
@@ -1205,47 +1208,11 @@ function getStatusHariIni(dateObj) {
 }
 
 function isLiburSekolah(dateObj) {
-    // Format tanggal menjadi YYYY-MM-DD
-    const y = dateObj.getFullYear();
-    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const d = String(dateObj.getDate()).padStart(2, '0');
-    const tanggalFormat = `${y}-${m}-${d}`;
-    const bulanHari = `${m}-${d}`; // Untuk kegiatan tahunan (contoh: 17 Agustus)
-
-    // Daftar Tanggal Libur / Tidak Mengajar (Sesuai Permintaan Anda)
-    const liburSpesifik = [
-        '2026-08-17', // 17 Agustus: Upacara
-        '2026-09-25', // Pembagian Rapor
-        '2026-11-21', // Tes SPMB khusus kelas 9A-9D (atau disesuaikan)
-        '2026-11-20', // Pembagian rapor
-    ];
-
-    // Daftar Rentang Tanggal Libur (Format: 'YYYY-MM-DD')
-    const rentangLibur = [
-        { mulai: '2026-09-14', selesai: '2026-09-23' }, // Sumatif Tengah Semester
-        { mulai: '2026-10-05', selesai: '2026-10-07' }, // Audisi Festival Abu Hurairah
-		{ mulai: '2026-10-23', selesai: '2026-10-24' }, // Itqan al-Qur'an Hadits
-        { mulai: '2026-11-09', selesai: '2026-11-13' }, // Final Festival
-        { mulai: '2026-11-30', selesai: '2026-12-12' }, // Sumatif Akhir Semester
-		{ mulai: '2026-12-21', selesai: '2027-01-03' }, // Libur Semester Ganjil
-		{ mulai: '2027-01-28', selesai: '2027-01-30' }, // Festival External Bali Nusa tenggara
-		{ mulai: '2027-02-08', selesai: '2027-02-09' }, // Libur Awal Ramadhan
-		{ mulai: '2027-02-22', selesai: '2027-03-20' }, // Libur Ramadhan
-		{ mulai: '2027-03-24', selesai: '2027-04-02' }, // STS Genap
-		{ mulai: '2027-04-23', selesai: '2027-04-24' }, // Itqan al-Qur'an Hadits
-    ];
-
-    // Cek tanggal spesifik
-    if (liburSpesifik.includes(tanggalFormat)) return true;
-
-    // Cek apakah masuk dalam rentang tanggal
-for (let r of rentangLibur) {
-        if (tanggalFormat >= r.mulai && tanggalFormat <= r.selesai) {
-            return true;
-        }
-    }
-
-    return false;
+    // Dengan fungsi ini, kita cukup memanggil getStatusHariIni.
+    // Jika statusnya BUKAN 'normal' (berarti sedang libur atau ada kegiatan), 
+    // maka dianggap jadwal reguler libur, sehingga Alpha/Terlewat tidak akan dihitung.
+    const status = getStatusHariIni(dateObj);
+    return status.status !== 'normal';
 }
 
 const WALI_KELAS_MAP = {
@@ -3620,6 +3587,16 @@ async function renderMySchedule() {
     setInterval(() => { if (currentUser) renderMySchedule(); }, 60000);
 
     function generateHistoryRowHTML(record) {
+        // --- TAMBAHAN: Deteksi jika ini adalah record terlewat ---
+        if (record.isMissed) {
+            return `<td class="text-danger font-bold">${record.time}</td>
+                    <td class="font-bold text-danger">${record.class}</td>
+                    <td class="text-danger">${record.subject}</td>
+                    <td class="text-danger">❌ Terlewat</td>
+                    <td class="text-xs text-danger font-bold">${record.keterangan}</td>`;
+        }
+        // ---------------------------------------------------------
+
         const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
         let isLate = false;
         if (record.action === 'masuk' && record.jadwal_masuk && record.jadwal_masuk !== '-') {
@@ -3632,7 +3609,6 @@ async function renderMySchedule() {
         let editBtn = '';
         const todayStr = getLocalDateString(new Date());
         
-        // Memunculkan tombol edit HANYA untuk status masuk, telat, dan terjadi pada hari ini
         if (isLate && record.date === todayStr) {
             const encodedRecord = encodeURIComponent(JSON.stringify(record));
             editBtn = `<br><button class="btn btn-sm btn-outline mt-1 text-warning" style="padding: 4px 8px; font-size: 0.7rem; width: 100%; border-color: var(--warning);" onclick="editKeterangan('${encodedRecord}')"><i class="fa-solid fa-pen"></i> Edit Alasan</button>`;
@@ -3663,14 +3639,45 @@ async function renderMySchedule() {
             });
             localData.forEach(d => {
                 const key = `${d.class}_${d.subject}_${d.action}_${d.jp}`;
-                mergedMap.set(key, d); // Lokal override server (jika offline)
+                mergedMap.set(key, d);
             });
 
             const mergedData = Array.from(mergedMap.values());
+            
+            // --- AWAL INJEKSI JADWAL TERLEWAT (HARI INI) ---
+            const hari = getDayName();
+            const currentMins = new Date().getHours() * 60 + new Date().getMinutes();
+            let blocks = getGroupedSchedule(currentUser, hari, currentMins, new Date());
+            
+            blocks.forEach(b => {
+                let mMins = parseTimeToMins(b.masuk);
+                // Terlewat jika sudah lebih dari 15 menit dari jadwal masuk
+                if (currentMins > (mMins + 15)) {
+                    let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+                    let fClass = formatKopelClass(b.class, b.mapel);
+                    
+                    let isScanned = mergedData.some(d => d.action === 'masuk' && d.jp === jpStr && d.class === fClass);
+                    
+                    if (!isScanned) {
+                        mergedData.push({
+                            isMissed: true,
+                            time: '-',
+                            class: fClass,
+                            subject: b.mapel,
+                            action: 'masuk',
+                            keterangan: 'Tidak Scan Masuk',
+                            timestamp: todayStr + 'T' + b.masuk + ':00' // Agar berurutan sesuai jadwal
+                        });
+                    }
+                }
+            });
+            // --- AKHIR INJEKSI ---
+
             const tbody = document.getElementById('historyBody'); tbody.innerHTML = '';
             
             mergedData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).forEach(record => {
                 const tr = document.createElement('tr');
+                if (record.isMissed) tr.className = "bg-red-50"; // Tambahkan background merah
                 tr.innerHTML = generateHistoryRowHTML(record);
                 tbody.appendChild(tr);
             });
@@ -3826,7 +3833,7 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
         });
     });
 
-    async function loadRekap() {
+async function loadRekap() {
         if (!currentUser) return;
         const tbody = document.getElementById('rekapBody'); 
         tbody.innerHTML = '<tr><td colspan="7" class="text-center font-bold text-gray-500 py-6"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menarik data dari server...</td></tr>';
@@ -3859,15 +3866,24 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
             let filtered = res.data.filter(d => {
                 if (d.teacher !== currentUser) return false;
                 if (rekapFilter === 'day') return d.date === today;
-                if (rekapFilter === 'week') return d.date >= new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
-                if (rekapFilter === 'month') return d.date >= new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+                
+                // Pastikan tidak merusak objek 'now' bawaan JS
+                let filterDate = new Date(); filterDate.setHours(0,0,0,0);
+                if (rekapFilter === 'week') {
+                    filterDate.setDate(filterDate.getDate() - filterDate.getDay() + 1);
+                    return d.date >= filterDate.toISOString().split('T')[0];
+                }
+                if (rekapFilter === 'month') {
+                    filterDate.setDate(1);
+                    return d.date >= filterDate.toISOString().split('T')[0];
+                }
                 return true; 
             });
 
             const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
             const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
 
-            let lateCount = 0; let earlyCount = 0;
+            let lateCount = 0; let earlyCount = 0; let missedCount = 0;
 
             const grouped = {};
             filtered.forEach(d => {
@@ -3876,7 +3892,7 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
                 if (!grouped[key]) grouped[key] = {
                     date: d.date, class: d.class, subject: d.subject, jp: d.jp,
                     jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
-                    waktu_masuk: '-', waktu_keluar: '-', ket: d.keterangan || '-'
+                    waktu_masuk: '-', waktu_keluar: '-', ket: d.keterangan || '-', isMissed: false
                 };
                 if (d.action === 'masuk') {
                     grouped[key].waktu_masuk = d.time;
@@ -3889,6 +3905,50 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
                     if(d.keterangan && grouped[key].ket === '-') grouped[key].ket = d.keterangan;
                 }
             });
+
+            // --- AWAL INJEKSI KELAS TERLEWAT PADA REKAP ---
+            let startDate = new Date(); startDate.setHours(0,0,0,0);
+            if (rekapFilter === 'week') startDate.setDate(startDate.getDate() - startDate.getDay() + 1);
+            else if (rekapFilter === 'month') startDate.setDate(1);
+            else if (rekapFilter === 'all') startDate = new Date(startDate.getFullYear(), 6, 1); // Batas limit all = 1 Juli (Tahun Ajaran Baru)
+            
+            let tempDate = new Date(startDate);
+            const todayStrLocal = getLocalDateString(new Date());
+            const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+            
+            while (getLocalDateString(tempDate) <= todayStrLocal) {
+                if (tempDate.getDay() !== 0 && !isLiburSekolah(tempDate)) {
+                    let dStr = getLocalDateString(tempDate);
+                    let dHari = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][tempDate.getDay()];
+                    
+                    let blocks = getGroupedSchedule(currentUser, dHari, 0, tempDate);
+                    
+                    blocks.forEach(b => {
+                        let isPassed = true;
+                        if (dStr === todayStrLocal) {
+                            let m = parseTimeToMins(b.masuk);
+                            if (nowMins < (m + 15)) isPassed = false; // Toleransi belum dianggap terlewat
+                        }
+                        
+                        if (isPassed) {
+                            let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+                            let fClass = formatKopelClass(b.class, b.mapel);
+                            let key = dStr + '_' + fClass + '_' + jpStr;
+                            
+                            if (!grouped[key]) {
+                                grouped[key] = {
+                                    date: dStr, class: fClass, subject: b.mapel, jp: jpStr,
+                                    jadwal_masuk: b.masuk, jadwal_keluar: b.keluar,
+                                    waktu_masuk: '-', waktu_keluar: '-', ket: 'Tdk Scan (Alpa)',
+                                    isMissed: true
+                                };
+                            }
+                        }
+                    });
+                }
+                tempDate.setDate(tempDate.getDate() + 1);
+            }
+            // --- AKHIR INJEKSI ---
 
             const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || b.waktu_masuk.localeCompare(a.waktu_masuk));
 
@@ -3913,7 +3973,13 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
                 if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tolKeluar) { cepatMenit = diff - tolKeluar; earlyCount += cepatMenit; isEarly = true; } }
 
                 let statusHTML = '';
-                if (r.waktu_masuk === '-' || r.waktu_keluar === '-') {
+                const tr = document.createElement('tr');
+                
+                if (r.isMissed) {
+                    statusHTML = '<span class="badge bg-red-100 text-red-700 px-2 py-1 rounded text-xs font-bold">Alpa / Terlewat</span>';
+                    missedCount++;
+                    tr.className = "bg-red-50"; // Baris tabel diwarnai merah
+                } else if (r.waktu_masuk === '-' || r.waktu_keluar === '-') {
                     statusHTML = '<span class="badge bg-gray-100 text-gray-700 px-2 py-1 rounded text-xs font-bold">Incomplete</span>';
                     if (isLate) statusHTML += `<br><span class="badge bg-amber-100 text-amber-700 px-2 py-1 mt-1 rounded text-xs font-bold">Telat ${telatMenit}m</span>`;
                     if (isEarly) statusHTML += `<br><span class="badge bg-amber-100 text-amber-700 px-2 py-1 mt-1 rounded text-xs font-bold">Cepat ${cepatMenit}m</span>`;
@@ -3924,14 +3990,16 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
                     else statusHTML = '<span class="badge bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs font-bold">Tepat Waktu</span>';
                 }
 
-                const tr = document.createElement('tr');
                 tr.innerHTML = `<td>${r.date}</td><td class="font-bold">${r.class}</td><td>${r.subject}</td>
                                 <td>${r.waktu_masuk}</td><td>${r.waktu_keluar}</td>
                                 <td>${statusHTML}</td>
-                                <td class="text-xs">${r.ket}</td>`;
+                                <td class="text-xs ${r.isMissed ? 'text-danger font-bold' : ''}">${r.ket}</td>`;
                 tbody.appendChild(tr);
             });
-            document.getElementById('statTotal').textContent = finalData.length; document.getElementById('statLate').textContent = lateCount; document.getElementById('statEarly').textContent = earlyCount;
+            document.getElementById('statTotal').textContent = finalData.length; 
+            document.getElementById('statLate').textContent = lateCount; 
+            document.getElementById('statEarly').textContent = earlyCount;
+            document.getElementById('statMissed').textContent = missedCount; // Update badge Tidak Absen
         } catch (e) { tbody.innerHTML = ''; document.getElementById('rekapEmpty').classList.remove('hidden'); document.getElementById('rekapEmpty').textContent = 'Koneksi gagal saat memuat data server'; }
     }
 
@@ -4708,7 +4776,7 @@ function renderRiwayatData(allData, range) {
                 } else if (hasIn && !hasOut) {
                     statusIcon = `<span class="text-primary text-xl" title="Lupa Scan Out"><i class="fa-solid fa-check"></i></span>`;
                 } else if (!hasIn && isPast) {
-                    statusIcon = `<span class="text-danger text-xl opacity-75" title="Terlewat / Alpha"><i class="fa-solid fa-xmark"></i></span>`;
+                    statusIcon = `<span class="text-danger text-xl opacity-75" title="Terlewat / Alpa"><i class="fa-solid fa-xmark"></i></span>`;
                 } else {
                     statusIcon = `<span class="text-gray-300 text-xl" title="Belum Mulai">-</span>`;
                 }
