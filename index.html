@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 	<link rel="manifest" href="manifest.json">
 	<meta name="theme-color" content="#2563eb">
+    <title>Float Nama User</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -45,7 +46,7 @@
 			-webkit-tap-highlight-color: transparent;
             transition: background-color var(--transition), color var(--transition);
 		}
-		body { padding-bottom: 80px; }
+		body { padding-bottom: 60px; }
     
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -121,7 +122,7 @@
 
     #loginScreen {
         min-height: 100vh; display: flex; align-items: center; justify-content: center;
-        background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 20px;
+        background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%); padding: 10px;
     }
     #loginScreen .login-box {
         background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(20px);
@@ -608,6 +609,106 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         100% { opacity: 0.2; transform: translateX(-10%) scale(0.8); }
     }
 	
+	        /* Reset & styling dasar */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 200vh;
+            padding-top: 40px;
+            background: #eff6ff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+        }
+
+        .content p {
+            font-size: 1.2rem;
+            line-height: 2;
+            margin-bottom: 30px;
+        }
+
+        /* === STYLE NAMA USER (FLOAT) === */
+        #userNameDisplay {
+            /* --- Ukuran diperkecil --- */
+            font-size: 1.1rem;           /* dari 1.75rem -> 1.1rem */
+            font-weight: 700;            /* sedikit lebih ringan */
+            letter-spacing: 0.02em;
+            padding: 6px 18px;            /* tambah padding biar enak dilihat */
+            border-radius: 50px;          /* bentuk pil/oval */
+
+            /* --- Posisi: fixed di atas, selalu terlihat --- */
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);  /* center horizontal */
+            z-index: 9999;
+
+            /* --- Background & efek --- */
+            background: linear-gradient(135deg, #fda085, #f6d365, #a8edea, #d299c2, #f6d365);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 30px rgba(253, 160, 133, 0.2);
+
+            /* --- Animasi --- */
+            animation: gradientFlow 5s ease-in-out infinite alternate,
+                       glowPulse 2.8s ease-in-out infinite alternate;
+
+            /* --- Transisi halus saat scroll --- */
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                        opacity 0.3s ease,
+                        box-shadow 0.3s ease;
+
+            white-space: nowrap;
+            min-width: 40px;
+            cursor: default;
+
+            /* --- Glassmorphism ringan biar keliatan di atas konten --- */
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            background-color: rgba(0, 0, 0, 0.35);
+            background-blend-mode: overlay;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4),
+                        0 0 60px rgba(253, 160, 133, 0.05);
+        }
+
+        /* Efek floating mengikuti scroll (gerakan naik/turun halus) */
+        #userNameDisplay.floating {
+            transform: translateX(-50%) translateY(var(--scroll-offset, 0px));
+        }
+
+        /* Animasi gradient */
+        @keyframes gradientFlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        /* Animasi glow */
+        @keyframes glowPulse {
+            0% { filter: drop-shadow(0 0 10px rgba(253, 160, 133, 0.1)); }
+            100% { filter: drop-shadow(0 0 30px rgba(253, 160, 133, 0.25)); }
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            #userNameDisplay {
+                font-size: 0.95rem;
+                padding: 5px 14px;
+                top: 12px;
+            }
+        }
+
+        /* Efek hover */
+        #userNameDisplay:hover {
+            transform: translateX(-50%) translateY(var(--scroll-offset, 0px)) scale(1.04);
+            box-shadow: 0 8px 40px rgba(253, 160, 133, 0.15);
+        }
+		
 </style>
 </head>
 <body>
@@ -689,26 +790,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     <div class="container">
         <div class="topbar" id="topbar">
             <div class="user">
-        <span id="userNameDisplay" style="
-            display: inline-block;
-            font-weight: 800;
-            font-size: 1.75rem;
-            letter-spacing: 0.03em;
-            background: linear-gradient(135deg, #fda085, #f6d365, #a8edea, #d299c2, #f6d365);
-            background-size: 400% 400%;
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            text-shadow: 0 0 40px rgba(253, 160, 133, 0.15);
-            animation: gradientFlow 5s ease-in-out infinite alternate,
-                       floatPulse 3.5s ease-in-out infinite alternate,
-                       glowPulse 2.8s ease-in-out infinite alternate;
-            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
-            position: relative;
-            white-space: nowrap;
-            min-width: 60px;
-            filter: drop-shadow(0 0 15px rgba(253, 160, 133, 0.05));
-        ">-</span>
+            <span id="userNameDisplay">User</span>
                 <span class="mapel-label" id="userMapelDisplay">-</span>
                 <div style="position: relative; display: inline-block;" id="skinMenuContainer">
                     <button class="btn btn-sm btn-outline" style="width:auto;padding:6px 12px;border-color:rgba(255,255,255,0.4);color:#fff;font-size:0.75rem;" id="skinBtnToggle">
@@ -6580,6 +6662,54 @@ function updateNextClassTimer() {
     document.getElementById('timerContainer').classList.remove('hidden');
 }
 
+        (function() {
+            const userName = document.getElementById('userNameDisplay');
+            
+            // === SET NAMA USER (ganti sesuai keinginan) ===
+            userName.textContent = 'Raka'; // <-- Ganti dengan nama user Anda
+
+            // State untuk scroll offset
+            let scrollOffset = 0;
+            let lastScrollY = window.scrollY;
+            let targetOffset = 0;
+
+            // Fungsi update posisi float
+            function updateFloat() {
+                const currentScrollY = window.scrollY;
+                const maxOffset = 80;  // batas maksimum pergerakan (px)
+                
+                // Hitung offset berdasarkan scroll: semakin scroll, semakin naik (negatif)
+                // Tapi kita buat efek "mengikuti" dengan sedikit delay / smoothing
+                // Pendekatan: offset = - (scrollY * 0.08) dengan batas max
+                const rawOffset = -(currentScrollY * 0.08);
+                targetOffset = Math.max(-maxOffset, Math.min(maxOffset, rawOffset));
+                
+                // Smoothing dengan lerp
+                scrollOffset += (targetOffset - scrollOffset) * 0.1;
+                
+                // Terapkan ke CSS variable
+                userName.style.setProperty('--scroll-offset', scrollOffset + 'px');
+                
+                // Tambahkan class floating
+                userName.classList.add('floating');
+                
+                lastScrollY = currentScrollY;
+                requestAnimationFrame(updateFloat);
+            }
+
+            // Mulai animasi float
+            updateFloat();
+
+            // Opsional: update nama user melalui input (bisa diaktifkan)
+            // Contoh: ganti nama dengan prompt (bisa dihapus)
+            // setTimeout(() => {
+            //     const newName = prompt('Masukkan nama user:', 'Raka');
+            //     if (newName && newName.trim()) {
+            //         userName.textContent = newName.trim();
+            //     }
+            // }, 500);
+        })();
+		
 </script>
 </body>
 </html>
