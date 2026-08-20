@@ -468,6 +468,146 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         }
     }
 	
+/* Animasi untuk timer countdown */
+.pulse-timer {
+    animation: pulseTimer 1.5s infinite;
+    background: linear-gradient(135deg, #ffffff 0%, #e0f2fe 100%);
+    padding: 12px 20px;
+    border-radius: 12px;
+    display: inline-block;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+    border: 2px solid #bfdbfe;
+}
+
+@keyframes pulseTimer {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+    }
+    100% {
+        transform: scale(1);
+        box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
+    }
+}
+
+/* Warna latar untuk timerContainer */
+#timerContainer {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    border-radius: 16px;
+    padding: 12px 16px;
+    margin-top: 12px;
+    border: 1px solid #bfdbfe;
+    box-shadow: inset 0 2px 8px rgba(37, 99, 235, 0.1);
+}
+
+    /* Animasi gradien bergerak */
+    @keyframes gradientMove {
+        0% { background-position: 0% 30%; }
+        100% { background-position: 100% 70%; }
+    }
+    /* Animasi float + scale + glow */
+    @keyframes floatGlow {
+        0% {
+            transform: translateY(0px) scale(1);
+            text-shadow: 0 0 20px rgba(255, 215, 100, 0.1);
+        }
+        100% {
+            transform: translateY(-4px) scale(1.02);
+            text-shadow: 0 0 35px rgba(255, 200, 100, 0.25), 0 0 60px rgba(200, 150, 255, 0.1);
+        }
+    }
+    /* Efek hover tambahan */
+    #userNameDisplay:hover {
+        animation-play-state: paused;
+        transform: scale(1.04) translateY(-2px);
+        filter: drop-shadow(0 0 25px rgba(255, 215, 100, 0.15));
+    }
+	
+	    /* 1. Gradien mengalir dengan 5 warna (lebih smooth) */
+    @keyframes gradientFlow {
+        0% { background-position: 0% 50%; }
+        25% { background-position: 50% 0%; }
+        50% { background-position: 100% 50%; }
+        75% { background-position: 50% 100%; }
+        100% { background-position: 0% 50%; }
+    }
+    
+    /* 2. Float + scale dengan easing yang lebih natural */
+    @keyframes floatPulse {
+        0% {
+            transform: translateY(0px) scale(1) rotate(0deg);
+        }
+        30% {
+            transform: translateY(-5px) scale(1.02) rotate(-0.5deg);
+        }
+        70% {
+            transform: translateY(-3px) scale(1.01) rotate(0.5deg);
+        }
+        100% {
+            transform: translateY(-7px) scale(1.04) rotate(0deg);
+        }
+    }
+    
+    /* 3. Cahaya berdenyut dengan 3 level intensitas */
+    @keyframes glowPulse {
+        0% {
+            text-shadow: 0 0 20px rgba(253, 160, 133, 0.1), 
+                         0 0 40px rgba(246, 211, 101, 0.05);
+            filter: drop-shadow(0 0 10px rgba(253, 160, 133, 0.05));
+        }
+        50% {
+            text-shadow: 0 0 40px rgba(253, 160, 133, 0.25), 
+                         0 0 80px rgba(168, 237, 234, 0.15),
+                         0 0 120px rgba(210, 153, 194, 0.1);
+            filter: drop-shadow(0 0 25px rgba(253, 160, 133, 0.15));
+        }
+        100% {
+            text-shadow: 0 0 30px rgba(246, 211, 101, 0.2), 
+                         0 0 60px rgba(253, 160, 133, 0.15),
+                         0 0 100px rgba(168, 237, 234, 0.08);
+            filter: drop-shadow(0 0 20px rgba(253, 160, 133, 0.1));
+        }
+    }
+    
+    /* 4. Efek hover yang lebih interaktif */
+    #userNameDisplay:hover {
+        animation-play-state: paused;
+        transform: scale(1.08) translateY(-6px) rotate(-1deg) !important;
+        filter: drop-shadow(0 0 40px rgba(253, 160, 133, 0.3)) !important;
+        text-shadow: 0 0 60px rgba(253, 160, 133, 0.4), 
+                     0 0 120px rgba(168, 237, 234, 0.2) !important;
+        transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1),
+                    filter 0.3s ease,
+                    text-shadow 0.3s ease;
+        cursor: default;
+    }
+    
+    /* 5. Efek "berkedip" halus pada teks (opsional) */
+    #userNameDisplay::after {
+        content: '';
+        position: absolute;
+        top: -20%;
+        left: -10%;
+        width: 120%;
+        height: 140%;
+        background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.08), transparent 70%);
+        filter: blur(20px);
+        pointer-events: none;
+        animation: shimmerSweep 4s ease-in-out infinite alternate;
+        border-radius: 30px;
+        z-index: -1;
+    }
+    
+    @keyframes shimmerSweep {
+        0% { opacity: 0.2; transform: translateX(-10%) scale(0.8); }
+        50% { opacity: 0.6; transform: translateX(10%) scale(1.2); }
+        100% { opacity: 0.2; transform: translateX(-10%) scale(0.8); }
+    }
+	
 </style>
 </head>
 <body>
@@ -518,7 +658,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         <hr class="divider" />
 
         <div class="input-group">
-            <label>Pilih Nama Guru / Identitas</label>
+            <label>Pilih Nama Ustadz :</label>
             <div class="teacher-list" id="teacherList"></div>
         </div>
 
@@ -549,7 +689,26 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     <div class="container">
         <div class="topbar" id="topbar">
             <div class="user">
-                <span id="userNameDisplay">-</span>
+        <span id="userNameDisplay" style="
+            display: inline-block;
+            font-weight: 800;
+            font-size: 1.75rem;
+            letter-spacing: 0.03em;
+            background: linear-gradient(135deg, #fda085, #f6d365, #a8edea, #d299c2, #f6d365);
+            background-size: 400% 400%;
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: 0 0 40px rgba(253, 160, 133, 0.15);
+            animation: gradientFlow 5s ease-in-out infinite alternate,
+                       floatPulse 3.5s ease-in-out infinite alternate,
+                       glowPulse 2.8s ease-in-out infinite alternate;
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+            position: relative;
+            white-space: nowrap;
+            min-width: 60px;
+            filter: drop-shadow(0 0 15px rgba(253, 160, 133, 0.05));
+        ">-</span>
                 <span class="mapel-label" id="userMapelDisplay">-</span>
                 <div style="position: relative; display: inline-block;" id="skinMenuContainer">
                     <button class="btn btn-sm btn-outline" style="width:auto;padding:6px 12px;border-color:rgba(255,255,255,0.4);color:#fff;font-size:0.75rem;" id="skinBtnToggle">
@@ -594,10 +753,14 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         <div id="nextClassCard" class="card hidden bg-blue-50 border-blue-200" style="padding: 16px; margin-bottom: 16px;">
             <div class="text-sm font-bold text-blue-800"><i class="fa-solid fa-calendar-day"></i> Jadwal Berikutnya</div>
             <div id="nextClassText" class="text-sm text-blue-700 mt-2 mb-2"></div>
-            <div class="text-center border-t border-blue-200 pt-3 mt-2 hidden" id="timerContainer">
-                <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">Waktu Menuju Kelas:</span>
-                <div id="nextClassTimer" class="font-black text-blue-800 mt-1" style="font-size: 2.5rem; font-family: monospace; line-height: 1;">--:--:--</div>
-            </div>
+<div class="text-center border-t border-blue-200 pt-3 mt-2" id="timerContainer">
+    <span class="text-xs font-bold text-blue-600 uppercase tracking-wider">
+        <i class="fa-solid fa-clock"></i> Waktu Menuju Kelas Berikutnya:
+    </span>
+    <div id="nextClassTimer" class="font-black text-blue-800 mt-2 pulse-timer" style="font-size: 3rem; font-family: 'Orbitron', monospace; line-height: 1;">
+        --:--:--
+    </div>
+</div>
         </div>
 
 		<!-- UPCOMING CLASS WARNING (5 MINS) -->
@@ -2426,6 +2589,7 @@ function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Dat
 
 function getNextClass() {
     if (!currentUser) return null;
+	let nextClassGlobal = null; // Variabel global untuk menyimpan nextClass
     const hari = getDayName();
     const now = getCurrentWITA();//new Date();
     const totalMins = now.getHours() * 60 + now.getMinutes();
@@ -2528,75 +2692,85 @@ function playShortBeep3x() {
         document.getElementById('muteAlarmBtn').classList.add('hidden');
     }
 
-    function updateNextClassInfo() {
-        if (!currentUser) return;
-        const now = getCurrentWITA();//new Date();
-        const hour = now.getHours();
-        const infoCard = document.getElementById('nextClassCard');
-        const warnCard = document.getElementById('upcomingClassWarningCard');
-        const nextClass = getNextClass();
-        
-        // Logika Waktu: Hilangkan pada jam 13.00 ke atas (Requirement 5 & 6)
-        if (hour >= 13) {
-            infoCard.classList.add('hidden');
-            warnCard.classList.add('hidden');
-            return;
-        }
+function updateNextClassInfo() {
+    if (!currentUser) return;
+    const now = getCurrentWITA();
+    const hour = now.getHours();
+    const infoCard = document.getElementById('nextClassCard');
+    const warnCard = document.getElementById('upcomingClassWarningCard');
+    const nextClass = getNextClass();
 
-        if (nextClass) {
-            infoCard.classList.remove('hidden');
-            const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
-            document.getElementById('nextClassText').innerHTML =
-                `Hari ini Ustadz akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
+    // Logika Waktu: Hilangkan pada jam 13.00 ke atas
+    if (hour >= 13) {
+        infoCard.classList.add('hidden');
+        warnCard.classList.add('hidden');
+        document.getElementById('timerContainer').classList.add('hidden');
+        nextClassGlobal = null; // Reset nextClassGlobal
+        return;
+    }
 
-            const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-            const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
-            const diffSeconds = masukSeconds - totalSeconds;
-            
-            document.getElementById('timerContainer').classList.add('hidden');
+    if (nextClass) {
+        infoCard.classList.remove('hidden');
+        const cFormatted = formatKopelClass(nextClass.class, nextClass.mapel);
+        document.getElementById('nextClassText').innerHTML =
+            `Hari ini Ustadz akan mengajar <b>${nextClass.mapel}</b> di kelas <b>${cFormatted}</b> pada jam <b>${nextClass.masuk}</b> (${nextClass.jp}).`;
 
-            // Alarm 5 Menit (300 Detik) di Kartu Merah
-            if (diffSeconds > 0 && diffSeconds <= 300) { 
-                warnCard.classList.remove('hidden');
-                const m = Math.floor(diffSeconds / 60);
-                const s = diffSeconds % 60;
-                document.getElementById('upcomingTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        // Simpan nextClass ke variabel global
+        nextClassGlobal = nextClass;
 
-                let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
-                
-                if (isCurrentlyTeaching) {
-                    warnCard.classList.add('pulse-alarm');
-                    document.getElementById('upcomingClassWarningText').innerHTML =
-                        `<i class="fa-solid fa-bell fa-shake"></i> PERHATIAN!<br>SEGERA PINDAH KE KELAS ${cFormatted} UNTUK MENGAJAR ${nextClass.mapel}!`;
-                    
-                    if (!window.nextClassNotifiedTeaching) {
-                        playShortBeep3x(); window.nextClassNotifiedTeaching = true;
-                    }
-                    stopContinuousAlarm();
-                    document.getElementById('muteAlarmBtn').classList.add('hidden');
-                } else {
-                    warnCard.classList.remove('pulse-alarm');
-                    document.getElementById('upcomingClassWarningText').innerHTML =
-                        `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
-                    
-                    if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
-                        window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500); 
-                        document.getElementById('muteAlarmBtn').classList.remove('hidden');
-                    }
+        // Tampilkan timer
+        document.getElementById('timerContainer').classList.remove('hidden');
+        updateNextClassTimer(); // Panggil timer
+
+        // Alarm 5 Menit (300 Detik)
+        const totalSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
+        const diffSeconds = masukSeconds - totalSeconds;
+
+        if (diffSeconds > 0 && diffSeconds <= 300) {
+            warnCard.classList.remove('hidden');
+            const m = Math.floor(diffSeconds / 60);
+            const s = diffSeconds % 60;
+            document.getElementById('upcomingTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+
+            let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
+
+            if (isCurrentlyTeaching) {
+                warnCard.classList.add('pulse-alarm');
+                document.getElementById('upcomingClassWarningText').innerHTML =
+                    `<i class="fa-solid fa-bell fa-shake"></i> PERHATIAN!<br>SEGERA PINDAH KE KELAS ${cFormatted} UNTUK MENGAJAR ${nextClass.mapel}!`;
+
+                if (!window.nextClassNotifiedTeaching) {
+                    playShortBeep3x(); window.nextClassNotifiedTeaching = true;
                 }
-            } else {
-                warnCard.classList.add('hidden'); warnCard.classList.remove('pulse-alarm');
-                window.nextClassNotifiedTeaching = false;
-                if(diffSeconds > 300) window.isAlarmMuted = false;
                 stopContinuousAlarm();
+                document.getElementById('muteAlarmBtn').classList.add('hidden');
+            } else {
+                warnCard.classList.remove('pulse-alarm');
+                document.getElementById('upcomingClassWarningText').innerHTML =
+                    `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+
+                if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
+                    window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500);
+                    document.getElementById('muteAlarmBtn').classList.remove('hidden');
+                }
             }
         } else {
-            // Hilangkan jika tidak ada pelajaran lagi
-            infoCard.classList.add('hidden');
             warnCard.classList.add('hidden');
+            warnCard.classList.remove('pulse-alarm');
+            window.nextClassNotifiedTeaching = false;
+            if (diffSeconds > 300) window.isAlarmMuted = false;
             stopContinuousAlarm();
         }
+    } else {
+        // Hilangkan jika tidak ada pelajaran
+        infoCard.classList.add('hidden');
+        warnCard.classList.add('hidden');
+        document.getElementById('timerContainer').classList.add('hidden');
+        nextClassGlobal = null; // Reset nextClassGlobal
+        stopContinuousAlarm();
     }
+}
 
 function checkTomorrowSchedule() {
     // Jadwal hari ini/besok sekarang dikelola sepenuhnya oleh renderMySchedule().
@@ -6327,6 +6501,79 @@ window.copyPembiasaanWaliWA = function() {
         });
     }
     navigator.clipboard.writeText(textToCopy).then(() => showToast('Berhasil dicopy ke WA', 'success'));
+}
+
+setInterval(updateNextClassTimer, 1000);
+
+// Panggil saat halaman dimuat
+window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        updateNextClassInfo(); // Muat info kelas berikutnya
+        updateNextClassTimer(); // Mulai timer
+    }, 100);//tunggu sebentar 0,1 detik
+});
+
+// Pastikan timer berjalan saat pukul 00:00 WITA
+function checkMidnightReset() {
+    const now = getCurrentWITA();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    const second = now.getSeconds();
+
+    // Jika pukul 00:00:00 WITA, reset dan panggil timer
+    if (hour === 0 && minute === 0 && second === 0) {
+        updateNextClassTimer();
+    }
+}
+
+// Periksa setiap menit untuk reset pukul 00:00
+setInterval(checkMidnightReset, 60000);
+
+function updateNextClassTimer() {
+    if (!currentUser) return;
+
+    const now = getCurrentWITA();
+    const hour = now.getHours();
+
+    // Hilangkan timer jika jam >= 13:00
+    if (hour >= 13) {
+        document.getElementById('timerContainer').classList.add('hidden');
+        return;
+    }
+
+    // Gunakan nextClassGlobal
+    let nextClass = nextClassGlobal;
+    if (!nextClass) {
+        nextClass = getNextClass();
+        if (nextClass) nextClassGlobal = nextClass;
+    }
+
+    if (!nextClass) {
+        document.getElementById('timerContainer').classList.add('hidden');
+        return;
+    }
+
+    // Hitung waktu tersisa
+    const masukMins = parseTimeToMins(nextClass.masuk);
+    const totalMins = now.getHours() * 60 + now.getMinutes();
+    const diffMins = masukMins - totalMins;
+
+    if (diffMins <= 0) {
+        document.getElementById('timerContainer').classList.add('hidden');
+        return;
+    }
+
+    // Hitung jam, menit, detik
+    const hours = Math.floor(diffMins / 60);
+    const minutes = diffMins % 60;
+    const seconds = 60 - now.getSeconds();
+
+    // Format HH:MM:SS
+    const formattedTime = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    document.getElementById('nextClassTimer').textContent = formattedTime;
+
+    // Tampilkan timer
+    document.getElementById('timerContainer').classList.remove('hidden');
 }
 
 </script>
