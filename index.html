@@ -2727,41 +2727,45 @@ function updateNextClassInfo() {
         const masukSeconds = parseTimeToMins(nextClass.masuk) * 60;
         const diffSeconds = masukSeconds - totalSeconds;
 
-        if (diffSeconds > 0 && diffSeconds <= 300) {
-            warnCard.classList.remove('hidden');
-            const m = Math.floor(diffSeconds / 60);
-            const s = diffSeconds % 60;
-            document.getElementById('upcomingTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+        // Alarm 5 Menit (300 Detik) di Kartu Merah
+if (diffSeconds > 0 && diffSeconds <= 300) {
+    warnCard.classList.remove('hidden');
+    infoCard.classList.add('hidden'); // <-- Sembunyikan "Jadwal Berikutnya" saat warning muncul
 
-            let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
+    const m = Math.floor(diffSeconds / 60);
+    const s = diffSeconds % 60;
+    document.getElementById('upcomingTimer').textContent = String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
 
-            if (isCurrentlyTeaching) {
-                warnCard.classList.add('pulse-alarm');
-                document.getElementById('upcomingClassWarningText').innerHTML =
-                    `<i class="fa-solid fa-bell fa-shake"></i> PERHATIAN!<br>SEGERA PINDAH KE KELAS ${cFormatted} UNTUK MENGAJAR ${nextClass.mapel}!`;
+    let isCurrentlyTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null") !== null;
 
-                if (!window.nextClassNotifiedTeaching) {
-                    playShortBeep3x(); window.nextClassNotifiedTeaching = true;
-                }
-                stopContinuousAlarm();
-                document.getElementById('muteAlarmBtn').classList.add('hidden');
-            } else {
-                warnCard.classList.remove('pulse-alarm');
-                document.getElementById('upcomingClassWarningText').innerHTML =
-                    `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+    if (isCurrentlyTeaching) {
+        warnCard.classList.add('pulse-alarm');
+        document.getElementById('upcomingClassWarningText').innerHTML =
+            `<i class="fa-solid fa-bell fa-shake"></i> PERHATIAN!<br>SEGERA PINDAH KE KELAS ${cFormatted} UNTUK MENGAJAR ${nextClass.mapel}!`;
 
-                if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
-                    window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500);
-                    document.getElementById('muteAlarmBtn').classList.remove('hidden');
-                }
-            }
-        } else {
-            warnCard.classList.add('hidden');
-            warnCard.classList.remove('pulse-alarm');
-            window.nextClassNotifiedTeaching = false;
-            if (diffSeconds > 300) window.isAlarmMuted = false;
-            stopContinuousAlarm();
+        if (!window.nextClassNotifiedTeaching) {
+            playShortBeep3x(); window.nextClassNotifiedTeaching = true;
         }
+        stopContinuousAlarm();
+        document.getElementById('muteAlarmBtn').classList.add('hidden');
+    } else {
+        warnCard.classList.remove('pulse-alarm');
+        document.getElementById('upcomingClassWarningText').innerHTML =
+            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+
+        if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
+            window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500);
+            document.getElementById('muteAlarmBtn').classList.remove('hidden');
+        }
+    }
+} else {
+    warnCard.classList.add('hidden');
+    warnCard.classList.remove('pulse-alarm');
+    window.nextClassNotifiedTeaching = false;
+    if(diffSeconds > 300) window.isAlarmMuted = false;
+    stopContinuousAlarm();
+    infoCard.classList.remove('hidden'); // <-- Tampilkan kembali "Jadwal Berikutnya" saat warning hilang
+}
     } else {
         // Hilangkan jika tidak ada pelajaran
         infoCard.classList.add('hidden');
