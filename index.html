@@ -884,21 +884,30 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 </div>
                 <p class="text-sm text-muted mb-4" id="scanInstruction">Arahkan kamera ke QR Code kelas untuk absen masuk</p>
 
+                <!-- JENDELA KAMERA DIPINDAHKAN KE SINI (Ditambah margin bottom mb-4 agar rapi) -->
+                <div class="scanner-overlay mb-4">
+                    <div id="reader"></div>
+                </div>
+
+                <!-- TOMBOL MASUK DAN KELUAR -->
                 <div class="flex gap-2 mb-4">
                     <button class="btn btn-sm btn-primary" id="modeMasuk" style="flex:1;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk</button>
                     <button class="btn btn-sm btn-outline" id="modeKeluar" style="flex:1;"><i class="fa-solid fa-door-open"></i> Keluar</button>
                 </div>
 
+                <!-- INPUT KETERANGAN -->
                 <div class="input-group">
                     <label><i class="fa-regular fa-clipboard"></i> Keterangan (opsional)</label>
                     <input type="text" id="keteranganInput" placeholder="Misal: GTS, Gotong Royong, Ekskul, Piket, dll." />
                     <p class="text-xs text-muted mt-1">* Isi jika absen di luar jadwal reguler.</p>
                 </div>
 
-                <div class="scanner-overlay">
-                    <div id="reader"></div>
+                <div class="flex gap-2 mt-4" id="manualScanContainer">
+                    <button class="btn btn-accent hidden" id="manualScanBtn"><i class="fa-solid fa-keyboard"></i> Input Manual Kelas</button>
+                    <!-- Tombol tidak dihapus, tapi disembunyikan dengan class 'hidden' -->
+                    <button class="btn btn-success hidden" id="syncNowBtn"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Data</button>
                 </div>
-
+                
 <div class="flex gap-2 mt-4" id="manualScanContainer">
     <button class="btn btn-accent hidden" id="manualScanBtn"><i class="fa-solid fa-keyboard"></i> Input Manual Kelas</button>
     <!-- Tombol tidak dihapus, tapi disembunyikan dengan class 'hidden' -->
