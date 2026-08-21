@@ -2155,6 +2155,50 @@ const WALI_KELAS_MAP = {
         return kelas;
     }
 
+// Fungsi untuk mengambil daftar santri kelas kopel (Tahfizh / PJOK)
+function getDaftarSantriKopel(baseClass, subject) {
+    let classesToFetch = [baseClass];
+    let subjectLower = (subject || "").toLowerCase();
+
+    // Logika Kopel Tahfizh
+    if (subjectLower.includes('tahfiz')) {
+        const kopelTahfizh = [
+            ['7A', '7B', '7C'],
+            ['7D', '7E', '8A'],
+            ['8B', '8C', '8D', '8E'],
+            ['9A', '9B', '9C', '9D']
+        ];
+        for (let group of kopelTahfizh) {
+            if (group.includes(baseClass)) {
+                classesToFetch = group;
+                break;
+            }
+        }
+    } 
+    // Logika Kopel PJOK (Opsional, sudah disiapkan jika dibutuhkan)
+    else if (subjectLower.includes('pjok') || subjectLower.includes('olahraga')) {
+        const kopelPJOK = [
+            ['9A', '9B'], ['9C', '9D'], ['7D', '7E'],
+            ['7A', '7B'], ['8A', '8B'], ['7C', '8E']
+        ];
+        for (let group of kopelPJOK) {
+            if (group.includes(baseClass)) {
+                classesToFetch = group;
+                break;
+            }
+        }
+    }
+
+    // Gabungkan semua santri dari kelas yang terpilih
+    let allSantri = [];
+    classesToFetch.forEach(cls => {
+        if (DATA_SANTRI[cls]) {
+            allSantri = allSantri.concat(DATA_SANTRI[cls]);
+        }
+    });
+    return allSantri;
+}
+
     // Tambahkan parameter targetDate dengan default new Date()
 function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
     hari = (hari || "").toLowerCase();
@@ -3722,7 +3766,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             CLASSES.forEach(c => { if(activeTeaching.class.includes(c)) targetClass = c; });
         }
 
-        let listSantriKelas = DATA_SANTRI[targetClass] || [];
+        let listSantriKelas = getDaftarSantriKopel(targetClass, activeTeaching.subject);
         let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
         if (matched.length > 0) {
@@ -3764,7 +3808,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             CLASSES.forEach(c => { if(activeTeaching.class.includes(c)) targetClass = c; });
         }
 
-        let listSantriKelas = DATA_SANTRI[targetClass] || [];
+        let listSantriKelas = getDaftarSantriKopel(targetClass, activeTeaching.subject);
         let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
         if (matched.length > 0) {
@@ -6212,17 +6256,19 @@ const searchSantriNilaiInput = document.getElementById('searchSantriNilaiInput')
 const santriNilaiDropdown = document.getElementById('santriNilaiDropdown');
 
 searchSantriNilaiInput.addEventListener('input', function() {
-    let keyword = this.value.trim().toLowerCase();
-    let selectedClass = document.getElementById('nilaiKelasSelect').value;
-    
-    santriNilaiDropdown.innerHTML = '';
-    if (!keyword || !selectedClass) {
-        santriNilaiDropdown.classList.add('hidden');
-        if (!selectedClass && keyword) showToast('Silakan pilih kelas terlebih dahulu!', 'warning');
-        return;
-    }
+        let keyword = this.value.trim().toLowerCase();
+        let selectedClass = document.getElementById('nilaiKelasSelect').value;
+        let selectedMapel = document.getElementById('nilaiMapelInput').value; // Tambahkan ini
+        
+        santriNilaiDropdown.innerHTML = '';
+        if (!keyword || !selectedClass) {
+            santriNilaiDropdown.classList.add('hidden');
+            if (!selectedClass && keyword) showToast('Silakan pilih kelas terlebih dahulu!', 'warning');
+            return;
+        }
 
-    let listSantriKelas = DATA_SANTRI[selectedClass] || [];
+        // Panggil fungsi kopel berdasarkan kelas dan mapel yang dipilih
+        let listSantriKelas = getDaftarSantriKopel(selectedClass, selectedMapel);
     let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
     if (matched.length > 0) {
