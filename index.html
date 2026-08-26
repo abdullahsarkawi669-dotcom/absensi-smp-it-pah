@@ -1309,6 +1309,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 <!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
 <!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
 
+
 <!-- KONTEN TAB KALKULATOR SETORAN -->
 <div id="tabKalkulator" class="tab-content hidden">
     <style>
@@ -3704,8 +3705,20 @@ function checkTomorrowSchedule() {
             if(!(isAgus || isMTahir)) document.getElementById('manualScanArea')?.classList.add('hidden'); 
         }
 
-        // OFFLINE-FIRST: langsung tentukan mode dari data lokal.
-        const savedActiveTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || 'null');
+        // OFFLINE-FIRST + ANTI-LOCK HARI BARU:
+        // activeTeaching hanya boleh dipakai jika berasal dari tanggal WITA hari ini.
+        // Sesi lama dari hari sebelumnya tidak boleh mengunci guru pada mode KELUAR.
+        const todayWITA = getLocalDateString(getCurrentWITA());
+        let savedActiveTeaching = null;
+        try {
+            savedActiveTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || 'null');
+        } catch (_) { savedActiveTeaching = null; }
+
+        if (savedActiveTeaching && savedActiveTeaching.date !== todayWITA) {
+            localStorage.removeItem('activeTeaching_' + currentUser);
+            savedActiveTeaching = null;
+        }
+
         currentMode = (savedActiveTeaching && !savedActiveTeaching.keluarScanned) ? 'keluar' : 'masuk';
         updateScanModeUI();
         stopScanner();
@@ -3713,10 +3726,8 @@ function checkTomorrowSchedule() {
         updateNextClassInfo();
         checkActiveTeachingForIzinKasus();
 
-        // Kamera dibuka otomatis tanpa menunggu koneksi internet.
-        setTimeout(() => {
-            if (currentUser && !document.getElementById('tabScan').classList.contains('hidden')) startScanner();
-        }, 350);
+        // PENTING: kamera TIDAK dibuka saat login.
+        // Kamera hanya dibuka setelah guru menekan tombol Scan Masuk / Scan Keluar.
         
         if (navigator.onLine) {
             await refreshServerCache();
@@ -3740,6 +3751,7 @@ function checkTomorrowSchedule() {
     }
 
     document.getElementById('switchUserBtn').addEventListener('click', () => {
+        scannerUserActivated = false;
         stopScanner(); document.getElementById('app').classList.add('hidden'); document.getElementById('loginScreen').classList.remove('hidden');
         document.getElementById('passwordSection').classList.add('hidden');
         document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
@@ -3752,7 +3764,18 @@ function checkTomorrowSchedule() {
     });
 
 function updateScanModeUI() {
-    let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    let activeTeaching = null;
+    try {
+        activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+    } catch (_) { activeTeaching = null; }
+
+    // Jangan pernah membawa kunci sesi dari hari sebelumnya.
+    const todayWITA = getLocalDateString(getCurrentWITA());
+    if (activeTeaching && activeTeaching.date !== todayWITA) {
+        localStorage.removeItem('activeTeaching_' + currentUser);
+        activeTeaching = null;
+    }
+
     const btnMasuk = document.getElementById('modeMasuk');
     const btnKeluar = document.getElementById('modeKeluar');
     const nextClass = getNextClass();
@@ -3914,11 +3937,27 @@ window.forceUnlock = function() {
     }
 };
 
-    document.getElementById('modeMasuk').addEventListener('click', () => {
-        scanInProgress = false; currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300);
+    // Kamera HANYA dibuka setelah tombol Scan Masuk / Scan Keluar ditekan.
+    document.getElementById('modeMasuk').addEventListener('click', async (e) => {
+        e.preventDefault();
+        scanInProgress = false;
+        currentMode = 'masuk';
+        scannerUserActivated = true;
+        updateScanModeUI();
+        stopScanner();
+        await new Promise(r => setTimeout(r, 120));
+        startScanner();
     });
-    document.getElementById('modeKeluar').addEventListener('click', () => {
-        scanInProgress = false; currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300);
+
+    document.getElementById('modeKeluar').addEventListener('click', async (e) => {
+        e.preventDefault();
+        scanInProgress = false;
+        currentMode = 'keluar';
+        scannerUserActivated = true;
+        updateScanModeUI();
+        stopScanner();
+        await new Promise(r => setTimeout(r, 120));
+        startScanner();
     });
     
 document.getElementById('manualScanBtn').addEventListener('click', () => {
@@ -4050,6 +4089,7 @@ window.editKeterangan = async function(encodedRecord) {
     // ==========================================================
     let offlineScanStream = null;
     let offlineScanTimer = null;
+    let scannerUserActivated = false;
 
     function handleDecodedQR(text) {
         if (scanInProgress || !text) return;
@@ -4105,6 +4145,7 @@ window.editKeterangan = async function(encodedRecord) {
     }
 
     async function startScanner() {
+        if (!scannerUserActivated) return;
         if (document.getElementById('tabScan').classList.contains('hidden') || !currentMode) return;
         if (html5QrCode || offlineScanStream) { stopScanner(); setTimeout(startScanner, 150); return; }
 
@@ -6331,6 +6372,16 @@ function renderRiwayatData(allData, range) {
     container.innerHTML = html;
 }
 
+    // Keamanan privasi: ketika pindah dari tab Scan, matikan kamera.
+    document.querySelectorAll('#mainTabs .tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            if (tab.dataset.tab !== 'scan') {
+                scannerUserActivated = false;
+                stopScanner();
+            }
+        });
+    });
+
     document.addEventListener('DOMContentLoaded', async () => {
         await openDB(); 
         renderTeacherList(); 
@@ -7928,7 +7979,7 @@ function updateNextClassTimer() {
         showToast("Error: " + e.message, "error");
     }
 }
-
+	
 // ==========================================
 // LOGIKA KALKULATOR SETORAN
 // ==========================================
@@ -8168,7 +8219,7 @@ function qcHitung() {
 
 // Inisialisasi otomatis setelah DOM dimuat
 document.addEventListener('DOMContentLoaded', qcInit);
-
+	
 </script>
 </body>
 </html>
