@@ -883,6 +883,8 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     <button class="tab" data-tab="nilai" id="nilaiTab"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> Nilai</button>
     <!-- TAB TAHFIZH: Disembunyikan secara default, ikon disesuaikan -->
     <button class="tab hidden" data-tab="tahfizh" id="btnTabTahfizh"><i class="fa-solid fa-book-open-reader" style="color: #10b981;"></i> Nilai Tahfizh</button>
+<!-- TAMBAHKAN BARIS INI -->
+<button class="tab hidden" data-tab="kalkulator" id="btnTabKalkulator"><i class="fa-solid fa-calculator" style="color: #0ea5e9;"></i> Kalkulator Setoran</button>
 	
     <button class="tab" data-tab="riwayat" id="riwayatTab"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat</button>
     <button class="tab" data-tab="jadwal" id="jadwalTab"><i class="fa-solid fa-calendar-week"></i> Jadwal</button>
@@ -1306,6 +1308,156 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 </div>
 <!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
 <!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
+
+<!-- KONTEN TAB KALKULATOR SETORAN -->
+<div id="tabKalkulator" class="tab-content hidden">
+    <style>
+        /* CSS Khusus Kalkulator agar tidak bentrok dengan dashboard utama */
+        .quran-calc-wrapper {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: 2px solid #bae6fd;
+            width: 100%;
+        }
+        .quran-calc-wrapper h2 {
+            text-align: center; color: #0369a1; font-size: 24px; font-weight: 700; margin-bottom: 5px;
+        }
+        .quran-calc-wrapper .subtitle {
+            text-align: center; color: #64748b; font-size: 13px; margin-bottom: 25px; border-bottom: 2px dashed #e0f2fe; padding-bottom: 15px;
+        }
+        .qc-form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
+        .qc-form-group label { font-weight: 600; color: #0284c7; font-size: 14px; }
+        .qc-form-row { display: flex; gap: 15px; flex-wrap: wrap; }
+        .qc-form-row .qc-form-group { flex: 1; min-width: 140px; }
+        .qc-form-group.half { flex: 0.5; min-width: 100px; }
+        .quran-calc-wrapper select, .quran-calc-wrapper input[type="number"] {
+            padding: 10px 15px; border: 2px solid #bae6fd; border-radius: 10px; font-size: 15px;
+            background: #f8fafc; color: #0369a1; font-weight: 600; width: 100%; transition: 0.3s;
+        }
+        .quran-calc-wrapper select:focus, .quran-calc-wrapper input[type="number"]:focus {
+            outline: none; border-color: #0ea5e9; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15);
+        }
+        .qc-btn-hitung {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #0ea5e9, #0284c7);
+            color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px;
+        }
+        .qc-btn-hitung:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3); }
+        .qc-btn-swap {
+            background: #e0f2fe; border: none; border-radius: 50%; width: 40px; height: 40px;
+            font-size: 18px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center; margin: 0 auto; color: #0369a1;
+        }
+        .qc-btn-swap:hover { background: #bae6fd; }
+        .qc-section-divider { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 5px 0 15px 0; }
+        .qc-section-divider .line { flex: 1; height: 2px; background: #e0f2fe; }
+        .qc-result {
+            margin-top: 25px; padding: 20px; background: #f0fdf4; border-radius: 15px;
+            border: 2px solid #86efac; display: none;
+        }
+        .qc-result.show { display: block; animation: fadeIn 0.4s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .qc-result-item { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #bbf7d0; font-size: 14px; }
+        .qc-result-item:last-child { border-bottom: none; }
+        .qc-result-item .label { color: #166534; font-weight: 600; }
+        .qc-result-item .value { font-weight: 700; color: #14532d; text-align: right; }
+        .qc-result-highlight {
+            background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 15px;
+            border-radius: 12px; margin-top: 15px; text-align: center;
+        }
+        .qc-result-highlight .big-number { font-size: 28px; font-weight: 800; line-height: 1.2; }
+        .qc-result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .qc-result-grid .qc-result-item { border-bottom: none; background: #dcfce7; padding: 10px; border-radius: 8px; flex-direction: column; text-align: center; }
+        .qc-result-grid .qc-result-item .value { text-align: center; margin-top: 5px; }
+        .qc-badge { display: inline-block; background: #0ea5e9; color: white; font-size: 11px; padding: 3px 10px; border-radius: 12px; font-weight: 700; }
+        .qc-info-box { background: #e0f2fe; padding: 12px; border-radius: 10px; margin-bottom: 20px; font-size: 13px; color: #0369a1; border: 1px dashed #bae6fd; }
+    </style>
+
+    <div class="quran-calc-wrapper">
+        <h2><i class="fa-solid fa-calculator"></i> Kalkulator Setoran</h2>
+        <p class="subtitle">Standar Cetakan Madinah (604 Halaman) • Lintas Surat & Ayat</p>
+
+        <div class="qc-info-box">
+            <i class="fa-solid fa-circle-info"></i> <strong>Cara Penggunaan:</strong> Pilih surat dan ayat awal, lalu tentukan surat dan ayat akhir. Sistem akan otomatis menghitung jumlah halaman dan baris yang disetorkan.
+        </div>
+
+        <!-- POSISI AWAL -->
+        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <span class="qc-badge">MULAI</span><span style="font-weight: 700; color: #0f172a;">Batas Awal Setoran</span>
+            </div>
+            <div class="qc-form-row">
+                <div class="qc-form-group">
+                    <label>📂 Surat Awal</label>
+                    <select id="qcSuratAwal"></select>
+                </div>
+                <div class="qc-form-group half">
+                    <label>📌 Ayat</label>
+                    <input type="number" id="qcAyatAwal" min="1" value="1" />
+                </div>
+            </div>
+        </div>
+
+        <!-- TOMBOL SWAP -->
+        <div class="qc-section-divider">
+            <span class="line"></span>
+            <button class="qc-btn-swap" onclick="qcSwapSurat()" title="Tukar posisi awal dan akhir"><i class="fa-solid fa-arrow-right-arrow-left fa-rotate-90"></i></button>
+            <span class="line"></span>
+        </div>
+
+        <!-- POSISI AKHIR -->
+        <div style="background: #f8fafc; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                <span class="qc-badge" style="background: #f59e0b;">SELESAI</span><span style="font-weight: 700; color: #0f172a;">Batas Akhir Setoran</span>
+            </div>
+            <div class="qc-form-row">
+                <div class="qc-form-group">
+                    <label>📂 Surat Akhir</label>
+                    <select id="qcSuratAkhir"></select>
+                </div>
+                <div class="qc-form-group half">
+                    <label>📌 Ayat</label>
+                    <input type="number" id="qcAyatAkhir" min="1" value="10" />
+                </div>
+            </div>
+        </div>
+
+        <button class="qc-btn-hitung" onclick="qcHitung()"><i class="fa-solid fa-gears"></i> Hitung Jumlah Setoran</button>
+
+        <!-- AREA HASIL -->
+        <div class="qc-result" id="qcResult">
+            <div class="qc-result-item">
+                <span class="label">📖 Rentang Ayat</span>
+                <span class="value" id="qcRRentang">-</span>
+            </div>
+            <div class="qc-result-item">
+                <span class="label">📄 Total Ayat</span>
+                <span class="value" id="qcRJumlahAyat">-</span>
+            </div>
+
+            <div class="qc-result-highlight">
+                <div style="font-size: 14px; opacity: 0.9; margin-bottom: 5px;">Kapasitas Setoran</div>
+                <div class="big-number" id="qcRTotalHalaman">-</div>
+                <div style="font-size: 13px; font-weight: 500; margin-top: 5px;" id="qcRDetailBaris">-</div>
+            </div>
+
+            <div class="qc-result-grid">
+                <div class="qc-result-item">
+                    <span class="label">Mulai di Halaman</span>
+                    <span class="value" id="qcRHalamanAwal">-</span>
+                </div>
+                <div class="qc-result-item">
+                    <span class="label">Berakhir di Halaman</span>
+                    <span class="value" id="qcRHalamanAkhir">-</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- AKHIR KONTEN TAB KALKULATOR SETORAN -->
+
 
 <!-- KONTEN TAB NILAI -->
 <div id="tabNilai" class="tab-content hidden">
@@ -3541,6 +3693,7 @@ function checkTomorrowSchedule() {
         
         // Tampilkan tab Tahfizh KHUSUS untuk guru Tahfizh
         document.getElementById('btnTabTahfizh').classList.toggle('hidden', !isGuruTahfizh);
+        document.getElementById('btnTabKalkulator').classList.toggle('hidden', !isGuruTahfizh); // TAMBAHAN
         
         // Sembunyikan tab Nilai Umum JIKA dia adalah guru Tahfizh
         document.getElementById('nilaiTab').classList.toggle('hidden', isGuruTahfizh);
@@ -7775,7 +7928,247 @@ function updateNextClassTimer() {
         showToast("Error: " + e.message, "error");
     }
 }
-		
+
+// ==========================================
+// LOGIKA KALKULATOR SETORAN
+// ==========================================
+document.getElementById('btnHitungSetoran')?.addEventListener('click', () => {
+    const halAwal = parseInt(document.getElementById('calcHalAwal').value) || 0;
+    const barisAwal = parseInt(document.getElementById('calcBarisAwal').value) || 0;
+    const halAkhir = parseInt(document.getElementById('calcHalAkhir').value) || 0;
+    const barisAkhir = parseInt(document.getElementById('calcBarisAkhir').value) || 0;
+
+    // Validasi Input
+    if (!halAwal || !barisAwal || !halAkhir || !barisAkhir) {
+        showToast('Mohon lengkapi semua kolom isian!', 'warning');
+        return;
+    }
+    if (barisAwal > 15 || barisAkhir > 15) {
+        showToast('Maksimal baris per halaman adalah 15!', 'error');
+        return;
+    }
+
+    // Rumus Cetakan Madinah (15 Baris / Halaman)
+    const totalBaris = ((halAkhir - halAwal) * 15) - (barisAwal - 1) + barisAkhir;
+
+    const resultArea = document.getElementById('calcResultArea');
+    const resultText = document.getElementById('calcResultText');
+    const resultDetail = document.getElementById('calcResultDetail');
+
+    if (totalBaris < 0) {
+        showToast('Input akhir tidak boleh lebih kecil dari input awal!', 'error');
+        resultArea.classList.add('hidden');
+        return;
+    }
+
+    // Konversi ke format Halaman & Baris
+    const halPenuh = Math.floor(totalBaris / 15);
+    const sisaBaris = totalBaris % 15;
+
+    resultText.textContent = `${totalBaris} Baris`;
+    
+    let detailArr = [];
+    if (halPenuh > 0) detailArr.push(`${halPenuh} Halaman`);
+    if (sisaBaris > 0) detailArr.push(`${sisaBaris} Baris`);
+    
+    resultDetail.textContent = detailArr.length > 0 ? `(Setara dengan ${detailArr.join(' - ')})` : '';
+    
+    resultArea.classList.remove('hidden');
+    resultArea.style.animation = 'pulseGlow 1s ease';
+    setTimeout(() => { resultArea.style.animation = ''; }, 1000);
+});
+
+// ================================================================
+// LOGIKA KALKULATOR SETORAN (CETAKAN MADINAH - AYAT KE BARIS)
+// ================================================================
+
+// Data Jumlah Ayat Per Halaman (1 - 604)
+const QC_AYAT_PER_HALAMAN = {
+    1:7, 2:5, 3:11, 4:8, 5:5, 6:8, 7:11, 8:9, 9:4, 10:8, 11:7, 12:7, 13:5, 14:5, 15:8, 16:4, 17:7, 18:7, 19:7, 20:8,
+    21:7, 22:4, 23:8, 24:1, 25:6, 26:7, 27:5, 28:5, 29:4, 30:6, 31:6, 32:8, 33:5, 34:4, 35:5, 36:6, 37:3, 38:4, 39:8,
+    40:3, 41:4, 42:4, 43:3, 44:5, 45:5, 46:5, 47:7, 48:1, 49:4, 50:9, 51:6, 52:7, 53:7, 54:8, 55:8, 56:7, 57:9, 58:9,
+    59:7, 60:6, 61:8, 62:9, 63:8, 64:7, 65:6, 66:11, 67:8, 68:8, 69:5, 70:4, 71:8, 72:8, 73:7, 74:6, 75:8, 76:6, 77:6,
+    78:5, 79:3, 80:5, 81:4, 82:3, 83:7, 84:4, 85:7, 86:7, 87:8, 88:6, 89:9, 90:5, 91:7, 92:5, 93:3, 94:7, 95:4, 96:8,
+    97:8, 98:6, 99:7, 100:6, 101:7, 102:7, 103:8, 104:8, 105:5, 106:3, 107:3, 108:4, 109:4, 110:4, 111:6, 112:8,
+    113:5, 114:5, 115:4, 116:5, 117:7, 118:7, 119:6, 120:7, 121:6, 122:7, 123:5, 124:8, 125:5, 126:5, 127:7, 128:8,
+    129:1, 130:9, 131:8, 132:9, 133:8, 134:7, 135:9, 136:5, 137:8, 138:9, 139:4, 140:7, 141:9, 142:8, 143:6, 144:6,
+    145:7, 146:5, 147:4, 148:5, 149:6, 150:8, 151:11, 152:11, 153:8, 154:7, 155:6, 156:8, 157:6, 158:1, 159:6, 160:8,
+    161:6, 162:8, 163:9, 164:16, 165:1, 166:7, 167:6, 168:6, 169:6, 170:4, 171:4, 172:7, 173:8, 174:9, 175:8, 176:11,
+    177:8, 178:8, 179:9, 180:8, 181:7, 182:5, 183:7, 184:9, 185:8, 186:6, 187:6, 188:7, 189:7, 190:6, 191:5, 192:5,
+    193:4, 194:7, 195:7, 196:7, 197:7, 198:4, 199:7, 200:7, 201:7, 202:6, 203:7, 204:5, 205:6, 206:5, 207:7, 208:6,
+    209:8, 210:6, 211:5, 212:8, 213:9, 214:11, 215:8, 216:9, 217:8, 218:1, 219:9, 220:9, 221:8, 222:7, 223:7, 224:9,
+    225:9, 226:8, 227:8, 228:9, 229:9, 230:1, 231:7, 232:9, 233:11, 234:9, 235:1, 236:1, 237:8, 238:8, 239:7, 240:6,
+    241:9, 242:11, 243:6, 244:9, 245:8, 246:9, 247:8, 248:8, 249:5, 250:8, 251:5, 252:1, 253:6, 254:8, 255:6, 256:5,
+    257:8, 258:6, 259:9, 260:9, 261:1, 262:15, 263:16, 264:2, 265:19, 266:2, 267:15, 268:8, 269:12, 270:8, 271:8,
+    272:12, 273:1, 274:8, 275:7, 276:8, 277:6, 278:9, 279:8, 280:8, 281:1, 282:7, 283:1, 284:1, 285:11, 286:11, 287:9,
+    288:8, 289:9, 290:11, 291:1, 292:8, 293:11, 294:11, 295:5, 296:7, 297:7, 298:11, 299:8, 300:8, 301:13, 302:9,
+    303:14, 304:13, 305:11, 306:14, 307:13, 308:13, 309:13, 310:12, 311:19, 312:15, 313:25, 314:14, 315:13, 316:12,
+    317:11, 318:11, 319:15, 320:12, 321:1, 322:1, 323:14, 324:11, 325:9, 326:13, 327:15, 328:9, 329:9, 330:11, 331:11,
+    332:5, 333:1, 334:8, 335:7, 336:8, 337:8, 338:9, 339:9, 340:8, 341:6, 342:17, 343:1, 344:15, 345:17, 346:15, 347:15,
+    348:15, 349:14, 350:1, 351:1, 352:7, 353:4, 354:5, 355:7, 356:1, 357:5, 358:3, 359:5, 360:9, 361:9, 362:12, 363:11,
+    364:12, 365:12, 366:1, 367:19, 368:2, 369:21, 370:23, 371:28, 372:25, 373:23, 374:24, 375:23, 376:21, 377:13,
+    378:9, 379:13, 380:9, 381:11, 382:8, 383:13, 384:12, 385:1, 386:8, 387:8, 388:7, 389:7, 390:8, 391:7, 392:9, 393:11,
+    394:7, 395:7, 396:1, 397:8, 398:9, 399:7, 400:8, 401:7, 402:7, 403:11, 404:11, 405:1, 406:9, 407:8, 408:9, 409:9,
+    410:1, 411:11, 412:8, 413:9, 414:6, 415:11, 416:9, 417:1, 418:6, 419:9, 420:7, 421:8, 422:5, 423:8, 424:7, 425:4,
+    426:8, 427:11, 428:7, 429:7, 430:8, 431:9, 432:8, 433:9, 434:9, 435:8, 436:7, 437:12, 438:8, 439:6, 440:13, 441:15,
+    442:13, 443:14, 444:16, 445:13, 446:24, 447:27, 448:25, 449:26, 450:24, 451:27, 452:29, 453:16, 454:1, 455:16,
+    456:19, 457:22, 458:1, 459:5, 460:11, 461:1, 462:9, 463:7, 464:9, 465:11, 466:7, 467:8, 468:9, 469:9, 470:8,
+    471:7, 472:9, 473:9, 474:8, 475:11, 476:8, 477:11, 478:9, 479:9, 480:9, 481:8, 482:8, 483:1, 484:5, 485:7, 486:9,
+    487:13, 488:7, 489:12, 490:12, 491:11, 492:14, 493:13, 494:13, 495:16, 496:18, 497:21, 498:2, 499:13, 500:9,
+    501:1, 502:1, 503:9, 504:6, 505:8, 506:7, 507:11, 508:8, 509:1, 510:9, 511:9, 512:6, 513:8, 514:5, 515:5, 516:7,
+    517:7, 518:15, 519:2, 520:16, 521:24, 522:21, 523:23, 524:17, 525:18, 526:26, 527:18, 528:24, 529:21, 530:22,
+    531:24, 532:23, 533:28, 534:25, 535:34, 536:26, 537:23, 538:8, 539:7, 540:6, 541:5, 542:6, 543:5, 544:1, 545:4,
+    546:6, 547:7, 548:8, 549:5, 550:6, 551:7, 552:9, 553:8, 554:7, 555:7, 556:9, 557:9, 558:5, 559:7, 560:7, 561:5,
+    562:12, 563:14, 564:2, 565:26, 566:18, 567:27, 568:27, 569:3, 570:14, 571:18, 572:13, 573:15, 574:19, 575:19,
+    576:29, 577:28, 578:26, 579:2, 580:25, 581:31, 582:3, 583:26, 584:3, 585:4, 586:31, 587:23, 588:29, 589:27,
+    590:23, 591:27, 592:31, 593:26, 594:26, 595:26, 596:25, 597:26, 598:17, 599:16, 600:25, 601:17, 602:14, 603:14, 604:15
+};
+
+const QC_DAFTAR_SURAT = [
+    { no: 1, nama: "Al-Fatihah", ayat: 7 }, { no: 2, nama: "Al-Baqarah", ayat: 286 }, { no: 3, nama: "Ali Imran", ayat: 200 },
+    { no: 4, nama: "An-Nisa", ayat: 176 }, { no: 5, nama: "Al-Ma'idah", ayat: 120 }, { no: 6, nama: "Al-An'am", ayat: 165 },
+    { no: 7, nama: "Al-A'raf", ayat: 206 }, { no: 8, nama: "Al-Anfal", ayat: 75 }, { no: 9, nama: "At-Taubah", ayat: 129 },
+    { no: 10, nama: "Yunus", ayat: 109 }, { no: 11, nama: "Hud", ayat: 123 }, { no: 12, nama: "Yusuf", ayat: 111 },
+    { no: 13, nama: "Ar-Ra'd", ayat: 43 }, { no: 14, nama: "Ibrahim", ayat: 52 }, { no: 15, nama: "Al-Hijr", ayat: 99 },
+    { no: 16, nama: "An-Nahl", ayat: 128 }, { no: 17, nama: "Al-Isra", ayat: 111 }, { no: 18, nama: "Al-Kahf", ayat: 110 },
+    { no: 19, nama: "Maryam", ayat: 98 }, { no: 20, nama: "Taha", ayat: 135 }, { no: 21, nama: "Al-Anbiya", ayat: 112 },
+    { no: 22, nama: "Al-Hajj", ayat: 78 }, { no: 23, nama: "Al-Mu'minun", ayat: 118 }, { no: 24, nama: "An-Nur", ayat: 64 },
+    { no: 25, nama: "Al-Furqan", ayat: 77 }, { no: 26, nama: "Asy-Syu'ara", ayat: 227 }, { no: 27, nama: "An-Naml", ayat: 93 },
+    { no: 28, nama: "Al-Qasas", ayat: 88 }, { no: 29, nama: "Al-Ankabut", ayat: 69 }, { no: 30, nama: "Ar-Rum", ayat: 60 },
+    { no: 31, nama: "Luqman", ayat: 34 }, { no: 32, nama: "As-Sajdah", ayat: 30 }, { no: 33, nama: "Al-Ahzab", ayat: 73 },
+    { no: 34, nama: "Saba", ayat: 54 }, { no: 35, nama: "Fatir", ayat: 45 }, { no: 36, nama: "Yasin", ayat: 83 },
+    { no: 37, nama: "As-Saffat", ayat: 182 }, { no: 38, nama: "Sad", ayat: 88 }, { no: 39, nama: "Az-Zumar", ayat: 75 },
+    { no: 40, nama: "Al-Mu'min", ayat: 85 }, { no: 41, nama: "Fussilat", ayat: 54 }, { no: 42, nama: "Asy-Syura", ayat: 53 },
+    { no: 43, nama: "Az-Zukhruf", ayat: 89 }, { no: 44, nama: "Ad-Dukhan", ayat: 59 }, { no: 45, nama: "Al-Jasiyah", ayat: 37 },
+    { no: 46, nama: "Al-Ahqaf", ayat: 35 }, { no: 47, nama: "Muhammad", ayat: 38 }, { no: 48, nama: "Al-Fath", ayat: 29 },
+    { no: 49, nama: "Al-Hujurat", ayat: 18 }, { no: 50, nama: "Qaf", ayat: 45 }, { no: 51, nama: "Az-Zariyat", ayat: 60 },
+    { no: 52, nama: "At-Tur", ayat: 49 }, { no: 53, nama: "An-Najm", ayat: 62 }, { no: 54, nama: "Al-Qamar", ayat: 55 },
+    { no: 55, nama: "Ar-Rahman", ayat: 78 }, { no: 56, nama: "Al-Waqi'ah", ayat: 96 }, { no: 57, nama: "Al-Hadid", ayat: 29 },
+    { no: 58, nama: "Al-Mujadilah", ayat: 22 }, { no: 59, nama: "Al-Hasyr", ayat: 24 }, { no: 60, nama: "Al-Mumtahanah", ayat: 13 },
+    { no: 61, nama: "As-Saff", ayat: 14 }, { no: 62, nama: "Al-Jumu'ah", ayat: 11 }, { no: 63, nama: "Al-Munafiqun", ayat: 11 },
+    { no: 64, nama: "At-Taghabun", ayat: 18 }, { no: 65, nama: "At-Talaq", ayat: 12 }, { no: 66, nama: "At-Tahrim", ayat: 12 },
+    { no: 67, nama: "Al-Mulk", ayat: 30 }, { no: 68, nama: "Al-Qalam", ayat: 52 }, { no: 69, nama: "Al-Haqqah", ayat: 52 },
+    { no: 70, nama: "Al-Ma'arij", ayat: 44 }, { no: 71, nama: "Nuh", ayat: 28 }, { no: 72, nama: "Al-Jinn", ayat: 28 },
+    { no: 73, nama: "Al-Muzzammil", ayat: 20 }, { no: 74, nama: "Al-Muddassir", ayat: 56 }, { no: 75, nama: "Al-Qiyamah", ayat: 40 },
+    { no: 76, nama: "Al-Insan", ayat: 31 }, { no: 77, nama: "Al-Mursalat", ayat: 50 }, { no: 78, nama: "An-Naba", ayat: 40 },
+    { no: 79, nama: "An-Nazi'at", ayat: 46 }, { no: 80, nama: "'Abasa", ayat: 42 }, { no: 81, nama: "At-Takwir", ayat: 29 },
+    { no: 82, nama: "Al-Infitar", ayat: 19 }, { no: 83, nama: "Al-Mutaffifin", ayat: 36 }, { no: 84, nama: "Al-Insyiqaq", ayat: 25 },
+    { no: 85, nama: "Al-Buruj", ayat: 22 }, { no: 86, nama: "At-Tariq", ayat: 17 }, { no: 87, nama: "Al-A'la", ayat: 19 },
+    { no: 88, nama: "Al-Ghasyiyah", ayat: 26 }, { no: 89, nama: "Al-Fajr", ayat: 30 }, { no: 90, nama: "Al-Balad", ayat: 20 },
+    { no: 91, nama: "Asy-Syams", ayat: 15 }, { no: 92, nama: "Al-Lail", ayat: 21 }, { no: 93, nama: "Ad-Duha", ayat: 11 },
+    { no: 94, nama: "Al-Insyirah", ayat: 8 }, { no: 95, nama: "At-Tin", ayat: 8 }, { no: 96, nama: "Al-Alaq", ayat: 19 },
+    { no: 97, nama: "Al-Qadr", ayat: 5 }, { no: 98, nama: "Al-Bayyinah", ayat: 8 }, { no: 99, nama: "Az-Zalzalah", ayat: 8 },
+    { no: 100, nama: "Al-Adiyat", ayat: 11 }, { no: 101, nama: "Al-Qari'ah", ayat: 11 }, { no: 102, nama: "At-Takasur", ayat: 8 },
+    { no: 103, nama: "Al-Ashr", ayat: 3 }, { no: 104, nama: "Al-Humazah", ayat: 9 }, { no: 105, nama: "Al-Fil", ayat: 5 },
+    { no: 106, nama: "Quraisy", ayat: 4 }, { no: 107, nama: "Al-Ma'un", ayat: 7 }, { no: 108, nama: "Al-Kautsar", ayat: 3 },
+    { no: 109, nama: "Al-Kafirun", ayat: 6 }, { no: 110, nama: "An-Nasr", ayat: 3 }, { no: 111, nama: "Al-Lahab", ayat: 5 },
+    { no: 112, nama: "Al-Ikhlas", ayat: 4 }, { no: 113, nama: "Al-Falaq", ayat: 5 }, { no: 114, nama: "An-Nas", ayat: 6 }
+];
+
+let qcPosisiAyat = {};
+
+// Inisialisasi Data Posisi dan Dropdown
+function qcInit() {
+    // Bangun referensi posisi ayat ke baris/halaman
+    let s = 1, a = 1;
+    for (let h = 1; h <= 604; h++) {
+        let jml = QC_AYAT_PER_HALAMAN[h];
+        for (let i = 0; i < jml; i++) {
+            qcPosisiAyat[`${s}:${a}`] = { hal: h, baris: i + 1 };
+            a++;
+            if (a > QC_DAFTAR_SURAT[s - 1].ayat) { s++; a = 1; }
+        }
+    }
+
+    // Isi Dropdown
+    const sAwal = document.getElementById('qcSuratAwal');
+    const sAkhir = document.getElementById('qcSuratAkhir');
+    
+    QC_DAFTAR_SURAT.forEach(surat => {
+        let opt1 = new Option(`${surat.no}. ${surat.nama} (${surat.ayat} ayat)`, surat.no);
+        let opt2 = new Option(`${surat.no}. ${surat.nama} (${surat.ayat} ayat)`, surat.no);
+        sAwal.add(opt1); sAkhir.add(opt2);
+    });
+
+    sAwal.value = 1; sAkhir.value = 2; // Default Al-Fatihah ke Al-Baqarah
+    sAwal.addEventListener('change', qcUpdateMaxAyat);
+    sAkhir.addEventListener('change', qcUpdateMaxAyat);
+    qcUpdateMaxAyat();
+}
+
+function qcUpdateMaxAyat() {
+    let sa = document.getElementById('qcSuratAwal').value;
+    let sk = document.getElementById('qcSuratAkhir').value;
+    document.getElementById('qcAyatAwal').max = QC_DAFTAR_SURAT[sa - 1].ayat;
+    document.getElementById('qcAyatAkhir').max = QC_DAFTAR_SURAT[sk - 1].ayat;
+}
+
+function qcSwapSurat() {
+    let sAwal = document.getElementById('qcSuratAwal');
+    let sAkhir = document.getElementById('qcSuratAkhir');
+    let aAwal = document.getElementById('qcAyatAwal');
+    let aAkhir = document.getElementById('qcAyatAkhir');
+    
+    [sAwal.value, sAkhir.value] = [sAkhir.value, sAwal.value];
+    [aAwal.value, aAkhir.value] = [aAkhir.value, aAwal.value];
+    qcUpdateMaxAyat();
+}
+
+function qcHitung() {
+    let sAwal = parseInt(document.getElementById('qcSuratAwal').value);
+    let aAwal = parseInt(document.getElementById('qcAyatAwal').value);
+    let sAkhir = parseInt(document.getElementById('qcSuratAkhir').value);
+    let aAkhir = parseInt(document.getElementById('qcAyatAkhir').value);
+
+    let maxAwal = QC_DAFTAR_SURAT[sAwal - 1].ayat;
+    let maxAkhir = QC_DAFTAR_SURAT[sAkhir - 1].ayat;
+
+    if (aAwal > maxAwal || aAkhir > maxAkhir) return alert('Input ayat melebihi batas jumlah ayat dalam surat tersebut!');
+    if (sAwal > sAkhir || (sAwal === sAkhir && aAwal > aAkhir)) return alert('Posisi akhir tidak boleh mendahului posisi awal!');
+
+    let pAwal = qcPosisiAyat[`${sAwal}:${aAwal}`];
+    let pAkhir = qcPosisiAyat[`${sAkhir}:${aAkhir}`];
+
+    if (!pAwal || !pAkhir) return alert('Gagal melacak posisi ayat.');
+
+    // Hitung total baris global (asumsi 15 baris / halaman)
+    let bGlobalAwal = (pAwal.hal - 1) * 15 + pAwal.baris;
+    let bGlobalAkhir = (pAkhir.hal - 1) * 15 + pAkhir.baris;
+    let totalBaris = bGlobalAkhir - bGlobalAwal + 1;
+
+    let halPenuh = Math.floor(totalBaris / 15);
+    let sisaBaris = totalBaris % 15;
+
+    // Hitung jumlah ayat spesifik
+    let jmlAyat = 0;
+    if (sAwal === sAkhir) jmlAyat = aAkhir - aAwal + 1;
+    else {
+        jmlAyat += maxAwal - aAwal + 1;
+        for (let i = sAwal; i < sAkhir - 1; i++) jmlAyat += QC_DAFTAR_SURAT[i].ayat;
+        jmlAyat += aAkhir;
+    }
+
+    let nAwal = QC_DAFTAR_SURAT[sAwal - 1].nama;
+    let nAkhir = QC_DAFTAR_SURAT[sAkhir - 1].nama;
+
+    document.getElementById('qcRRentang').textContent = (sAwal === sAkhir) ? `${nAwal} ${aAwal} - ${aAkhir}` : `${nAwal} ${aAwal} s/d ${nAkhir} ${aAkhir}`;
+    document.getElementById('qcRJumlahAyat').textContent = `${jmlAyat} Ayat`;
+    document.getElementById('qcRTotalHalaman').textContent = `${totalBaris} Baris`;
+    
+    let det = [];
+    if (halPenuh > 0) det.push(`${halPenuh} Halaman`);
+    if (sisaBaris > 0) det.push(`${sisaBaris} Baris`);
+    document.getElementById('qcRDetailBaris').textContent = `Setara dengan: ${det.join(' + ')}`;
+
+    document.getElementById('qcRHalamanAwal').textContent = `Hal. ${pAwal.hal} (Baris ${pAwal.baris})`;
+    document.getElementById('qcRHalamanAkhir').textContent = `Hal. ${pAkhir.hal} (Baris ${pAkhir.baris})`;
+
+    document.getElementById('qcResult').classList.add('show');
+}
+
+// Inisialisasi otomatis setelah DOM dimuat
+document.addEventListener('DOMContentLoaded', qcInit);
+
 </script>
 </body>
 </html>
