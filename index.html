@@ -7,8 +7,20 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Library QR dicache otomatis oleh sw.js setelah aplikasi pernah dibuka online. -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 	<link rel="manifest" href="manifest.json">
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                const worker = reg.active || (await navigator.serviceWorker.ready).active;
+                if (worker) worker.postMessage({ type: 'CACHE_OFFLINE_ASSETS' });
+            } catch (e) { console.warn('Service Worker offline belum aktif:', e); }
+        });
+    }
+    </script>
 	<meta name="theme-color" content="#2563eb">
     <title>Float Nama User</title>
     <style>
@@ -869,6 +881,9 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
     <button class="tab hidden" data-tab="wali" id="waliTab"><i class="fa-solid fa-users"></i> Wali</button>
     <button class="tab" data-tab="rekap"><i class="fa-solid fa-chart-simple"></i> Rekap</button>
     <button class="tab" data-tab="nilai" id="nilaiTab"><i class="fa-solid fa-star" style="color: #f59e0b;"></i> Nilai</button>
+    <!-- TAB TAHFIZH: Disembunyikan secara default, ikon disesuaikan -->
+    <button class="tab hidden" data-tab="tahfizh" id="btnTabTahfizh"><i class="fa-solid fa-book-open-reader" style="color: #10b981;"></i> Nilai Tahfizh</button>
+	
     <button class="tab" data-tab="riwayat" id="riwayatTab"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat</button>
     <button class="tab" data-tab="jadwal" id="jadwalTab"><i class="fa-solid fa-calendar-week"></i> Jadwal</button>
     <button class="tab" data-tab="sholat" id="sholatTab"><i class="fa-solid fa-mosque"></i> Sholat</button>
@@ -1145,6 +1160,152 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 </div>
             </div>
         </div>
+
+<!-- BAGIAN UI DASHBOARD TAHFIZH -->
+<!-- BAGIAN UI DASHBOARD TAHFIZH -->
+<div id="tabTahfizh" class="tab-content hidden">
+    
+    <!-- Form Input Nilai Tahfizh -->
+    <div class="card" style="background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%); border: 2px solid #6ee7b7; border-radius: 20px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(16, 185, 129, 0.15);">
+        <div class="card-header" style="color: #065f46; margin-bottom: 16px; font-size: 1rem; border-bottom: 2px dashed #6ee7b7; padding-bottom: 12px;">
+            <span><i class="fa-solid fa-book-quran" style="font-size: 1.3rem;"></i> Form Penilaian Halaqoh</span>
+            <span class="badge" style="background: #d1fae5; color: #047857; padding: 6px 14px; border-radius: 20px; font-size: 0.7rem; font-weight: 700;">Sesi Ziyadah & Tikror</span>
+        </div>
+
+        <form id="formTahfizh">
+            <!-- Baris 1: Hari/Tanggal & Pertemuan -->
+            <div class="grid-2 mb-3" style="gap: 12px;">
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: #065f46;">
+                        <i class="fa-regular fa-calendar"></i> Hari / Tanggal
+                    </label>
+                    <input type="date" id="tglTahfizh" required style="border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: white; font-weight: 600; color: #065f46; width: 100%;" />
+                </div>
+                <div class="input-group" style="margin-bottom: 0;">
+                    <label style="font-size: 0.8rem; font-weight: 600; color: #065f46;">
+                        <i class="fa-regular fa-hashtag"></i> Pertemuan Ke-
+                    </label>
+                    <input type="number" id="pertemuanTahfizh" min="1" value="1" onchange="autoFillTargetKurikulum()" required style="border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: white; font-weight: 700; color: #065f46; text-align: center; width: 100%;" />
+                </div>
+            </div>
+            
+            <!-- Baris 2: Pilih Santri Halaqoh (FULL WIDTH) -->
+            <div class="input-group mb-3" style="margin-bottom: 12px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: #065f46;">
+                    <i class="fa-solid fa-user-graduate"></i> Pilih Santri Halaqoh
+                </label>
+                <select id="santriHalaqoh" onchange="autoFillTargetKurikulum()" class="font-bold" style="color: #065f46; border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: white; width: 100%; font-size: 0.95rem; appearance: none; background-image: url('data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"%23065f46\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><polyline points=\"6 9 12 15 18 9\"/></svg>'); background-repeat: no-repeat; background-position: right 12px center; background-size: 18px; padding-right: 40px;" required>
+                    <option value="">-- Pilih Santri --</option>
+                    <!-- Opsi diisi otomatis via JS -->
+                </select>
+            </div>
+
+            <!-- Baris 3: Status Santri (Lebih kecil) -->
+            <div class="input-group mb-3" style="margin-bottom: 12px;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: #065f46;">
+                    <i class="fa-solid fa-layer-group"></i> Status Santri
+                </label>
+                <select id="statusAlumni" onchange="autoFillTargetKurikulum()" style="border-radius: 10px; border: 2px solid #a7f3d0; padding: 8px 12px; background: white; font-size: 0.85rem; font-weight: 600; color: #065f46; width: 100%; max-width: 250px;">
+                    <option value="non-alumni">Non-Alumni</option>
+                    <option value="alumni">Alumni</option>
+                </select>
+            </div>
+
+            <!-- Baris 4: Target Kurikulum (FULL WIDTH) -->
+            <div class="input-group mb-3" style="margin-bottom: 12px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: #065f46;">
+                    <i class="fa-solid fa-bullseye"></i> Target Kurikulum
+                </label>
+                <textarea id="targetKurikulum" rows="2" style="border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: #f0fdf4; width: 100%; font-size: 0.95rem; font-weight: 500; color: #065f46; resize: vertical; min-height: 55px;" readonly placeholder="Target akan terisi otomatis..." onfocus="this.style.borderColor='#059669'"></textarea>
+            </div>
+            
+            <!-- Baris 5: Materi Riil -->
+            <div class="input-group mb-3" style="margin-bottom: 12px;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: #065f46;">
+                    <i class="fa-solid fa-pen-fancy"></i> Materi Riil (Yang Disetorkan)
+                </label>
+                <input type="text" id="materiRiil" placeholder="Contoh: Al-Baqarah ayat 1 - 5..." required style="border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: white; width: 100%; font-size: 0.95rem; color: #065f46;" />
+            </div>
+            
+            <!-- Baris 6: Nilai Ziyadah & Tikror -->
+            <div class="grid-2 mb-4" style="gap: 12px;">
+                <div class="input-group" style="margin-bottom: 0; background: white; border-radius: 12px; padding: 12px 14px; border: 2px solid #a7f3d0;">
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #065f46; display: block; margin-bottom: 4px;">
+                        <i class="fa-solid fa-star"></i> Nilai Ziyadah & Rabt
+                    </label>
+                    <input type="number" id="nilaiZiadah" min="0" max="100" placeholder="0" class="font-black text-center" style="font-size: 1.5rem; color: #047857; background: transparent; border: none; width: 100%; padding: 4px 0; outline: none;" required />
+                    <p class="text-xs text-muted mt-1 text-center" style="font-size: 0.65rem; color: #6b7280;">*Isi 0 jika tidak setor</p>
+                </div>
+                <div class="input-group" style="margin-bottom: 0; background: white; border-radius: 12px; padding: 12px 14px; border: 2px solid #a7f3d0;">
+                    <label style="font-size: 0.75rem; font-weight: 600; color: #065f46; display: block; margin-bottom: 4px;">
+                        <i class="fa-solid fa-rotate"></i> Nilai Tikror
+                    </label>
+                    <input type="number" id="nilaiTikror" min="0" max="100" placeholder="0" class="font-black text-center" style="font-size: 1.5rem; color: #047857; background: transparent; border: none; width: 100%; padding: 4px 0; outline: none;" required />
+                    <p class="text-xs text-muted mt-1 text-center" style="font-size: 0.65rem; color: #6b7280;">*Isi 0 jika tidak setor</p>
+                </div>
+            </div>
+            
+            <!-- Tombol Aksi -->
+            <div class="flex gap-2" style="gap: 12px; margin-top: 4px;">
+                <button type="button" class="btn btn-outline" style="flex:1; border-color: #059669; color: #059669;" onclick="simpanDraftTahfizh()">
+                    <i class="fa-solid fa-folder-plus"></i> Simpan Draft
+                </button>
+                <button type="button" class="btn btn-success" style="flex:1; border-radius: 12px; padding: 14px; font-weight: 700; background: linear-gradient(135deg, #059669, #10b981); border: none; color: white; animation: pulseGlow 2s infinite; transition: all 0.3s ease;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'" onclick="syncDataTahfizh()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Sync ke Server
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Rekapitulasi Halaqoh Card -->
+    <div class="card" style="border-radius: 20px; border: 1px solid #d1fae5; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <div class="card-header" style="margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #d1fae5;">
+            <span style="color: #065f46;"><i class="fa-solid fa-chart-pie"></i> Rekapitulasi Halaqoh Pekanan</span>
+        </div>
+        
+        <div class="grid-2 mb-3" style="gap: 12px; align-items: end;">
+            <div class="input-group" style="margin-bottom: 0;">
+                <label style="font-size: 0.75rem; font-weight: 600; color: #065f46;">Pilih Pekan</label>
+                <input type="week" id="pekanRekap" onchange="renderTabelRekap()" style="border-radius: 10px; border: 2px solid #d1fae5; padding: 10px 12px; background: white; font-weight: 600; width: 100%;" />
+            </div>
+            <button type="button" class="btn btn-primary" onclick="downloadRekapExcel()" style="border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #059669, #10b981); border: none; color: white; font-weight: 700;">
+                <i class="fa-solid fa-file-excel"></i> Unduh Rekap Santri
+            </button>
+        </div>
+        
+        <div class="table-wrap" style="max-height: 350px; border-radius: 12px; border: 1px solid #d1fae5; overflow: hidden;">
+            <table id="tabelRekapTahfizh" style="font-size: 0.8rem;">
+                <thead style="background: #ecfdf5; border-bottom: 2px solid #d1fae5;">
+                    <tr>
+                        <th style="padding: 12px 16px; text-align: left; color: #065f46; font-weight: 700;">Nama Santri</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #065f46; font-weight: 700;">Kls</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #065f46; font-weight: 700;">Rata² Ziyadah</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #065f46; font-weight: 700;">Rata² Tikror</th>
+                        <th style="padding: 12px 16px; text-align: center; color: #065f46; font-weight: 700;">Tdk Setor</th>
+                    </tr>
+                </thead>
+                <tbody id="bodyRekapTahfizh">
+                    <tr><td colspan="5" class="text-center text-muted" style="padding: 30px 16px; color: #9ca3af;">Belum ada data rekapitulasi.</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Download Rekap Bulanan -->
+    <div class="card mt-4" style="border-radius: 20px; border: 1px solid #d1fae5; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+        <div class="card-header" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 2px solid #d1fae5;">
+            <span style="color: #065f46;"><i class="fa-solid fa-file-excel"></i> Download Rekap Bulanan</span>
+        </div>
+        <div class="flex gap-2" style="gap: 12px; flex-wrap: wrap;">
+            <input type="month" id="bulanRekapTahfizh" class="w-full p-2 border-2 border-emerald-200 rounded" style="flex: 2; min-width: 180px; border-radius: 10px; border: 2px solid #d1fae5; padding: 12px; font-weight: 600;" />
+            <button class="btn btn-success" onclick="downloadRekapBulanTahfizh()" style="flex: 1; min-width: 120px; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #059669, #10b981); border: none; color: white; font-weight: 700;">
+                <i class="fa-solid fa-download"></i> Unduh Excel
+            </button>
+        </div>
+    </div>
+</div>
+<!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
+<!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
 
 <!-- KONTEN TAB NILAI -->
 <div id="tabNilai" class="tab-content hidden">
@@ -1579,6 +1740,321 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 
 
 <script>
+
+//kurikulum tahfizh
+const TARGET_KURIKULUM = {
+    "9": {
+        "non-alumni": {
+            "1": "Al-Ahqof : 1-7",
+            "2": "Al-Ahqof : 8-11",
+            "3": "Al-Ahqof : 1-11 (Rabth)",
+            "4": "Al-Ahqof : 12-15",
+            "5": "Al-Ahqof : 16-19",
+            "6": "Al-Ahqof : 12-19 (Rabth)",
+            "7": "Al-Ahqof : 20-24",
+            "8": "Al-Ahqof : 25-29",
+            "9": "Al-Ahqof : 20-29 (Rabth)",
+            "10": "Al-Ahqof : 30-34",
+            "11": "Al-Ahqof : 35- Muhammad : 4",
+            "12": "Al-Ahqof : 30- Muhammad : 4 (Rabth)",
+            "13": "Muhammad : 5-12",
+            "14": "Muhammad : 13-17",
+            "15": "Muhammad : 5-17 (Rabth)",
+            "16": "Muhammad : 18-28",
+            "17": "Muhammad : 29-38",
+            "18": "Muhammad : 18-38 (Rabth)",
+            "19": "Al-Fath : 1-7",
+            "20": "Al-Fath : 8-13",
+            "21": "Al-Fath : 1-13 (Rabth)",
+            "22": "Al-Fath : 14-16",
+            "23": "Al-Fath : 17-21",
+            "24": "Al-Fath : 14-21 (Rabth)",
+            "25": "Al-Fath : 22-25",
+            "26": "Al-Fath : 26-28",
+            "27": "Al-Fath : 22-28 (Rabth)",
+            "28": "Al-Fath : 29-Al-Hujrat : 2",
+            "29": "Al-Hujrat : 3-8",
+            "30": "Al-Fath : 29-Al-Hujrat : 8 (Rabth)",
+            "31": "Al-Hujrat : 9-12",
+            "32": "Al-Hujrat : 13-15",
+            "33": "Al-Hujrat : 9-15 (Rabth)",
+            "34": "Al-Hujrat : 16- Qof : 5",
+            "35": "Qof : 6-15",
+            "36": "Al-Hujrat : 16- Qof : 15 (Rabth)",
+            "37": "Qof : 16-26",
+            "38": "Qof : 27-37",
+            "39": "Qof : 16-37 (Rabth)",
+            "40": "Qof : 38-45",
+            "41": "Az-Zariat : 1-21",
+            "42": "Qof : 38-Az-Zariat : 21 (Rabth)",
+            "43": "Az-Zariat : 22-34",
+            "44": "Az-Zariat : 35-30",
+            "45": "Az-Zariat : 22-30 (Rabat)",
+            "46": "Persiapan Tasmi'",
+            "47": "Persiapan Tasmi'",
+            "48": "Persiapan Tasmi'"
+        },
+        "alumni": {
+            "1": "An-Nisa : 24-25",
+            "2": "An-Nisa : 25-28",
+            "3": "An-Nisa : 24-28 (Rabth)",
+            "4": "An-Nisa : 29-32",
+            "5": "An-Nisa : 33-34",
+            "6": "An-Nisa : 29-34 (Rabth)",
+            "7": "An-Nisa : 35-37",
+            "8": "An-Nisa : 38-42",
+            "9": "An-Nisa : 35-42 (Rabth)",
+            "10": "An-Nisa : 43-46",
+            "11": "An-Nisa : 47-49",
+            "12": "An-Nisa : 43-49 (Rabth)",
+            "13": "An-Nisa : 50-55",
+            "14": "An-Nisa : 55-59",
+            "15": "An-Nisa : 50-59 (Rabth)",
+            "16": "An-Nisa : 60-63",
+            "17": "An-Nisa : 64-66",
+            "18": "An-Nisa : 60-66 (Rabth)",
+            "19": "An-Nisa : 67-73",
+            "20": "An-Nisa : 74-76",
+            "21": "An-Nisa : 67-76 (Rabth)",
+            "22": "An-Nisa : 77-79",
+            "23": "An-Nisa : 80-83",
+            "24": "An-Nisa : 77-83 (Rabth)",
+            "25": "An-Nisa : 84-88",
+            "26": "An-Nisa : 89-90",
+            "27": "An-Nisa : 84-90 (Rabth)",
+            "28": "An-Nisa : 91-92",
+            "29": "An-Nisa : 93-94",
+            "30": "An-Nisa : 91-94 (Rabth)",
+            "31": "An-Nisa : 95-98",
+            "32": "An-Nisa : 99-102",
+            "33": "An-Nisa : 95-102 (Rabth)",
+            "34": "An-Nisa : 103-108",
+            "35": "An-Nisa : 109-112",
+            "36": "An-Nisa : 103-111 (Rabth)",
+            "37": "An-Nisa : 112-115",
+            "38": "An-Nisa : 116-121",
+            "39": "An-Nisa : 112-121 (Rabth)",
+            "40": "An-Nisa : 122-125",
+            "41": "An-Nisa : 126-128",
+            "42": "An-Nisa : 122-128 (Rabth)",
+            "43": "An-Nisa : 129-133",
+            "44": "An-Nisa : 134-138",
+            "45": "An-Nisa : 129-138 (Rabth)",
+            "46": "An-Nisa : 139-141",
+            "47": "An-Nisa : 142-147",
+            "48": "An-Nisa : 139-147 (Rabth)"
+        }
+    },
+    "8": {
+        "alumni": {
+            "1": "Ali Imron 92-97",
+            "2": "Ali Imron 98-102",
+            "3": "Ali Imron 103-106",
+            "4": "Ali Imron 92-106 ( Rabth )",
+            "5": "Ali Imron 107-111",
+            "6": "Ali Imron 112-118",
+            "7": "Ali Imron 117-119",
+            "8": "Ali Imron 107-119 ( Rabth )",
+            "9": "Ali Imron 120-125",
+            "10": "Ali Imron 126-132",
+            "11": "Ali Imron 133-136",
+            "12": "Ali Imron 120-136 ( Rabth )",
+            "13": "Ali Imron 137-142",
+            "14": "Ali Imron 143-146",
+            "15": "Ali Imron 147-151",
+            "16": "Ali Imron 137-151 ( Rabth )",
+            "17": "Ali Imron 152-153",
+            "18": "Ali Imron 154-155",
+            "19": "Ali Imron 156-159",
+            "20": "Ali Imron 152-159 ( Rabth )",
+            "21": "Ali Imron 160-164",
+            "22": "Ali Imron 165-169",
+            "23": "Ali Imron 170-174",
+            "24": "Ali Imron 160-174 ( Rabth )",
+            "25": "Ali Imron 175-179",
+            "26": "Ali Imron 180-183",
+            "27": "Ali Imron 184-186",
+            "28": "Ali Imron 175-186 ( Rabth )",
+            "29": "Ali Imron 187-192",
+            "30": "Ali Imron 192-195",
+            "31": "Ali Imron 196-200",
+            "32": "Ali Imron 187-200 ( Rabth )",
+            "33": "An-Nisa 1-3",
+            "34": "An-Nisa 4-7",
+            "35": "An-Nisa 8-10",
+            "36": "An-Nisa 1-10 ( Rabth )",
+            "37": "An-Nisa 11",
+            "38": "An-Nisa 12",
+            "39": "An-Nisa 13-16",
+            "40": "An-Nisa 11-16 ( Rabth )",
+            "41": "An-Nisa 17-19",
+            "42": "An-Nisa 20-22",
+            "43": "An-Nisa 23",
+            "44": "An-Nisa 17-23 ( Rabth )"
+        },
+        "non-alumni": {
+            "1": "Al-Hadid 1-4",
+            "2": "Al-Hadid 5-10",
+            "3": "Al-Hadid 11-14",
+            "4": "Al-Hadid 1-14 ( Rabth )",
+            "5": "Al-Hadid 15-19",
+            "6": "Al-Hadid 20-22",
+            "7": "Al-Hadid 23-26",
+            "8": "Al-Hadid 15-26 (Rabth)",
+            "9": "Al-Hadid 27-29",
+            "10": "Al-Waqi'ah 1-19",
+            "11": "Al-Waqi'ah 17-43",
+            "12": "Al-Hadid 27 -Al-Waqi'ah 43 (Rabth)",
+            "13": "Al-Waqi'ah 44-61",
+            "14": "Al-Waqi'ah 62-76",
+            "15": "Al-Waqi'ah 77-96",
+            "16": "Al-Waqi'ah 44-96 ( Rabth )",
+            "17": "Ar-Rahman 1-18",
+            "18": "Ar-Rahman 19-34",
+            "19": "Ar-Rahman 35-49",
+            "20": "Ar-Rahman 1-49 ( Rabth )",
+            "21": "Ar-Rahman 50-65",
+            "22": "Ar-Rahman 66-78",
+            "23": "Al-Qomar 1-12",
+            "24": "Ar-Rahman 49 - Al-Qomar 12 ( Rabth )",
+            "25": "Al-Qomar 13-27",
+            "26": "Al-Qomar 28-40",
+            "27": "Al-Qomar 41-55",
+            "28": "Al-Qomar 13-55 ( Rabth)",
+            "29": "An-Najm 1-22",
+            "30": "An-Najm 23-31",
+            "31": "An-Najm 32-44",
+            "32": "An-Najm 1-44 ( Rabth)",
+            "33": "An-Najm 45-62",
+            "34": "At-Thur 1-18",
+            "35": "At-Thur 19-28",
+            "36": "An-Najm 45 - At-Thur 28 ( Rabth )",
+            "37": "At-Thur 29 - 39",
+            "38": "At-Thur 40-49",
+            "39": "Az-zariyat 1-21",
+            "40": "At-Thur 29 - Az-Zariyat 21 (",
+            "41": "Az-Zariyat 22-36",
+            "42": "Az-Zariyat 37-48",
+            "43": "Az-zariyat 49-60",
+            "44": "Az-Zariyat 22-60 ( Rabth )"
+        }
+    },
+    "7": {
+        "alumni": {
+            "1": "Al-Baqarah 142-143",
+            "2": "Al-Baqarah 144-145",
+            "3": "Al-Baqarah 146-149",
+            "4": "Al-Baqarah 142-149 (Rabth)",
+            "5": "Al-Baqarah 150-153",
+            "6": "Al-Baqarah 154-158",
+            "7": "Al-Baqarah 159-163",
+            "8": "Al-Baqarah 150-163 (Rabth)",
+            "9": "Al-Baqarah 164-165",
+            "10": "Al-Baqarah 166-167",
+            "11": "Al-Baqarah 168-169",
+            "12": "Al-Baqarah 164-169 (Rabth)",
+            "13": "Al-Baqarah 170-173",
+            "14": "Al-Baqarah 174-176",
+            "15": "Al-Baqarah 177",
+            "16": "Al-Baqarah 170-177 (Rabth)",
+            "17": "Al-Baqarah 178-181",
+            "18": "Al-Baqarah 182-184",
+            "19": "Al-Baqarah 185-186",
+            "20": "Al-Baqarah 178-186 (Rabth)",
+            "21": "Al-Baqarah 187",
+            "22": "Al-Baqarah 188-190",
+            "23": "Al-Baqarah 191-195",
+            "24": "Al-Baqarah 187-195 (Rabth)",
+            "25": "Al-Baqarah 196",
+            "26": "Al-Baqarah 197-199",
+            "27": "Al-Baqarah 200-202",
+            "28": "Al-Baqarah 196-202 (Rabth)",
+            "29": "Al-Baqarah 203-206",
+            "30": "Al-Baqarah 207-210",
+            "31": "Al-Baqarah 211-213",
+            "32": "Al-Baqarah 203-213 (Rabth)",
+            "33": "Al-Baqarah 214-215",
+            "34": "Al-Baqarah 216-217",
+            "35": "Al-Baqarah 218-219",
+            "36": "Al-Baqarah 214-219 (Rabth)",
+            "37": "Al-Baqarah 220-221",
+            "38": "Al-Baqarah 222-224",
+            "39": "Al-Baqarah 225-228",
+            "40": "Al-Baqarah 220-228 (Rabth)",
+            "41": "Al-Baqarah 229-230",
+            "42": "Al-Baqarah 231-232",
+            "43": "Al-Baqarah 233",
+            "44": "Al-Baqarah 229-233 (Rabth)",
+            "45": "Al-Baqarah 234-235",
+            "46": "Al-Baqarah 236-237",
+            "47": "Al-Baqarah 238-242",
+            "48": "Al-Baqarah 234-242 (Rabth)",
+            "49": "Al-Baqarah 243-245",
+            "50": "Al-Baqarah 246-248",
+            "51": "Al-Baqarah 249-252",
+            "52": "Al-Baqarah 243-252 (Rabth)"
+        },
+        "non-alumni": {
+            "1": "Al-Mursalat 1-19",
+            "2": "Al-Mursalat 20-34",
+            "3": "Al-Mursalat 35-50",
+            "4": "Al-Mursalat 1-50 (Rabth)",
+            "5": "Al-Insan 1-10",
+            "6": "Al-Insan 11-19",
+            "7": "Al-Insan 20-28",
+            "8": "Al-Insan 1-28 (Rabth)",
+            "9": "Al-Insan 29 - Al-Qiyamah 19",
+            "10": "Al-Qiyamah 20-40",
+            "11": "Al-Mudatsir 1-9",
+            "12": "Al-Insan 29 - Al-Mudatsir 9 (Rabth)",
+            "13": "Al-Mudatsir 10-31",
+            "14": "Al-Mudatsir 32-47",
+            "15": "Al-Mudatsir 48-56",
+            "16": "Al-Mudatsir 10-56 (Rabth)",
+            "17": "Al-Muzammil 1-12",
+            "18": "Al-Muzammil 13-19",
+            "19": "Al-Muzammil 20",
+            "20": "Al-Muzammil 1-20 (Rabth)",
+            "21": "Al-Jin 1-6",
+            "22": "Al-Jin 7-13",
+            "23": "Al-Jin 14-16",
+            "24": "Al-Jin 1-16 (Rabth)",
+            "25": "Al-Jin 17-24",
+            "26": "Al-Jin 25-28",
+            "27": "Al-Jin 29 - Nuh 7",
+            "28": "Al-Jin 17 - Nuh 7 (Rabth)",
+            "29": "Nuh 8-22",
+            "30": "Nuh 23-28",
+            "31": "Al-Ma'arij 1-13",
+            "32": "Nuh 8 - Al-Ma'arij 13 (Rabth)",
+            "33": "Al-Ma'arij 14-30",
+            "34": "Al-Ma'arij 31-44",
+            "35": "Al-Haqqah 1-7",
+            "36": "Al-Ma'arij 14 - Al-Haqqah 7 (Rabth)",
+            "37": "Al-Haqqah 8-16",
+            "38": "Al-Haqqah 17-25",
+            "39": "Al-Haqqah 26-32",
+            "40": "Al-Haqqah 8-32 (Rabth)",
+            "41": "Al-Haqqah 33-41",
+            "42": "Al-Haqqah 42-52",
+            "43": "Al-Qalam 1-4",
+            "44": "Al-Haqqah 33 - Al-Qalam 4 (Rabth)",
+            "45": "Al-Qalam 5-15",
+            "46": "Al-Qalam 16-20",
+            "47": "Al-Qalam 21-30",
+            "48": "Al-Qalam 5-30 (Rabth)",
+            "49": "Al-Qalam 31-52",
+            "50": "Al-Mulk 1-15",
+            "51": "Al-Mulk 16-30",
+            "52": "Al-Qalam 31 - Al-Mulk 30 (Rabth)"
+        }
+    }
+};
+
+const SANTRI_ALUMNI = [
+    "ABDULLAH RASYIQUL AKRAM", "BINTANG JULIANT ALFARABI", "LALU IQRA ILYAS", "MUHAMMAD ADIB", "MUHAMMAD ZAKY AL-HAFIZH FAUZAN", "SYABANIN ALKAUTSAR IRAWAN", "SYAFIIQ AL-ATSARI", "UKASYAH ABDURROHMAN", "UWAIS", "ALKA ZAHRAN SYAFIQ", "IMRAN UMAR ALKATIRI", "LALU MUHAMMAD ISHAM HAWARI", "LALU TSAQIB AL MUHALY", "M. IBAD FA'IQ ATHAR", "NAUFAL AL FAIZ", "RASYA MAULANA PRASETYO", "SYAFIQ ALBANY MUBARAK", "ZAKI SALEH", "ABRISAM FAQIH ABBASY", "ADHWA ASHA'AD KAMIDIA", "AFKAR HAFIDZUL FAYYAD", "AHSAN ABDULLAH", "ALI ABDULLAH AL BAKRI", "ANAS MUTTAQIN", "FADHIL JAMAL HIZAM", "FATIH ARDIANSYAH MALIK", "MU'ADZ RIFKI AL BAKRI", "MUHAMMAD ABDURRAHMAN ABBASY", "MUHAMMAD RUSYDI THALIB", "ZAIM MUBARAK IBNU RASYID", "ABDURRAHMAN HALIM", "ABDURRAHMAN HANIF", "ADHITYA FATHAN NURRIZKILLAH", "HAFUZA ARGHANDI ISPARWONO", "UBAIDURRAHMAN", "AHMAD DHANIS ALFARUQ", "AZKA ZAHRAN SYAFIQ", "DANIAL FARUQ ABDURROHMAN", "MUHAMMAD ZAID ISA", "RADEN ALI FIRAS RAHMATULLAH", "ABDURRAHMAN AL FAYADH", "AZKA SURYA LOGIKA", "AZMI SUHAIL HIDAYAT", "ILYAS AL-HAKIM", "ISA FEHER BAGIS", "MUHAMMAD BILAL", "MUHAMMAD DHORFAN FUADY", "MUHAMMAD IRSYAD HAFIDZ", "MUHAMMAD LUTHFI APRIAN NABHAN", "TAMIM ABDILLAH", "THORIQ SALAM", "ABDURROHMAN AR-ROSYAD WARDOYO", "AZHALLAH ZAYAN AGHLA", "DHANIZAM AZ ZIKRI KASYAFANI AHMAD", "KHAN KARTAWIJAYA MADANI", "MUHAMMAD AZMI", "MUHAMMAD FADHIL", "MUHAMMAD IBNU FARIS", "MUHAMMAD SALEH", "SHALLBAR MALIK JABBAR ISMAIL", "UNAIS HANIF BUDIMAN", "ALI FAHREZA RAMADHAN", "AUFAR BILAL SYAFIQ", "EMHA RAYYAN HAIKAL AL HAKIM", "HASAN USMAN SEWET", "KINAN SAMAU'AL RAHMAN", "MUHAMMAD ALVITO ATHARIZ BAYNUKHO", "MUHAMMAD FAID ADLIHAQ", "MUHAMMAD HAFIDZ", "MUHAMMAD SALMAN AL FARISI", "SALIM ABDULLAH GUNAWAN", "UWAYS ABDURRAHMAN", "AUFA IMADUDDIN", "FATHIR ALI AL HUSSEINI", "HANIF HAWARI", "LALU AKHTAR TSAQIF GUNAWAN", "MUHAMMAD AFLAH KHALAF KASMAN", "MUHAMMAD FARID AZFAR", "MUHAMMAD HABIB ASLAM", "MUHAMMAD SYAFIQ ARKAN", "MUHAMMAD SYAHRIZA RIVAI", "RIDHO MARTA DINATA", "YUSUF KAMIL", "AMMAR ABDURRAZZAQ", "ANUGERAH RAZA KHASYI", "ATHIF", "FATHIR DZAKWAN RAMADHAN", "FURQON AZKA IBRAHIM", "M. ALI SAPUTRA HIDAYAT", "MUHAMMAD FATHIH", "MUHAMMAD GHOFIQI ARRAYYAN", "MUHAMMAD UWAIS AL QORNY", "NAUFAL RIZKY ADZ-DZAKY", "ALTAIR FATIH MUHAMMAD", "AMIRUL SHOLEH", "ASLAM AROFI", "FAYYADH IFAT ASSYARIF", "GHAISAN HARISANDY", "IYADH IBNU MUNAWAR", "LALU EZRA RAFEE AL RASYID", "M. NAYAKA ABHIYANTA AL FAYYADH", "M. ZIYAN HALIM", "MOH. ZAKY FIRMANSYAH", "MUHAMMAD", "MUHAMMAD BAGAS PRATAMA", "MUHAMMAD FATHIN", "TEGUH LINGGA AZHARI", "ABDURAHIM ZHORIF", "ARIF RAHMAN", "DIHYAH AFNAN", "FATHIR MUBARAK BIN TAHIR", "HAIKAL KAMAL", "JIYAD MUNTASHIR", "M. RAYHAN AS-SYAWAL", "MUHAMMAD FADIL AL FARISI", "MUHAMMAD ISA", "MUHAMMAD YUSUF MIRZA HIDAYATULLAH", "MUHAMMAD ZIAN ABDULLAH", "NAUFAL FAUZI", "RAZZAN ABIYYU ASSABIL", "SALEH FATHY BOBSAID", "THORIQ MOHAMAD ZIYAD", "YAZID ACHMAD SYAFIQ BAGIS", "AHMAD FAWWAZ AFIFI", "AYYUB", "FAHIM ABDULLOH", "FARZAN ALMER SHAKY", "HANIF RAZIN ATHALLAH", "IKHWAN ZHAFRAN ARIYANTONO", "ILYAS HELMI HIZAM", "ILYAS MUJAHID AKBAR", "MUHAMAD RHEZA DWI PUTRA", "MUHAMMAD FARRAS ALIMUDDIN", "MUHAMMAD MUSA", "MUHAMMAD RIFQI AKBAR", "MUSH'AB RIFKI AL BAKRI", "UWAIS BIN LUTHFIE ABDAT", "ABDULLAH HIDAYAT", "AGUNG RIZKY PRASOJO", "ALIIF RASYID MUZHAFFAR", "DAYYAN ALHANIF HARYONO", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "MOHAMAD ATHAA ASQOLANIY", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD YUSUF BALWE'EL", "SAYYID ABDILLAH HANIF", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "YUSUF MUSTAFA"
+];
+
     const TEACHERS = [
         { name: 'Budiman, S. Pd.', isAdmin: true, subjects: [], adminType: 'admin' },
         { name: 'Adi Hardiyansyah, M. Pd.', isAdmin: true, subjects: ['IPA Terpadu'], adminType: 'admin' },
@@ -1656,7 +2132,46 @@ function getLocalDateString(d = getCurrentWITA()) {
         "9D": ["ABDULLAH HIDAYAT", "ABDULLAH SYAMIL HAIDAR", "AGUNG RIZKY PRASOJO", "AHMAD RAFIQ", "AKHTAR NIZAM BUKHARI", "ALBY FACHRI", "ALIF SYAFIQ IBRAHIM", "ALIIF RASYID MUZHAFFAR", "ARVIN NAOVAL SARIP", "AUFAR AZKA SHIDDIQ", "DAVI CHANDRA ELMESSIA", "DAYYAN ALHANIF HARYONO", "DEFRAN AIMAR BAFADAL", "ELANG PUTRA AMRULLAH", "GALIH MAHER ABDULLAH", "GHUDZAMIR NURHAN HAJIRI", "LALU MAHARAYA SAKHA SUADAYA", "MOHAMAD ATHAA ASQOLANIY", "MUH. HILMI", "MUHAMAD HILMI FAIQ TAUFIK", "MUHAMMAD AL FATIH RAHMAN", "MUHAMMAD JIHADUL ISLAM", "MUHAMMAD NAWWAF AL MUSTAWI", "MUHAMMAD YUSUF BALWE'EL", "NUR ADAM AL-KHALIDY", "RAAFA ASYURO", "SAYYID ABDILLAH HANIF", "SUDAIS GHIZLAN GHIFARRY", "SYAFIIQ ABDULLAH AL BAKRI", "UQBAH UBAIDILLAH KAUTSAR", "USAID", "YUSUF MUSTAFA"]
     };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
+const HALAQOH_TAHFIZH = {
+  "Abdul Hanan": [
+    { namaSiswa: "MUHAMMAD FARHAN FURQON", kelas: "8B" }, { namaSiswa: "FIRDAUSI NUZULA", kelas: "8C" }, { namaSiswa: "MUHAMMAD ABBAD", kelas: "8C" }, { namaSiswa: "MUHAMMAD ARFA AL FAWWAZI", kelas: "8C" }, { namaSiswa: "MUHAMMAD HAFIDZ", kelas: "8C" }, { namaSiswa: "MUSYARI ROSYID", kelas: "8C" }, { namaSiswa: "M.SAYYID RAZIQ AL FATIH", kelas: "8D" }, { namaSiswa: "MUHAMMAD NAYYIF", kelas: "8D" }, { namaSiswa: "MUHAMMAD SYAFIQ ARKAN", kelas: "8D" }, { namaSiswa: "ADZKA INSANUL ARIF", kelas: "8E" }, { namaSiswa: "FURQON AZKA IBRAHIM", kelas: "8E" }, { namaSiswa: "IBNU NABIL MANULLANG", kelas: "8E" }, { namaSiswa: "JA'FAR ABDUL HALIM", kelas: "8E" }
+  ],
+  "Ahmad Fazhlurrahman": [
+    { namaSiswa: "AHMAD ALIFADWAN DZAKIRMANSYAH", kelas: "9A" }, { namaSiswa: "AHZA IMTIAS", kelas: "9A" }, { namaSiswa: "BAGAS ERVITO", kelas: "9A" }, { namaSiswa: "L. FERDIANSYAH AMMAR AL-FATIH", kelas: "9A" }, { namaSiswa: "MUHAMMAD ZAHY IZDIHAR SYARIEF", kelas: "9A" }, { namaSiswa: "MUHAMMAD ZHAFRAN ARKAN", kelas: "9A" }, { namaSiswa: "UMAIR", kelas: "9A" }, { namaSiswa: "ZENITH ZETTA RINJANI", kelas: "9A" }, { namaSiswa: "ABDULLAH FAWWAZ SALIM", kelas: "9B" }, { namaSiswa: "ARIF RAHMAN", kelas: "9B" }, { namaSiswa: "ILYAS HELMI HIZAM", kelas: "9C" }, { namaSiswa: "MUHAMAD HILMI FAIQ TAUFIK", kelas: "9D" }
+  ],
+  "Akmaluddin": [
+    { namaSiswa: "AUFA AL HAMIDY", kelas: "7A" }, { namaSiswa: "FADHIL NASHIR ALBANI", kelas: "7A" }, { namaSiswa: "FAIZ ARFAN HAIQAL", kelas: "7A" }, { namaSiswa: "M. GHAISAN INDIKA HILMY", kelas: "7A" }, { namaSiswa: "MUHAMMAD AQIL ALMAIR RAMADHAN", kelas: "7A" }, { namaSiswa: "RESKI ARSY NEGARA", kelas: "7A" }, { namaSiswa: "SULTAN FAIZULLAH ATMIJOYO", kelas: "7A" }, { namaSiswa: "UKASYAH ABDURROHMAN", kelas: "7A" }, { namaSiswa: "UWAIS", kelas: "7A" }, { namaSiswa: "AHMAD KADHAFI BAFADHAL", kelas: "7B" }, { namaSiswa: "AHMAD QAIS ALHADI", kelas: "7B" }, { namaSiswa: "HAFUZA ARGHANDI ISPARWONO", kelas: "7D" }, { namaSiswa: "KHALIL ABDUL JABBAR", kelas: "7D" }, { namaSiswa: "LALU MUHAMMAD FAWAAZ MUSTHOFA", kelas: "7D" }, { namaSiswa: "M. DHAFFA GIBRAN ARANTA", kelas: "7D" }, { namaSiswa: "MUHAMMAD ALVIN FAIZ", kelas: "7D" }, { namaSiswa: "MUHAMMAD HAYYAN", kelas: "7D" }, { namaSiswa: "MUHAMMAD RAIHAN AL FATIH", kelas: "7D" }, { namaSiswa: "MUZAKKAR HALIM KHAIRI", kelas: "7D" }, { namaSiswa: "SAMI", kelas: "7D" }, { namaSiswa: "ABBAS", kelas: "8B" }, { namaSiswa: "ABDUL AZIZULHAKIM", kelas: "8B" }, { namaSiswa: "ABDURRAHMAN KHADAFI", kelas: "8B" }, { namaSiswa: "ABDURROHMAN AR-ROSYAD WARDOYO", kelas: "8B" }, { namaSiswa: "AHMAD MUSAYYIB", kelas: "8B" }, { namaSiswa: "AHMAD NUBLI ALFATIH", kelas: "8B" }, { namaSiswa: "AZHALLAH ZAYAN AGHLA", kelas: "8B" }, { namaSiswa: "DHANIZAM AZ ZIKRI KASYAFANI AHMAD", kelas: "8B" }, { namaSiswa: "FAYAD FADILAH FAIRUZ AMANULLAH", kelas: "8D" }, { namaSiswa: "MUHAMMAD FARID AZFAR", kelas: "8D" }, { namaSiswa: "MUHAMMAD HABIB ASLAM", kelas: "8D" }, { namaSiswa: "MUHAMMAD LUKMAN ALFAIQ", kelas: "8D" }, { namaSiswa: "MUHAMMAD RIZKI ANUGRAH", kelas: "8D" }, { namaSiswa: "NIKO SATYA ATMAJA", kelas: "8D" }, { namaSiswa: "M. FADHIL ZAHRAN", kelas: "9A" }, { namaSiswa: "M. FIKRI AZHARI", kelas: "9A" }, { namaSiswa: "MUHAMMAD AHLAM DZULFADLI", kelas: "9A" }, { namaSiswa: "MUHAMMAD ARKHA IBRA SURYA", kelas: "9A" }, { namaSiswa: "MUHAMMAD FATHIN", kelas: "9A" }, { namaSiswa: "AFFAN EL RAFIF", kelas: "9B" }, { namaSiswa: "HUDZAIFAH AL GHAZWAN", kelas: "9B" }, { namaSiswa: "M. FAHARIL", kelas: "9B" }, { namaSiswa: "MU'AFA KHOIR MIDROR", kelas: "9B" }, { namaSiswa: "MUHAMMAD ALTAF", kelas: "9B" }, { namaSiswa: "ALIF SYAFIQ IBRAHIM", kelas: "9D" }, { namaSiswa: "USAID", kelas: "9D" }
+  ],
+  "Aminullah": [
+    { namaSiswa: "M.SULTHAN HABIBULLAH", kelas: "7B" }, { namaSiswa: "MUHAMMAD OZIL", kelas: "7B" }, { namaSiswa: "MUHAMMAD FAUZAN", kelas: "7B" }, { namaSiswa: "MUHAMMAD NAUFAL AL KHAIRY", kelas: "7B" }, { namaSiswa: "PRANAJA AGHA SAFARAZ", kelas: "7B" }, { namaSiswa: "RADITYA NAUFAL ABIYYU", kelas: "7B" }, { namaSiswa: "RASYA MAULANA PRASETYO", kelas: "7B" }, { namaSiswa: "VIRZAN AL AZKA", kelas: "7B" }, { namaSiswa: "WAFI `ABDULLOH", kelas: "7B" }, { namaSiswa: "ABIDULLAH IBRAHIM HANIF", kelas: "7C" }, { namaSiswa: "AHSAN ABDULLAH", kelas: "7C" }, { namaSiswa: "AMIR MUJAHID", kelas: "7C" }, { namaSiswa: "NIZAR", kelas: "7C" }, { namaSiswa: "ABDURRAHMAN HALIM", kelas: "7D" }, { namaSiswa: "AINAN NEVAN INDRAJAYA", kelas: "7D" }, { namaSiswa: "DZAKY MAHESWARA", kelas: "7D" }, { namaSiswa: "MUHAMMAD AHSAN ZAKI", kelas: "7D" }, { namaSiswa: "MUHAMMAD FALIH KASYFUL ISLAM", kelas: "7D" }, { namaSiswa: "DAFFA IBNU HAFIDZ", kelas: "7E" }, { namaSiswa: "HUSEIN ALI FARIS", kelas: "7E" }, { namaSiswa: "MUHAMAD ZIZFAN YADI MULIAN", kelas: "7E" }, { namaSiswa: "MUHAMMAD FATHIIN RAMADHANI", kelas: "7E" }, { namaSiswa: "MUHAMMAD DIFA ELRAFIF", kelas: "8C" }, { namaSiswa: "MUHAMMAD ILHAM BADRUSSALAM", kelas: "8C" }, { namaSiswa: "NAUFAL ADINURRAHMAN", kelas: "8C" }, { namaSiswa: "NAYIF ALQADRI", kelas: "8C" }, { namaSiswa: "SALEM OSAMA MA'DAN", kelas: "8C" }, { namaSiswa: "SYAHMI ZABIR", kelas: "8C" }, { namaSiswa: "SYAKIR", kelas: "8C" }, { namaSiswa: "UWAYS ABDURRAHMAN", kelas: "8C" }, { namaSiswa: "WIFA ASYROFI", kelas: "8C" }, { namaSiswa: "LALU AKHTAR TSAQIF GUNAWAN", kelas: "8D" }, { namaSiswa: "MUHAMMAD SYAHRIZA RIVAI", kelas: "8D" }, { namaSiswa: "RIDHO MARTA DINATA", kelas: "8D" }, { namaSiswa: "ATFAL RAMADHAN", kelas: "8E" }, { namaSiswa: "FATHIR MUBARAK BIN TAHIR", kelas: "9B" }, { namaSiswa: "HAIKAL KAMAL", kelas: "9B" }, { namaSiswa: "M. RAYHAN AS-SYAWAL", kelas: "9B" }, { namaSiswa: "MUHAMMAD ISA", kelas: "9B" }, { namaSiswa: "MUHAMMAD YUSUF MIRZA HIDAYATULLAH", kelas: "9B" }, { namaSiswa: "MUHAMMAD ZIAN ABDULLAH", kelas: "9B" }, { namaSiswa: "RIJAL AYMAN HASAN", kelas: "9B" }, { namaSiswa: "SALEH FATHY BOBSAID", kelas: "9B" }, { namaSiswa: "THORIQ MOHAMAD ZIYAD", kelas: "9B" }, { namaSiswa: "AGUNG RIZKY PRASOJO", kelas: "9D" }, { namaSiswa: "DAVI CHANDRA ELMESSIA", kelas: "9D" }, { namaSiswa: "SUDAIS GHIZLAN GHIFARRY", kelas: "9D" }
+  ],
+  "Azza Mahsari, S. Pd.": [
+    { namaSiswa: "ABDULLAH RASYIQUL AKRAM", kelas: "7A" }, { namaSiswa: "ATHAR RIZKY YUDHISTIRA", kelas: "7A" }, { namaSiswa: "HADZUKI ADITYA RAMADHAN", kelas: "7A" }, { namaSiswa: "MU'ADZ", kelas: "7A" }, { namaSiswa: "MUHAMMAD ADIB", kelas: "7A" }, { namaSiswa: "MUHAMMAD AL FAIZ", kelas: "7A" }, { namaSiswa: "MUHAMMAD ALFIAN RIZQI", kelas: "7A" }, { namaSiswa: "MUHAMMAD AQIL", kelas: "7A" }, { namaSiswa: "MUHAMMAD NAYAKA HAKAM", kelas: "7A" }, { namaSiswa: "MUHAMMAD TRISTAN ALIEF PRABOWO", kelas: "7A" }, { namaSiswa: "MUHAMMAD ZAKY AL-HAFIZH FAUZAN", kelas: "7A" }, { namaSiswa: "NADYANDA MUCHALI AL MAJIID", kelas: "7A" }, { namaSiswa: "SYAFIIQ AL-ATSARI", kelas: "7A" }, { namaSiswa: "ABDULLAH AZZAM AL MANAR", kelas: "8A" }, { namaSiswa: "ARIF ALFIAN", kelas: "8A" }, { namaSiswa: "ILYAS AL-HAKIM", kelas: "8A" }, { namaSiswa: "ISA FEHER BAGIS", kelas: "8A" }, { namaSiswa: "MUHAMMAD AL AFIIF MAULANA", kelas: "8A" }, { namaSiswa: "MUHAMMAD ALBIMAWY", kelas: "8A" }, { namaSiswa: "MUHAMMAD BILAL", kelas: "8A" }, { namaSiswa: "MUHAMMAD DHORFAN FUADY", kelas: "8A" }, { namaSiswa: "MUHAMMAD IZWAR RASYID", kelas: "8A" }, { namaSiswa: "MUHAMMAD NIZZAM KHARISMA", kelas: "8A" }, { namaSiswa: "NABHAN KHALIL", kelas: "8A" }, { namaSiswa: "THORIQ SALAM", kelas: "8A" }, { namaSiswa: "MUHAMMAD FATHIN RIDWAN", kelas: "8B" }, { namaSiswa: "MUHAMMAD HAMIZ JAFAR", kelas: "8B" }, { namaSiswa: "MUHAMMAD IBNU FARIS", kelas: "8B" }, { namaSiswa: "MUHAMMAD SALEH", kelas: "8B" }, { namaSiswa: "AHDA SYAKIRUL AFKAR", kelas: "8C" }, { namaSiswa: "EMHA RAYYAN HAIKAL AL HAKIM", kelas: "8C" }, { namaSiswa: "FITRAH KAMULA TALIANG", kelas: "8C" }, { namaSiswa: "MUHAMMAD AHSANUL FATHIR", kelas: "8C" }, { namaSiswa: "QUSAY", kelas: "8C" }, { namaSiswa: "SALIM ABDULLAH GUNAWAN", kelas: "8C" }, { namaSiswa: "ARSHALAN MUHAMMAD FERALVO", kelas: "8D" }, { namaSiswa: "DZAKWAN TSAMIR ARRAHMAN", kelas: "8D" }, { namaSiswa: "FATHIR AKMAL RABBANI", kelas: "8D" }, { namaSiswa: "MAULANA KHALIL ACHMAD", kelas: "8D" }, { namaSiswa: "ABDILLAH FAWAZ ADZZIKRY", kelas: "9A" }, { namaSiswa: "ALTAIR FATIH MUHAMMAD", kelas: "9A" }, { namaSiswa: "AMIRUL SHOLEH", kelas: "9A" }, { namaSiswa: "ASLAM AROFI", kelas: "9A" }, { namaSiswa: "FARIS RAFIE AS'ARY", kelas: "9A" }, { namaSiswa: "FAYYADH IFAT ASSYARIF", kelas: "9A" }, { namaSiswa: "GHAISAN HARISANDY", kelas: "9A" }, { namaSiswa: "IYADH IBNU MUNAWAR", kelas: "9A" }, { namaSiswa: "KHAIRIL FAHMI HUDA", kelas: "9A" }, { namaSiswa: "DIHYAH AFNAN", kelas: "9B" }, { namaSiswa: "RAZZAN ABIYYU ASSABIL", kelas: "9B" }, { namaSiswa: "AYYUB", kelas: "9C" }
+  ],
+  "Fauzul Kabir, S. Pd.": [
+    { namaSiswa: "HARITS ARKAAN", kelas: "7A" }, { namaSiswa: "HUSAIN ANAQI", kelas: "7A" }, { namaSiswa: "MUH. GHAFAR ARIEF SETIOBUDI", kelas: "7A" }, { namaSiswa: "SYABANIN ALKAUTSAR IRAWAN", kelas: "7A" }, { namaSiswa: "YUSUF ABDURRAHMAN FANSURI", kelas: "7A" }, { namaSiswa: "ALKA ZAHRAN SYAFIQ", kelas: "7B" }, { namaSiswa: "ANTO APANSA", kelas: "7B" }, { namaSiswa: "BISMA ABDILLAH SURA", kelas: "7B" }, { namaSiswa: "ABDURRAHMAN AL FAYADH", kelas: "8A" }, { namaSiswa: "ALIEF HAFEES DINATA", kelas: "8A" }, { namaSiswa: "AZKA SURYA LOGIKA", kelas: "8A" }, { namaSiswa: "AZMI SUHAIL HIDAYAT", kelas: "8A" }, { namaSiswa: "AZZAM FAISHAL", kelas: "8A" }, { namaSiswa: "DINAN HADYAN HANIF", kelas: "8A" }, { namaSiswa: "DEDEN HARDIANTO", kelas: "8A" }, { namaSiswa: "LALU DANISH MIRZA AL FATIH MARTADINATA", kelas: "8A" }, { namaSiswa: "LALU IYAS ALI AHMAD", kelas: "8A" }, { namaSiswa: "M. DETHA ALGHIFARY", kelas: "8A" }, { namaSiswa: "M. FATONI", kelas: "8A" }, { namaSiswa: "NIZAM", kelas: "8A" }, { namaSiswa: "ZAIM OZIL SYAHMI", kelas: "8B" }, { namaSiswa: "FAWWAZ BADRUTAMAM", kelas: "8D" }, { namaSiswa: "ADITYA PUTRA WIDANI", kelas: "8E" }, { namaSiswa: "AMMAR ABDURRAZZAQ", kelas: "8E" }, { namaSiswa: "FI ZHILALIT TAUHID", kelas: "8E" }, { namaSiswa: "M. ALI SAPUTRA HIDAYAT", kelas: "8E" }, { namaSiswa: "M. ALIF SIDIK", kelas: "8E" }, { namaSiswa: "MOCHAMMAD RAYSHA OEMAR", kelas: "8E" }, { namaSiswa: "MUHAMMAD ARSYAD AL BUKHORI", kelas: "8E" }, { namaSiswa: "MUHAMMAD GHOFIQI ARRAYYAN", kelas: "8E" }, { namaSiswa: "M. RIZKY FANRI ADHA", kelas: "8E" }, { namaSiswa: "MUHAMMAD UWAIS AL QORNY", kelas: "8E" }, { namaSiswa: "MUHAMMAD ZIBAN", kelas: "8E" }, { namaSiswa: "AHMAD ABAS", kelas: "9B" }, { namaSiswa: "JIYAD MUNTASHIR", kelas: "9B" }, { namaSiswa: "MOH AMIN ALKHOLIDIN", kelas: "9B" }, { namaSiswa: "MUHAMMAD ALFARIDZZY", kelas: "9B" }, { namaSiswa: "MUHAMMAD FADIL AL FARISI", kelas: "9B" }, { namaSiswa: "NADHIF SYAIKUL ISLAM", kelas: "9B" }, { namaSiswa: "NAUFAL FAUZI", kelas: "9B" }, { namaSiswa: "RIFQY HANIF MAULANA", kelas: "9B" }, { namaSiswa: "AFFAN KHATIBUL UMAM", kelas: "9C" }, { namaSiswa: "DANIAL AZZAM ADYATMA", kelas: "9C" }, { namaSiswa: "LALU MUHAMMAD YAZID MAULANA", kelas: "9C" }, { namaSiswa: "MUHAMMAD RIFAL FADLAN", kelas: "9C" }, { namaSiswa: "MUH. HILMI", kelas: "9D" }
+  ],
+  "Haris Fajriansyah, B. A.": [
+    { namaSiswa: "YUSUF GIBRAN RAMADHAN", kelas: "7B" }, { namaSiswa: "ZAKI SALEH", kelas: "7B" }, { namaSiswa: "ZUBAIR AL FAYYAD", kelas: "7B" }, { namaSiswa: "ABBASHY RIZQILLAH JULIANGKARA", kelas: "7C" }, { namaSiswa: "ABRISAM FAQIH ABBASY", kelas: "7C" }, { namaSiswa: "AHMAD AL GHAZALI", kelas: "7C" }, { namaSiswa: "MUHAMMAD FADLILLAH", kelas: "7C" }, { namaSiswa: "MUHAMMAD ILYAS", kelas: "7C" }, { namaSiswa: "MUHAMMAD RUSYDI THALIB", kelas: "7C" }, { namaSiswa: "AHMAD SULTAN NAZHIRUL ASROFI", kelas: "7D" }, { namaSiswa: "ABIE ALFAYAD", kelas: "7E" }, { namaSiswa: "AHMAD ZUBAIR", kelas: "7E" }, { namaSiswa: "FARUQ NABIL ARFADANA", kelas: "7E" }, { namaSiswa: "HANIF ABDURRAHMAN", kelas: "7E" }, { namaSiswa: "MUHAMMAD AL GHAZALI SALMIN", kelas: "7E" }, { namaSiswa: "MUHAMMAD BILAL HARYANTO", kelas: "7E" }, { namaSiswa: "MUHAMMAD GALIH AS SAKHA", kelas: "7E" }, { namaSiswa: "MUHAMMAD KENZIE MAHIRA", kelas: "7E" }, { namaSiswa: "MUHAMMAD NAUFAL GHANI", kelas: "7E" }, { namaSiswa: "MUHAMMAD ZAID ISA", kelas: "7E" }, { namaSiswa: "UMAR", kelas: "7E" }, { namaSiswa: "ABDURRAHMAN AL-FURQON", kelas: "8C" }, { namaSiswa: "MUHAMMAD SALMAN AL FARISI", kelas: "8C" }, { namaSiswa: "HANIF HAWARI", kelas: "8D" }, { namaSiswa: "LALU MUHAMMAD ZEVIAN ALTHAF", kelas: "8D" }, { namaSiswa: "MUHAMAD RIZKY KATSIRO", kelas: "8D" }, { namaSiswa: "MUHAMMAD AFLAH KHALAF KASMAN", kelas: "8D" }, { namaSiswa: "YUSUF KAMIL", kelas: "8D" }, { namaSiswa: "ZAID UBAIDILLAH", kelas: "8D" }, { namaSiswa: "KAFKA APUILA", kelas: "8E" }, { namaSiswa: "HUMAINI HANDREANANTO", kelas: "9B" }, { namaSiswa: "FAHRI ZAFRAN KHAIRI", kelas: "9C" }, { namaSiswa: "MUHAMMAD DAFFA AR RAYYAN", kelas: "9C" }, { namaSiswa: "MUHAMMAD JALILUDIN AL HAFIDZ", kelas: "9C" }, { namaSiswa: "MUHAMMAD YAFI' 'AMMAR Y.", kelas: "9C" }, { namaSiswa: "YAZID ABDUL QODIR", kelas: "9C" }, { namaSiswa: "ABDULLAH SYAMIL HAIDAR", kelas: "9D" }
+  ],
+  "Irfan Hidayat, S.Pd.": [
+    { namaSiswa: "ABDURRAHMAN KHOLIL AL MADURY", kelas: "7A" }, { namaSiswa: "ABDURROZZAQ", kelas: "7A" }, { namaSiswa: "ADRIAN FACHRY AS`ARY", kelas: "7A" }, { namaSiswa: "ALIF ZIYAD ZAEN", kelas: "7A" }, { namaSiswa: "HAFIDS AL GHAZALLI", kelas: "7A" }, { namaSiswa: "JIKRAN ALFATIH MUDASIR", kelas: "7B" }, { namaSiswa: "LALU TSAQIB AL MUHALY", kelas: "7B" }, { namaSiswa: "MIFZAL", kelas: "7B" }, { namaSiswa: "MUH. FAZRIL ILHAM", kelas: "7B" }, { namaSiswa: "SYAFIQ ALBANY MUBARAK", kelas: "7B" }, { namaSiswa: "ABDURRAHMAN HANIF", kelas: "7D" }, { namaSiswa: "FATHIAN AL AZZAM", kelas: "7D" }, { namaSiswa: "RAZA ARDYLAN AMIR", kelas: "7D" }, { namaSiswa: "SULTAN MUHAMMAD ALFATI", kelas: "7D" }, { namaSiswa: "TIHAMI ABDUL MUZANNI ARBADIFA", kelas: "7D" }, { namaSiswa: "UMAR AL - FARUQ", kelas: "7D" }, { namaSiswa: "AZKA RAHARDHIAN ACHMAD", kelas: "7E" }, { namaSiswa: "AZKA ZAHRAN SYAFIQ", kelas: "7E" }, { namaSiswa: "KHAIRIL INSANI RAMADHAN", kelas: "7E" }, { namaSiswa: "LALU APTA PAWANA SUPRON", kelas: "7E" }, { namaSiswa: "MUHAMMAD AL FATIH", kelas: "8B" }, { namaSiswa: "MUHAMMAD AZAM FARZANA", kelas: "8B" }, { namaSiswa: "MUHAMMAD AZMI", kelas: "8B" }, { namaSiswa: "MUHAMMAD DINZA ALKHALIFI", kelas: "8B" }, { namaSiswa: "MUHAMMAD FACHRI EL FIRAZ", kelas: "8B" }, { namaSiswa: "MUHAMMAD FADHIL", kelas: "8B" }, { namaSiswa: "MUHAMMAD FAID ADLIHAQ", kelas: "8C" }, { namaSiswa: "MUHAMMAD KHALIFA GHAISANI", kelas: "8C" }, { namaSiswa: "KHALID ALHUDRI", kelas: "8D" }, { namaSiswa: "MUHAMMAD RAIHAN PUTRA FIRMANDA", kelas: "8D" }, { namaSiswa: "ANUGERAH RAZA KHASYI", kelas: "8E" }, { namaSiswa: "FATHIR DZAKWAN RAMADHAN", kelas: "8E" }, { namaSiswa: "LALU BASRI RAHMAN", kelas: "8E" }, { namaSiswa: "MOH. ZAKY FIRMANSYAH", kelas: "9A" }, { namaSiswa: "HUSAIN ABDURACHMAN SEWET", kelas: "9B" }, { namaSiswa: "IZAS MUHAMAD ALFATIH", kelas: "9B" }, { namaSiswa: "ADZKA RAFA AL FATIH", kelas: "9C" }, { namaSiswa: "FAIRUZ ALMA DZAKI", kelas: "9C" }, { namaSiswa: "FATHIR SAYYAF HAJID", kelas: "9C" }, { namaSiswa: "MUSH'AB RIFKI AL BAKRI", kelas: "9C" }, { namaSiswa: "UWAIS BIN LUTHFIE ABDAT", kelas: "9C" }, { namaSiswa: "ZIYAN FAKHRI", kelas: "9C" }, { namaSiswa: "MUHAMMAD YUSUF BALWE'EL", kelas: "9D" }, { namaSiswa: "YUSUF MUSTAFA", kelas: "9D" }
+  ],
+  "Iswahyudi, S. T.": [
+    { namaSiswa: "ALBY FACHRIE", kelas: "7A" }, { namaSiswa: "BINTANG JULIANT ALFARABI", kelas: "7A" }, { namaSiswa: "LALU IQRA ILYAS", kelas: "7A" }, { namaSiswa: "GIOFANDI AHNAF SYATHIR", kelas: "7B" }, { namaSiswa: "MUHAMMAD NABIIL SETIAWAN", kelas: "7B" }, { namaSiswa: "SAJID", kelas: "7B" }, { namaSiswa: "FATHIN ABDULLAH", kelas: "7C" }, { namaSiswa: "MUHAMMAD FAIZI ATHAR AL AYYUBI", kelas: "7C" }, { namaSiswa: "ZAIM MUBARAK IBNU RASYID", kelas: "7C" }, { namaSiswa: "ABDURRAHMAN FAQIH ALBANY", kelas: "8A" }, { namaSiswa: "ABIL MAJDI", kelas: "8A" }, { namaSiswa: "HANIF ALTHAF RAMADHANI", kelas: "8A" }, { namaSiswa: "MUHAMMAD ALFA AL HAWARI", kelas: "8A" }, { namaSiswa: "MUHAMMAD IRSYAD HAFIDZ", kelas: "8A" }, { namaSiswa: "MUHAMMAD LUTHFI APRIAN NABHAN", kelas: "8A" }, { namaSiswa: "MUHAMMAD SULTAN", kelas: "8A" }, { namaSiswa: "MUHAMMAD ZHAFIR ATZANY", kelas: "8A" }, { namaSiswa: "MUSTAGFIRI ASROR", kelas: "8A" }, { namaSiswa: "TAMIM ABDILLAH", kelas: "8A" }, { namaSiswa: "UMAIR AL JUNDI", kelas: "8A" }, { namaSiswa: "YAZID AWAD SEWET", kelas: "8A" }, { namaSiswa: "ABDURRAHMAN AHMAD", kelas: "8E" }, { namaSiswa: "ABDURRAHMAN ZAYID", kelas: "8E" }, { namaSiswa: "AYMAN SULTAN AYUBI", kelas: "8E" }, { namaSiswa: "BILAL", kelas: "8E" }, { namaSiswa: "DEKA SAMUDERA", kelas: "8E" }, { namaSiswa: "FATHI AIMAN EL HARIS", kelas: "8E" }, { namaSiswa: "FATIH EL ROZZA", kelas: "8E" }, { namaSiswa: "LALU SANDY AL FARISI", kelas: "8E" }, { namaSiswa: "MUH.UWAIS AL QORNI", kelas: "8E" }, { namaSiswa: "MUHAMMAD FATHIH", kelas: "8E" }, { namaSiswa: "MUHAMMAD RAFIE IBRAHIM", kelas: "8E" }, { namaSiswa: "MUHAMMAD ZIDAN ALI AKBAR", kelas: "8E" }, { namaSiswa: "NAUFAL RIZKY ADZ-DZAKY", kelas: "8E" }, { namaSiswa: "LALU EZRA RAFEE AL RASYID", kelas: "9A" }, { namaSiswa: "M. NAYAKA ABHIYANTA AL FAYYADH", kelas: "9A" }, { namaSiswa: "M. ZIYAN HALIM", kelas: "9A" }, { namaSiswa: "MUHAMMAD", kelas: "9A" }, { namaSiswa: "TEGUH LINGGA AZHARI", kelas: "9A" }, { namaSiswa: "M. ZIYADFAIZAN ALFIJMI", kelas: "9B" }, { namaSiswa: "FAHIM ABDULLOH", kelas: "9C" }, { namaSiswa: "FARZAN ALMER SHAKY", kelas: "9C" }, { namaSiswa: "FAWWAZ SYAMIL GHIFARI", kelas: "9C" }, { namaSiswa: "MUJAHIDIN", kelas: "9C" }, { namaSiswa: "SABIQ ELFATTAN KURNIAWAN", kelas: "9C" }, { namaSiswa: "AUFAR AZKA SHIDDIQ", kelas: "9D" }
+  ],
+  "Maliki": [
+    { namaSiswa: "FAYADH ELFATA", kelas: "7A" }, { namaSiswa: "FATIH ARDIANSYAH MALIK", kelas: "7C" }, { namaSiswa: "HAFIZ PRATAMA DINATHA", kelas: "7C" }, { namaSiswa: "KHOIRUL AZZAM", kelas: "7C" }, { namaSiswa: "ISAM AL-KHUSYAIRI", kelas: "7C" }, { namaSiswa: "KEENAN DANIAL AL FAREZEL", kelas: "7C" }, { namaSiswa: "MU'ADZ RIFKI AL BAKRI", kelas: "7C" }, { namaSiswa: "MUH. SHOLYHIN", kelas: "7C" }, { namaSiswa: "MUHAMMAD ABDURRAHMAN ABBASY", kelas: "7C" }, { namaSiswa: "MUHAMMAD DHAFFA DZAKY PUTRASANI", kelas: "7C" }, { namaSiswa: "ADHITYA FATHAN NURRIZKILLAH", kelas: "7D" }, { namaSiswa: "MUHAMMAD AFIIF AL - HABSYI", kelas: "7D" }, { namaSiswa: "MUHAMMAD FAQIH RIZQULLAH", kelas: "7D" }, { namaSiswa: "SAMIR JAZLAN ALHADI", kelas: "7D" }, { namaSiswa: "UBAIDURRAHMAN", kelas: "7D" }, { namaSiswa: "DANIAL FARUQ ABDURROHMAN", kelas: "7E" }, { namaSiswa: "FATIR KAHFI RUMI", kelas: "7E" }, { namaSiswa: "MUHAMMAD YUZARSIF", kelas: "7E" }, { namaSiswa: "RADEN ALI FIRAS RAHMATULLAH", kelas: "7E" }, { namaSiswa: "RIZKY RAMADHAN", kelas: "7E" }, { namaSiswa: "TARAGA PAMENGAS PIRATA", kelas: "7E" }, { namaSiswa: "THUFAIL ALBYAKSA DEBERNADI", kelas: "7E" }, { namaSiswa: "FIRAS FAWAZ FATIH", kelas: "8B" }, { namaSiswa: "FURQAN ALFATIR", kelas: "8B" }, { namaSiswa: "HISYAM RIZKI HIDAYAT", kelas: "8B" }, { namaSiswa: "KHALID ATTAURIQ", kelas: "8B" }, { namaSiswa: "KHAN KARTAWIJAYA MADANI", kelas: "8B" }, { namaSiswa: "MUHAMMAD RAYHAN RAFASYA AL ZHAFRAN", kelas: "8B" }, { namaSiswa: "MUHAMAD ILHAM BINTANG", kelas: "8B" }, { namaSiswa: "MUHAMAD REZKY AFKHAR", kelas: "8B" }, { namaSiswa: "NALA FAUZAN ADZIMA", kelas: "8B" }, { namaSiswa: "FATHIR ALI AL HUSSEINI", kelas: "8D" }, { namaSiswa: "LALU AZZAM ABDURRAASYID ROMADHONI", kelas: "8D" }, { namaSiswa: "M. DZAKWAN KHAFADY", kelas: "8D" }, { namaSiswa: "NAVILA AL KAUSAR", kelas: "8E" }, { namaSiswa: "ABDURAHIM ZHORIF", kelas: "9B" }, { namaSiswa: "ABDULLAH HIDAYAT", kelas: "9D" }, { namaSiswa: "ALIIF RASYID MUZHAFFAR", kelas: "9D" }, { namaSiswa: "DAYYAN ALHANIF HARYONO", kelas: "9D" }, { namaSiswa: "ELANG PUTRA AMRULLAH", kelas: "9D" }, { namaSiswa: "GALIH MAHER ABDULLAH", kelas: "9D" }, { namaSiswa: "GHUDZAMIR NURHAN HAJIRI", kelas: "9D" }, { namaSiswa: "MOHAMAD ATHAA ASQOLANIY", kelas: "9D" }, { namaSiswa: "MUHAMMAD AL FATIH RAHMAN", kelas: "9D" }, { namaSiswa: "SAYYID ABDILLAH HANIF", kelas: "9D" }, { namaSiswa: "UQBAH UBAIDILLAH KAUTSAR", kelas: "9D" }
+  ],
+  "Musalim Amin, S. Pd. I.": [
+    { namaSiswa: "LALU ABDURRAHMAN DZAKI KHAIRI", kelas: "7B" }, { namaSiswa: "LALU MUHAMMAD ISHAM HAWARI", kelas: "7B" }, { namaSiswa: "M. SHAFIQ MUBARAK", kelas: "7B" }, { namaSiswa: "M. IBAD FA'IQ ATHAR", kelas: "7B" }, { namaSiswa: "MUHAMMAD AIDIL GIFARI", kelas: "7B" }, { namaSiswa: "MUHAMMAD FAWWAZ ARRAYAN", kelas: "7B" }, { namaSiswa: "ADHWA ASHA'AD KAMIDIA", kelas: "7C" }, { namaSiswa: "ALI ABDULLAH AL BAKRI", kelas: "7C" }, { namaSiswa: "ANAS MUTTAQIN", kelas: "7C" }, { namaSiswa: "FADHIL JAMAL HIZAM", kelas: "7C" }, { namaSiswa: "M. HISYAM AL FATHIR", kelas: "7D" }, { namaSiswa: "ABDURRAHMAN DIANUL GIBRAN", kelas: "7E" }, { namaSiswa: "AHMAD DHANIS ALFARUQ", kelas: "7E" }, { namaSiswa: "AHMAD ZOFRAN JIHADI", kelas: "7E" }, { namaSiswa: "FARDAN FADLI", kelas: "7E" }, { namaSiswa: "MUHAMMAD AMMAR", kelas: "7E" }, { namaSiswa: "M. ATAYA EL AZZAM", kelas: "7E" }, { namaSiswa: "NIRHAM SAJIDAN", kelas: "7E" }, { namaSiswa: "ZIYAN HAFIZURRAHMAN", kelas: "7E" }, { namaSiswa: "BARIQ ABDUL AFIF", kelas: "8C" }, { namaSiswa: "DANARHADIYYA AGRI", kelas: "8C" }, { namaSiswa: "HAQQY HAYAZA", kelas: "8C" }, { namaSiswa: "HASAN USMAN SEWET", kelas: "8C" }, { namaSiswa: "KHAIRUL MIZAN", kelas: "8C" }, { namaSiswa: "KINAN SAMAU'AL RAHMAN", kelas: "8C" }, { namaSiswa: "MUHAMMAD FADHIL", kelas: "8C" }, { namaSiswa: "MUHAMMAD ALVITO ATHARIZ BAYNUKHO", kelas: "8C" }, { namaSiswa: "ATMADEVA HAYUMERTA", kelas: "8D" }, { namaSiswa: "AUFA IMADUDDIN", kelas: "8D" }, { namaSiswa: "M APRIANSYAH", kelas: "8D" }, { namaSiswa: "MUHAMMAD RIZKY ALHAKIM", kelas: "8D" }, { namaSiswa: "ATHIF", kelas: "8E" }, { namaSiswa: "YAZID ACHMAD SYAFIQ BAGIS", kelas: "9B" }, { namaSiswa: "AHMAD FAWWAZ AFIFI", kelas: "9C" }, { namaSiswa: "AZFARI AL BUKHARI", kelas: "9C" }, { namaSiswa: "HANIF RAZIN ATHALLAH", kelas: "9C" }, { namaSiswa: "IKHWAN ZHAFRAN ARIYANTONO", kelas: "9C" }, { namaSiswa: "ILYAS MUJAHID AKBAR", kelas: "9C" }, { namaSiswa: "JAVA RAJENDRA AL WAFI", kelas: "9C" }, { namaSiswa: "MUHAMAD RHEZA DWI PUTRA", kelas: "9C" }, { namaSiswa: "MUHAMMAD FARRAS ALIMUDDIN", kelas: "9C" }, { namaSiswa: "MUHAMMAD MUSA", kelas: "9C" }, { namaSiswa: "MUHAMMAD RIFQI AKBAR", kelas: "9C" }, { namaSiswa: "SYAFIIQ ABDULLAH AL BAKRI", kelas: "9D" }
+  ],
+  "Ukasyah": [
+    { namaSiswa: "AKBAR MUHAMMAD FAISAL", kelas: "7B" }, { namaSiswa: "IMRAN UMAR ALKATIRI", kelas: "7B" }, { namaSiswa: "KHANUKH MAHIR BAHASWAN", kelas: "7B" }, { namaSiswa: "MUHAMMAD AKROM ALFARUQ", kelas: "7B" }, { namaSiswa: "NAUFAL AL FAIZ", kelas: "7B" }, { namaSiswa: "AFKAR HAFIDZUL FAYYAD", kelas: "7C" }, { namaSiswa: "BAYU SAFA BUDI OZORA", kelas: "7C" }, { namaSiswa: "DANIL ZAKY AL HANIF", kelas: "7C" }, { namaSiswa: "KHAERUL HADI JAELANI", kelas: "7C" }, { namaSiswa: "MUHAMMAD EMIRSYAH SYAWAL", kelas: "7C" }, { namaSiswa: "MUHAMMAD QOIS FIRDAUS", kelas: "7C" }, { namaSiswa: "MUHAMMAD YAZID ALI", kelas: "7C" }, { namaSiswa: "PATIH MUHAMMAD", kelas: "7C" }, { namaSiswa: "ABU DAFIF KHOLIS AR-ROTANIYY", kelas: "7D" }, { namaSiswa: "ALBY RIEZKY RAMADHAN", kelas: "7D" }, { namaSiswa: "AMMAR", kelas: "7D" }, { namaSiswa: "ILHAMY M. WAFI", kelas: "7D" }, { namaSiswa: "KHAIZURAN AZFARIL HAKIM", kelas: "7D" }, { namaSiswa: "M. SALMAN AZKAMIL", kelas: "7D" }, { namaSiswa: "MUHAMMAD AUFAR TRI IRZANI", kelas: "7D" }, { namaSiswa: "MUHAMMAD GIYAS AUFA", kelas: "7D" }, { namaSiswa: "RAMBU RAYA RABBANI", kelas: "7E" }, { namaSiswa: "NARARYA AZKA RAMADHAN", kelas: "8B" }, { namaSiswa: "NIDZAM QOSIM", kelas: "8B" }, { namaSiswa: "SHALLBAR MALIK JABBAR ISMAIL", kelas: "8B" }, { namaSiswa: "SYAHIDURRAHMAN", kelas: "8B" }, { namaSiswa: "TYAZQIRO ALIF SURYADIN", kelas: "8B" }, { namaSiswa: "UNAIS HANIF BUDIMAN", kelas: "8B" }, { namaSiswa: "YAZID ABDURRAHMAN", kelas: "8B" }, { namaSiswa: "AINUL RIZKY", kelas: "8C" }, { namaSiswa: "ALI FAHREZA RAMADHAN", kelas: "8C" }, { namaSiswa: "AUFAR BILAL SYAFIQ", kelas: "8C" }, { namaSiswa: "ALFATH BHUMI ARSAKHA", kelas: "8D" }, { namaSiswa: "ATAN ALFATIH TOSAMAN", kelas: "8D" }, { namaSiswa: "BUMI ABDI NEGARA", kelas: "8D" }, { namaSiswa: "MUHAMMAD BAGAS PRATAMA", kelas: "9A" }, { namaSiswa: "SYAMIL YASSIR BALBEID", kelas: "9B" }, { namaSiswa: "AHMAD RAFIQ", kelas: "9D" }, { namaSiswa: "AKHTAR NIZAM BUKHARI", "9D": "kelas" }, { namaSiswa: "ALBY FACHRI", kelas: "9D" }, { namaSiswa: "ARVIN NAOVAL SARIP", kelas: "9D" }, { namaSiswa: "DEFRAN AIMAR BAFADAL", kelas: "9D" }, { namaSiswa: "LALU MAHARAYA SAKHA SUADAYA", kelas: "9D" }, { namaSiswa: "MUHAMMAD JIHADUL ISLAM", kelas: "9D" }, { namaSiswa: "MUHAMMAD NAWWAF AL MUSTAWI", kelas: "9D" }, { namaSiswa: "NUR ADAM AL-KHALIDY", kelas: "9D" }, { namaSiswa: "RAAFA ASYURO", kelas: "9D" }
+  ]
+};
+
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbywAabJdwUz2et2lkAHDPILAF8pjCcrFRsOX1kq70I6F6BU0zDNP1zphQF80n8GsreVPg/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD (WITA)
 function getLocalDateString(d = getCurrentWITA()) {
@@ -2160,7 +2675,7 @@ function getDaftarSantriKopel(baseClass, subject) {
     let classesToFetch = [baseClass];
     let subjectLower = (subject || "").toLowerCase();
 
-    // Logika Kopel Tahfizh
+    // Logika Kopel Tahfizh Reguler (Untuk mencari daftar kelas yang digabung)
     if (subjectLower.includes('tahfiz')) {
         const kopelTahfizh = [
             ['7A', '7B', '7C'],
@@ -2175,7 +2690,7 @@ function getDaftarSantriKopel(baseClass, subject) {
             }
         }
     } 
-    // Logika Kopel PJOK (Opsional, sudah disiapkan jika dibutuhkan)
+    // Logika Kopel PJOK (Opsional)
     else if (subjectLower.includes('pjok') || subjectLower.includes('olahraga')) {
         const kopelPJOK = [
             ['9A', '9B'], ['9C', '9D'], ['7D', '7E'],
@@ -2189,14 +2704,31 @@ function getDaftarSantriKopel(baseClass, subject) {
         }
     }
 
-    // Gabungkan semua santri dari kelas yang terpilih
+    // ==========================================
+    // PERBAIKAN: FILTER KHUSUS HALAQOH TAHFIZH
+    // ==========================================
+    if (subjectLower.includes('tahfiz') && HALAQOH_TAHFIZH[currentUser]) {
+        // Ambil data santri khusus halaqoh ustadz yang sedang login
+        // lalu filter hanya santri yang berada di kelas-kelas sesi ini
+        let santriHalaqoh = HALAQOH_TAHFIZH[currentUser]
+            .filter(s => classesToFetch.includes(s.kelas))
+            .map(s => s.namaSiswa);
+            
+        // Return daftar santri yang sudah disortir urut abjad
+        return santriHalaqoh.sort(); 
+    }
+    // ==========================================
+
+    // Gabungkan semua santri dari kelas terpilih (Untuk guru mapel biasa)
     let allSantri = [];
     classesToFetch.forEach(cls => {
         if (DATA_SANTRI[cls]) {
             allSantri = allSantri.concat(DATA_SANTRI[cls]);
         }
     });
-    return allSantri;
+    
+    // Sortir hasil gabungan urut abjad
+    return allSantri.sort();
 }
 
     // Tambahkan parameter targetDate dengan default new Date()
@@ -2459,8 +2991,14 @@ function getCurrentJPInfo(mode = '') {
                 });
                 const todayStr = getLocalDateString(new Date());
                 serverDataCache = res.data.filter(d => d.date === todayStr);
+                try { localStorage.setItem('serverDataCache_' + todayStr, JSON.stringify(serverDataCache)); } catch (e) {}
             }
-        } catch (e) { console.error("Gagal update cache", e); }
+        } catch (e) {
+            const todayStr = getLocalDateString(new Date());
+            try { serverDataCache = JSON.parse(localStorage.getItem('serverDataCache_' + todayStr) || '[]'); }
+            catch (_) { serverDataCache = []; }
+            console.warn("Gagal update cache server, memakai cache lokal:", e);
+        }
     }
 
     async function sendToGoogleSheet(record) {
@@ -2941,17 +3479,35 @@ function checkTomorrowSchedule() {
         document.getElementById('userNameDisplay').textContent = name;
         document.getElementById('userMapelDisplay').textContent = (currentUserData.subjects || []).join(', ') || (isAdminUser ? 'Admin' : '-');
         document.getElementById('adminTab').classList.toggle('hidden', !isAdminUser); document.getElementById('agusTab').classList.toggle('hidden', !isAgus);
+        // Tambahkan 2 baris ini:
+// PENGATURAN VISIBILITAS TAB NILAI
+        const isGuruTahfizh = currentUserData.subjects.includes("Tahfizhul Qur'an");
         
+        // Tampilkan tab Tahfizh KHUSUS untuk guru Tahfizh
+        document.getElementById('btnTabTahfizh').classList.toggle('hidden', !isGuruTahfizh);
+        
+        // Sembunyikan tab Nilai Umum JIKA dia adalah guru Tahfizh
+        document.getElementById('nilaiTab').classList.toggle('hidden', isGuruTahfizh);
+
         const isMTahir = (name === 'M. Tahir, M. Pd.');
         if (document.getElementById('manualScanBtn')) { 
             document.getElementById('manualScanBtn').classList.toggle('hidden', !(isAgus || isMTahir)); 
             if(!(isAgus || isMTahir)) document.getElementById('manualScanArea')?.classList.add('hidden'); 
         }
 
-        currentMode = null; updateScanModeUI(); stopScanner();
+        // OFFLINE-FIRST: langsung tentukan mode dari data lokal.
+        const savedActiveTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || 'null');
+        currentMode = (savedActiveTeaching && !savedActiveTeaching.keluarScanned) ? 'keluar' : 'masuk';
+        updateScanModeUI();
+        stopScanner();
         updateClock(); updateOfflineStatus();
-        updateNextClassInfo(); 
+        updateNextClassInfo();
         checkActiveTeachingForIzinKasus();
+
+        // Kamera dibuka otomatis tanpa menunggu koneksi internet.
+        setTimeout(() => {
+            if (currentUser && !document.getElementById('tabScan').classList.contains('hidden')) startScanner();
+        }, 350);
         
         if (navigator.onLine) {
             await refreshServerCache();
@@ -3149,8 +3705,12 @@ window.forceUnlock = function() {
     }
 };
 
-    document.getElementById('modeMasuk').addEventListener('click', () => { currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
-    document.getElementById('modeKeluar').addEventListener('click', () => { currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300); });
+    document.getElementById('modeMasuk').addEventListener('click', () => {
+        scanInProgress = false; currentMode = 'masuk'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300);
+    });
+    document.getElementById('modeKeluar').addEventListener('click', () => {
+        scanInProgress = false; currentMode = 'keluar'; updateScanModeUI(); stopScanner(); setTimeout(startScanner, 300);
+    });
     
 document.getElementById('manualScanBtn').addEventListener('click', () => {
     const area = document.getElementById('manualScanArea');
@@ -3274,22 +3834,103 @@ window.editKeterangan = async function(encodedRecord) {
 };
 // ----------------------------------------------
 
-    function startScanner() {
+    // ==========================================================
+    // SCANNER OFFLINE-FIRST
+    // Utama: Html5Qrcode (dicache oleh Service Worker)
+    // Fallback: BarcodeDetector bawaan browser
+    // ==========================================================
+    let offlineScanStream = null;
+    let offlineScanTimer = null;
+
+    function handleDecodedQR(text) {
+        if (scanInProgress || !text) return;
+        scanInProgress = true;
+        stopScanner();
+        processScan(String(text).trim().toUpperCase());
+    }
+
+    async function startBarcodeDetectorScanner() {
+        if (!('BarcodeDetector' in window)) {
+            showToast('Scanner QR offline belum tersedia di browser ini. Buka aplikasi online sekali agar library QR tersimpan.', 'warning');
+            return;
+        }
+        try {
+            const supported = await BarcodeDetector.getSupportedFormats();
+            if (!supported.includes('qr_code')) throw new Error('QR format tidak didukung');
+
+            const reader = document.getElementById('reader');
+            reader.innerHTML = '';
+            const video = document.createElement('video');
+            video.setAttribute('playsinline', 'true');
+            video.autoplay = true; video.muted = true;
+            video.style.width = '100%'; video.style.display = 'block';
+            reader.appendChild(video);
+
+            offlineScanStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: { ideal: 'environment' } }, audio: false
+            });
+            video.srcObject = offlineScanStream;
+            await video.play();
+
+            const detector = new BarcodeDetector({ formats: ['qr_code'] });
+            isScanning = true;
+
+            const scanFrame = async () => {
+                if (!offlineScanStream || !isScanning) return;
+                try {
+                    const codes = await detector.detect(video);
+                    if (codes && codes.length && codes[0].rawValue) {
+                        handleDecodedQR(codes[0].rawValue);
+                        return;
+                    }
+                } catch (e) {}
+                offlineScanTimer = setTimeout(scanFrame, 250);
+            };
+            scanFrame();
+            showScanResult('📴 Scanner offline aktif — arahkan kamera ke QR kelas.', 'info');
+        } catch (e) {
+            console.error('BarcodeDetector scanner:', e);
+            isScanning = false;
+            showToast('Tidak dapat membuka kamera. Pastikan izin kamera diberikan.', 'error');
+        }
+    }
+
+    async function startScanner() {
         if (document.getElementById('tabScan').classList.contains('hidden') || !currentMode) return;
-        if (html5QrCode) { stopScanner(); setTimeout(startScanner, 100); return; }
-        
-        html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } },
-            (text) => {
-                if (scanInProgress) return;
-                stopScanner();
-                processScan(text.trim().toUpperCase());
-            }, () => {}
-        ).then(() => isScanning = true).catch(() => showToast('Izinkan akses kamera', 'error'));
+        if (html5QrCode || offlineScanStream) { stopScanner(); setTimeout(startScanner, 150); return; }
+
+        if (typeof Html5Qrcode !== 'undefined') {
+            try {
+                html5QrCode = new Html5Qrcode("reader");
+                await html5QrCode.start(
+                    { facingMode: "environment" },
+                    { fps: 10, qrbox: { width: 220, height: 220 } },
+                    (text) => handleDecodedQR(text),
+                    () => {}
+                );
+                isScanning = true;
+                return;
+            } catch (e) {
+                console.warn('Html5Qrcode gagal, mencoba BarcodeDetector:', e);
+                try { if (html5QrCode) await html5QrCode.stop(); } catch (_) {}
+                try { if (html5QrCode) html5QrCode.clear(); } catch (_) {}
+                html5QrCode = null;
+            }
+        }
+        await startBarcodeDetectorScanner();
     }
 
     function stopScanner() {
-        if (html5QrCode) { try { html5QrCode.stop().then(() => html5QrCode.clear()); } catch(e){} html5QrCode = null; isScanning = false; }
+        isScanning = false;
+        if (offlineScanTimer) { clearTimeout(offlineScanTimer); offlineScanTimer = null; }
+        if (offlineScanStream) {
+            try { offlineScanStream.getTracks().forEach(t => t.stop()); } catch(e) {}
+            offlineScanStream = null;
+        }
+        if (html5QrCode) {
+            const qr = html5QrCode; html5QrCode = null;
+            try { qr.stop().then(() => { try { qr.clear(); } catch(e) {} }).catch(() => {}); } catch(e) {}
+        }
     }
 
     // ==========================================================
@@ -4355,7 +4996,14 @@ async function renderMySchedule() {
 
     function updateOfflineStatus() {
         const banner = document.getElementById('offlineBanner');
-        if (!navigator.onLine) { banner.classList.add('show'); } else { banner.classList.remove('show'); syncNow(false, true); updateSyncStatus(); }
+        if (!navigator.onLine) {
+            banner.classList.add('show');
+            if (currentUser && currentMode && !isScanning) setTimeout(() => startScanner(), 250);
+        } else {
+            banner.classList.remove('show');
+            syncNow(false, true);
+            updateSyncStatus();
+        }
     }
     // --- TAMBAHKAN FUNGSI INI ---
 // REPLACEMENT FOR autoResolveLupaAbsen
@@ -4473,6 +5121,11 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
         if (tab.dataset.tab === 'riwayat') {
             populateRiwayatWeeks();
             loadRiwayatPekanan();
+        }
+        
+        // --- PANGGIL FUNGSI TAHFIZH SAAT TAB DIBUKA ---
+        if (tab.dataset.tab === 'tahfizh') {
+            initTahfizhTab();
         }
     });
 });
@@ -5485,6 +6138,12 @@ function renderRiwayatData(allData, range) {
         fetchJadwalSholat();
         // ------------------------------------------------------------------------
         
+        // Pulihkan snapshot server hari ini agar validasi masuk/keluar tetap bekerja offline.
+        try {
+            const todayCache = getLocalDateString(new Date());
+            serverDataCache = JSON.parse(localStorage.getItem('serverDataCache_' + todayCache) || '[]');
+        } catch (e) { serverDataCache = []; }
+
         const savedUser = localStorage.getItem('absensi_user'); 
         if (savedUser) { 
             const t = TEACHERS.find(x => x.name === savedUser); 
@@ -6670,6 +7329,214 @@ function checkMidnightReset() {
 // Periksa setiap menit untuk reset pukul 00:00
 setInterval(checkMidnightReset, 60000);
 
+// 1. Inisialisasi Saat Guru Tahfizh Login
+function initDashboardTahfizh() {
+    // Set default tanggal ke hari ini
+    document.getElementById("tglTahfizh").valueAsDate = new Date();
+    
+    // Load santri dari HALAQOH_TAHFIZH (Pastikan konstanta ini sudah ada dari update sebelumnya)
+    const select = document.getElementById("santriHalaqoh");
+    select.innerHTML = '<option value="">-- Pilih Santri --</option>';
+    
+    if (HALAQOH_TAHFIZH[currentUser]) {
+        HALAQOH_TAHFIZH[currentUser].forEach(santri => {
+            // Tampilkan Nama + Kelas di dropdown
+            let option = document.createElement("option");
+            // Value menyimpan nama dan kelas dipisah tanda |
+            option.value = `${santri.namaSiswa}|${santri.kelas}`;
+            option.text = `${santri.namaSiswa} (${santri.kelas})`;
+            select.appendChild(option);
+        });
+    }
+}
+
+// 2. Auto-fill Target Kurikulum
+function autoFillTargetKurikulum() {
+    const selectSantri = document.getElementById('santriHalaqoh');
+    const inputTarget = document.getElementById('targetKurikulum');
+    const statusDropdown = document.getElementById('statusAlumni');
+    const inputPertemuan = document.getElementById('pertemuanTahfizh'); 
+
+    // Bebaskan readonly agar ustadz bisa edit manual
+    inputTarget.removeAttribute("readonly"); 
+    inputTarget.style.background = "#ffffff";
+
+    if (selectSantri.value !== "") {
+        const selectedOption = selectSantri.options[selectSantri.selectedIndex];
+        const jenjang = selectedOption.dataset.kelas.charAt(0); 
+        const status = selectedOption.dataset.status; 
+        
+        // Auto-update dropdown UI status
+        statusDropdown.value = status;
+        
+        const pertemuan = inputPertemuan ? inputPertemuan.value : null;
+
+        if (pertemuan) {
+            if (TARGET_KURIKULUM[jenjang] && TARGET_KURIKULUM[jenjang][status] && TARGET_KURIKULUM[jenjang][status][pertemuan]) {
+                inputTarget.value = TARGET_KURIKULUM[jenjang][status][pertemuan];
+            } else {
+                inputTarget.value = "Target belum tersedia. Silakan ketik manual.";
+            }
+        }
+    } else {
+        inputTarget.value = "";
+    }
+}
+
+// 3. Simpan ke Draft Lokal (Browser)
+function simpanDraftTahfizh() {
+    let santriData = document.getElementById("santriHalaqoh").value;
+    if (!santriData) { alert("Pilih santri terlebih dahulu!"); return; }
+    
+    let tgl = new Date(document.getElementById("tglTahfizh").value);
+    
+    let data = {
+        guru: currentUser,
+        tanggal: document.getElementById("tglTahfizh").value,
+        pekan: getWeekNumber(tgl),
+        pertemuan: document.getElementById("pertemuanTahfizh").value,
+        santri: santriData.split("|")[0],
+        kelas: santriData.split("|")[1],
+        status: document.getElementById("statusAlumni").value, // Tambahan
+        targetKurikulum: document.getElementById("targetKurikulum").value, // Target (Bisa hasil edit manual)
+        materiRiil: document.getElementById("materiRiil").value,
+        ziadah: parseInt(document.getElementById("nilaiZiadah").value) || 0,
+        tikror: parseInt(document.getElementById("nilaiTikror").value) || 0
+    };
+
+    let drafts = JSON.parse(localStorage.getItem("draftTahfizh")) || [];
+    drafts.push(data);
+    localStorage.setItem("draftTahfizh", JSON.stringify(drafts));
+    
+    showToast("Berhasil disimpan ke draft lokal!", "success");
+    document.getElementById("materiRiil").value = "";
+    document.getElementById("nilaiZiadah").value = "";
+    document.getElementById("nilaiTikror").value = "";
+    renderTabelRekap();
+}
+
+function syncDataTahfizh() {
+    let drafts = JSON.parse(localStorage.getItem("draftTahfizh")) || [];
+    if (drafts.length === 0) { alert("Tidak ada data draft!"); return; }
+
+    const payload = { api_action: 'addNilaiTahfizh', nilai_list: drafts };
+    
+    fetch(GAS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify(payload)
+    }).then(res => res.json()).then(res => {
+        if (res.success) {
+            showToast("Sinkronisasi Tahfizh berhasil!", "success");
+            localStorage.removeItem("draftTahfizh"); 
+            renderTabelRekap();
+        }
+    }).catch(e => showToast("Gagal sinkronisasi", "error"));
+}
+
+// 4. Sinkronisasi ke Google Sheets
+function syncDataTahfizh() {
+    let drafts = JSON.parse(localStorage.getItem("draftTahfizh")) || [];
+    if (drafts.length === 0) {
+        alert("Tidak ada data draft untuk disinkronisasi!"); return;
+    }
+
+    // Panggil fungsi Apps Script
+    google.script.run
+        .withSuccessHandler(function(response) {
+            alert(response.message);
+            // Kosongkan draft setelah sukses sync
+            localStorage.removeItem("draftTahfizh"); 
+            // Tabel rekap tidak dihapus karena Anda butuh guru melihatnya
+            renderTabelRekap(); 
+        })
+        .withFailureHandler(function(error) {
+            alert("Gagal sinkronisasi: " + error.message);
+        })
+        .simpanNilaiTahfizh(drafts);
+}
+
+// 5. Kalkulasi Rekap Mingguan & Render Tabel
+function renderTabelRekap() {
+    let drafts = JSON.parse(localStorage.getItem("draftTahfizh")) || [];
+    let pekanPilihan = document.getElementById("pekanRekap").value; // Format: "2026-W34"
+    
+    let rekapTabel = document.getElementById("bodyRekapTahfizh");
+    rekapTabel.innerHTML = "";
+    
+    // Filter draft berdasarkan pekan yang dipilih
+    let filteredData = drafts.filter(d => d.pekan === pekanPilihan && d.guru === currentUser);
+    
+    // Agregasi data per santri
+    let agregat = {};
+    filteredData.forEach(d => {
+        if (!agregat[d.santri]) {
+            agregat[d.santri] = { kelas: d.kelas, totalZiadah: 0, totalTikror: 0, countSetor: 0, countAbsen: 0 };
+        }
+        agregat[d.santri].totalZiadah += d.ziadah;
+        agregat[d.santri].totalTikror += d.tikror;
+        
+        if (d.ziadah === 0 && d.tikror === 0) {
+            agregat[d.santri].countAbsen++;
+        } else {
+            agregat[d.santri].countSetor++;
+        }
+    });
+
+    // Tampilkan ke tabel
+    for (const [nama, info] of Object.entries(agregat)) {
+        let totalPertemuan = info.countSetor + info.countAbsen;
+        let rataZiadah = totalPertemuan > 0 ? (info.totalZiadah / totalPertemuan).toFixed(2) : 0;
+        let rataTikror = totalPertemuan > 0 ? (info.totalTikror / totalPertemuan).toFixed(2) : 0;
+        
+        let tr = `<tr>
+            <td>${nama}</td>
+            <td>${info.kelas}</td>
+            <td>${rataZiadah}</td>
+            <td>${rataTikror}</td>
+            <td>${info.countAbsen} Kali</td>
+        </tr>`;
+        rekapTabel.innerHTML += tr;
+    }
+}
+
+// ==========================================
+// INISIALISASI TAB TAHFIZH
+// ==========================================
+function initTahfizhTab() {
+    const selectSantri = document.getElementById('santriHalaqoh');
+    selectSantri.innerHTML = '<option value="">-- Pilih Santri --</option>';
+    
+    const tglInput = document.getElementById('tglTahfizh');
+    if (tglInput) tglInput.value = getLocalDateString(new Date());
+
+    if (currentUser && HALAQOH_TAHFIZH[currentUser]) {
+        const daftarSantri = HALAQOH_TAHFIZH[currentUser];
+        
+        daftarSantri.sort((a, b) => a.namaSiswa.localeCompare(b.namaSiswa)).forEach(santri => {
+            const opt = document.createElement('option');
+            opt.value = `${santri.namaSiswa}|${santri.kelas}`;
+            opt.textContent = `${santri.namaSiswa} (${santri.kelas})`; 
+            
+            // Injeksi otomatis status Alumni / Non-Alumni
+            const statusSantri = SANTRI_ALUMNI.includes(santri.namaSiswa) ? "alumni" : "non-alumni";
+            opt.dataset.kelas = santri.kelas;
+            opt.dataset.status = statusSantri;
+            
+            selectSantri.appendChild(opt);
+        });
+    }
+}
+
+// Fungsi Bantuan untuk mendapatkan "Pekan Ke-" berformat ISO (Tahun-Wxx)
+function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    var weekNo = Math.ceil(( ( (d - yearStart) / 86400000) + 1)/7);
+    return d.getUTCFullYear() + "-W" + (weekNo < 10 ? "0" + weekNo : weekNo);
+}
+
 function updateNextClassTimer() {
     if (!currentUser) return;
 
@@ -6764,6 +7631,94 @@ function updateNextClassTimer() {
             //     }
             // }, 500);
         })();
+		
+		window.downloadRekapBulanTahfizh = async function() {
+    const bulanInput = document.getElementById('bulanRekapTahfizh').value;
+    if (!bulanInput) { showToast("Pilih bulan terlebih dahulu", "error"); return; }
+    
+    const [tahun, bulan] = bulanInput.split('-');
+    showToast("Mengambil data rekap bulanan...", "info");
+
+    try {
+        const res = await (await fetch(GAS_URL + '?action=getRekapTahfizhBulanan')).json();
+        if (!res.success) throw new Error("Gagal load data server");
+        
+        // Filter: Hanya data milik Guru ini pada Bulan & Tahun terpilih
+        let filteredData = res.data.filter(d => 
+            d.Guru === currentUser && 
+            String(d.Bulan).padStart(2, '0') === bulan && 
+            String(d.Tahun) === tahun
+        );
+
+        // Agregasi: Cari setoran pertama (Awal Bulan) & terakhir (Akhir Bulan)
+        let rekapBulanan = {};
+        filteredData.forEach(d => {
+            if (!rekapBulanan[d['Nama Santri']]) {
+                rekapBulanan[d['Nama Santri']] = {
+                    kelas: d.Kelas,
+                    awalMateri: d['Materi Riil (Setoran)'],
+                    akhirMateri: d['Materi Riil (Setoran)'],
+                    tglAwal: d.Tanggal,
+                    tglAkhir: d.Tanggal,
+                    totalZiyadah: 0,
+                    totalTikror: 0,
+                    sesi: 0
+                };
+            } else {
+                // Update Akhir Materi berdasarkan tanggal paling baru
+                if (d.Tanggal > rekapBulanan[d['Nama Santri']].tglAkhir) {
+                    rekapBulanan[d['Nama Santri']].akhirMateri = d['Materi Riil (Setoran)'];
+                    rekapBulanan[d['Nama Santri']].tglAkhir = d.Tanggal;
+                }
+                // Update Awal Materi jika ada backdate
+                if (d.Tanggal < rekapBulanan[d['Nama Santri']].tglAwal) {
+                    rekapBulanan[d['Nama Santri']].awalMateri = d['Materi Riil (Setoran)'];
+                    rekapBulanan[d['Nama Santri']].tglAwal = d.Tanggal;
+                }
+            }
+            rekapBulanan[d['Nama Santri']].totalZiyadah += Number(d.Ziyadah) || 0;
+            rekapBulanan[d['Nama Santri']].totalTikror += Number(d.Tikror) || 0;
+            rekapBulanan[d['Nama Santri']].sesi++;
+        });
+
+        // Buat Elemen Tabel Tersembunyi untuk Diekspor
+        let exportTable = document.createElement('table');
+        exportTable.id = "tabelEksporTahfizh";
+        exportTable.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Kelas</th>
+                    <th>Nama Santri</th>
+                    <th>Materi Riil (Awal Bulan)</th>
+                    <th>Materi Riil (Akhir Bulan)</th>
+                    <th>Rata-rata Ziyadah</th>
+                    <th>Rata-rata Tikror</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${Object.keys(rekapBulanan).sort().map(nama => {
+                    let info = rekapBulanan[nama];
+                    let rZ = (info.totalZiyadah / info.sesi).toFixed(1);
+                    let rT = (info.totalTikror / info.sesi).toFixed(1);
+                    return `<tr>
+                        <td>${info.kelas}</td>
+                        <td>${nama}</td>
+                        <td>${info.awalMateri}</td>
+                        <td>${info.akhirMateri}</td>
+                        <td>${rZ}</td>
+                        <td>${rT}</td>
+                    </tr>`;
+                }).join('')}
+            </tbody>
+        `;
+        document.body.appendChild(exportTable);
+        exportTableToExcel('tabelEksporTahfizh', `Rekap_Tahfizh_${bulan}_${tahun}.xls`);
+        document.body.removeChild(exportTable); // Bersihkan DOM
+        
+    } catch (e) {
+        showToast("Error: " + e.message, "error");
+    }
+}
 		
 </script>
 </body>
