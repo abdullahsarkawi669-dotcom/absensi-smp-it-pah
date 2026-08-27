@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!--versi33 perbaikan-->
+<!--versi36new-->
 <html lang="id">
 <head>
     <meta charset="UTF-8" />
@@ -3767,7 +3767,8 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             CLASSES.forEach(c => { if(activeTeaching.class.includes(c)) targetClass = c; });
         }
 
-        let listSantriKelas = getDaftarSantriKopel(targetClass, activeTeaching.subject);
+        // Mengambil data spesifik hanya dari kelas yang di-scan (rawClass)
+		let listSantriKelas = DATA_SANTRI[targetClass] || [];
         let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
         if (matched.length > 0) {
@@ -3809,7 +3810,8 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             CLASSES.forEach(c => { if(activeTeaching.class.includes(c)) targetClass = c; });
         }
 
-        let listSantriKelas = getDaftarSantriKopel(targetClass, activeTeaching.subject);
+		// Mengambil data spesifik hanya dari kelas yang di-scan (rawClass)
+		let listSantriKelas = DATA_SANTRI[targetClass] || [];
         let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
         if (matched.length > 0) {
