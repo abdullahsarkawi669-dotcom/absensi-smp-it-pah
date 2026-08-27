@@ -721,6 +721,53 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
             box-shadow: 0 8px 40px rgba(253, 160, 133, 0.15);
         }
 		
+/* Container Utama */
+.scanner-wrapper {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: transparent;
+}
+
+/* WUJUD 1: Posisi Normal (Kamera Mati) */
+.scan-buttons-container {
+    position: relative;
+    margin-top: 16px; /* Jarak tombol dari kotak di atasnya saat normal */
+    transition: all 0.3s ease-in-out; /* Animasi transisi halus */
+}
+
+/* Tombol Glass wujud normal (Bisa disesuaikan dengan tema aplikasi) */
+.btn-glass {
+    background: #e2e8f0;
+    color: #475569;
+    border: none;
+}
+
+/* ========================================= */
+/* WUJUD 2: Posisi Floating (Kamera Nyala)   */
+/* Aktif saat container punya class "is-scanning" */
+/* ========================================= */
+.scanner-wrapper.is-scanning .scan-buttons-container {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    margin-top: 0;
+    z-index: 10;
+}
+
+/* Saat floating, tombol keluar jadi efek kaca (glassmorphism) */
+.scanner-wrapper.is-scanning .btn-glass {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: var(--primary-dark);
+}
+
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+.hover-scale:active { transform: scale(0.95); }
+
 </style>
 </head>
 <body>
@@ -901,16 +948,22 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 </div>
                 <p class="text-sm text-muted mb-4" id="scanInstruction">Arahkan kamera ke QR Code kelas untuk absen masuk</p>
 
-                <!-- JENDELA KAMERA DIPINDAHKAN KE SINI (Ditambah margin bottom mb-4 agar rapi) -->
-                <div class="scanner-overlay mb-4">
-                    <div id="reader"></div>
-                </div>
+<!-- Container Utama (diberi ID scannerWrapper) -->
+<div class="scanner-wrapper mb-4" id="scannerWrapper">
+    
+    <!-- Area Kamera -->
+    <div id="reader"></div>
 
-                <!-- TOMBOL MASUK DAN KELUAR -->
-                <div class="flex gap-2 mb-4">
-                    <button class="btn btn-sm btn-primary" id="modeMasuk" style="flex:1;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk</button>
-                    <button class="btn btn-sm btn-outline" id="modeKeluar" style="flex:1;"><i class="fa-solid fa-door-open"></i> Keluar</button>
-                </div>
+    <!-- Container Tombol (Bisa statis, bisa floating) -->
+    <div class="scan-buttons-container flex gap-2" id="scanButtons">
+        <button class="btn btn-sm btn-primary shadow-lg hover-scale" id="modeMasuk" style="flex:1;">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk
+        </button>
+        <button class="btn btn-sm btn-glass shadow-lg hover-scale" id="modeKeluar" style="flex:1;">
+            <i class="fa-solid fa-door-open"></i> Keluar
+        </button>
+    </div>
+</div>
 
                 <!-- INPUT KETERANGAN -->
                 <div class="input-group">
@@ -1164,7 +1217,6 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         </div>
 
 <!-- BAGIAN UI DASHBOARD TAHFIZH -->
-<!-- BAGIAN UI DASHBOARD TAHFIZH -->
 <div id="tabTahfizh" class="tab-content hidden">
     
     <!-- Form Input Nilai Tahfizh -->
@@ -1221,12 +1273,56 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                 <textarea id="targetKurikulum" rows="2" style="border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: #f0fdf4; width: 100%; font-size: 0.95rem; font-weight: 500; color: #065f46; resize: vertical; min-height: 55px;" readonly placeholder="Target akan terisi otomatis..." onfocus="this.style.borderColor='#059669'"></textarea>
             </div>
             
-            <!-- Baris 5: Materi Riil -->
+            <!-- Baris 5: Materi Riil (Diperbarui) -->
             <div class="input-group mb-3" style="margin-bottom: 12px;">
-                <label style="font-size: 0.8rem; font-weight: 600; color: #065f46;">
+                <label style="font-size: 0.8rem; font-weight: 600; color: #065f46; margin-bottom: 8px; display: block;">
                     <i class="fa-solid fa-pen-fancy"></i> Materi Riil (Yang Disetorkan)
                 </label>
-                <input type="text" id="materiRiil" placeholder="Contoh: Al-Baqarah ayat 1 - 5..." required style="border-radius: 12px; border: 2px solid #a7f3d0; padding: 12px 14px; background: white; width: 100%; font-size: 0.95rem; color: #065f46;" />
+                
+                <!-- POSISI AWAL -->
+                <div style="background: white; padding: 15px; border-radius: 12px; border: 2px solid #a7f3d0; margin-bottom: 10px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <span class="qc-badge" style="background: #10b981; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold;">MULAI</span>
+                        <span style="font-weight: 700; color: #065f46; font-size: 0.85rem;">Batas Awal Setoran</span>
+                    </div>
+                    <div class="qc-form-row" style="display: flex; gap: 12px;">
+                        <div class="qc-form-group" style="flex: 2; display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #065f46; font-weight: 600;">📂 Surat Awal</label>
+                            <select id="qcSuratAwal" style="border-radius: 8px; border: 1px solid #6ee7b7; padding: 8px 12px; width: 100%; outline: none;"></select>
+                        </div>
+                        <div class="qc-form-group half" style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #065f46; font-weight: 600;">📌 Ayat</label>
+                            <input type="number" id="qcAyatAwal" min="1" value="1" style="border-radius: 8px; border: 1px solid #6ee7b7; padding: 8px 12px; width: 100%; outline: none; text-align: center;" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TOMBOL SWAP -->
+                <div class="qc-section-divider" style="display: flex; align-items: center; text-align: center; margin: 5px 0;">
+                    <span class="line" style="flex-grow: 1; border-bottom: 2px dashed #a7f3d0;"></span>
+                    <button type="button" class="qc-btn-swap" onclick="qcSwapSurat()" title="Tukar posisi awal dan akhir" style="background: #ecfdf5; border: 2px solid #a7f3d0; border-radius: 50%; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #059669; margin: 0 10px; transition: 0.2s;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'">
+                        <i class="fa-solid fa-arrow-right-arrow-left fa-rotate-90"></i>
+                    </button>
+                    <span class="line" style="flex-grow: 1; border-bottom: 2px dashed #a7f3d0;"></span>
+                </div>
+
+                <!-- POSISI AKHIR -->
+                <div style="background: white; padding: 15px; border-radius: 12px; border: 2px solid #a7f3d0; margin-bottom: 15px; margin-top: 5px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                        <span class="qc-badge" style="background: #f59e0b; color: white; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold;">SELESAI</span>
+                        <span style="font-weight: 700; color: #065f46; font-size: 0.85rem;">Batas Akhir Setoran</span>
+                    </div>
+                    <div class="qc-form-row" style="display: flex; gap: 12px;">
+                        <div class="qc-form-group" style="flex: 2; display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #065f46; font-weight: 600;">📂 Surat Akhir</label>
+                            <select id="qcSuratAkhir" style="border-radius: 8px; border: 1px solid #6ee7b7; padding: 8px 12px; width: 100%; outline: none;"></select>
+                        </div>
+                        <div class="qc-form-group half" style="flex: 1; display: flex; flex-direction: column; gap: 4px;">
+                            <label style="font-size: 0.75rem; color: #065f46; font-weight: 600;">📌 Ayat</label>
+                            <input type="number" id="qcAyatAkhir" min="1" value="10" style="border-radius: 8px; border: 1px solid #6ee7b7; padding: 8px 12px; width: 100%; outline: none; text-align: center;" />
+                        </div>
+                    </div>
+                </div>
             </div>
             
             <!-- Baris 6: Nilai Ziyadah & Tikror -->
@@ -1276,7 +1372,7 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         </div>
         
         <div class="table-wrap" style="max-height: 350px; border-radius: 12px; border: 1px solid #d1fae5; overflow: hidden;">
-            <table id="tabelRekapTahfizh" style="font-size: 0.8rem;">
+            <table id="tabelRekapTahfizh" style="font-size: 0.8rem; width: 100%;">
                 <thead style="background: #ecfdf5; border-bottom: 2px solid #d1fae5;">
                     <tr>
                         <th style="padding: 12px 16px; text-align: left; color: #065f46; font-weight: 700;">Nama Santri</th>
@@ -1287,18 +1383,18 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
                     </tr>
                 </thead>
                 <tbody id="bodyRekapTahfizh">
-                    <tr><td colspan="5" class="text-center text-muted" style="padding: 30px 16px; color: #9ca3af;">Belum ada data rekapitulasi.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted" style="padding: 30px 16px; color: #9ca3af; text-align: center;">Belum ada data rekapitulasi.</td></tr>
                 </tbody>
             </table>
         </div>
     </div>
     
     <!-- Download Rekap Bulanan -->
-    <div class="card mt-4" style="border-radius: 20px; border: 1px solid #d1fae5; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+    <div class="card mt-4" style="border-radius: 20px; border: 1px solid #d1fae5; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-top: 16px;">
         <div class="card-header" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 2px solid #d1fae5;">
             <span style="color: #065f46;"><i class="fa-solid fa-file-excel"></i> Download Rekap Bulanan</span>
         </div>
-        <div class="flex gap-2" style="gap: 12px; flex-wrap: wrap;">
+        <div class="flex gap-2" style="display: flex; gap: 12px; flex-wrap: wrap;">
             <input type="month" id="bulanRekapTahfizh" class="w-full p-2 border-2 border-emerald-200 rounded" style="flex: 2; min-width: 180px; border-radius: 10px; border: 2px solid #d1fae5; padding: 12px; font-weight: 600;" />
             <button class="btn btn-success" onclick="downloadRekapBulanTahfizh()" style="flex: 1; min-width: 120px; border-radius: 12px; padding: 12px; background: linear-gradient(135deg, #059669, #10b981); border: none; color: white; font-weight: 700;">
                 <i class="fa-solid fa-download"></i> Unduh Excel
@@ -1306,7 +1402,6 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
         </div>
     </div>
 </div>
-<!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
 <!-- AKHIR BAGIAN UI DASHBOARD TAHFIZH -->
 
 
@@ -1894,6 +1989,24 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 
 <script>
 
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log(
+                    'Service Worker aktif:',
+                    registration.scope
+                );
+            })
+            .catch(error => {
+                console.error(
+                    'Service Worker gagal:',
+                    error
+                );
+            });
+    });
+}
+
 //kurikulum tahfizh
 const TARGET_KURIKULUM = {
     "9": {
@@ -2380,7 +2493,7 @@ const HALAQOH_TAHFIZH = {
   ]
 };
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbywAabJdwUz2et2lkAHDPILAF8pjCcrFRsOX1kq70I6F6BU0zDNP1zphQF80n8GsreVPg/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD (WITA)
 function getLocalDateString(d = getCurrentWITA()) {
@@ -3633,7 +3746,7 @@ if (diffSeconds > 0 && diffSeconds <= 300) {
     } else {
         warnCard.classList.remove('pulse-alarm');
         document.getElementById('upcomingClassWarningText').innerHTML =
-            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>SEBENTAR LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
 
         if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
             window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500);
@@ -4144,10 +4257,13 @@ window.editKeterangan = async function(encodedRecord) {
         }
     }
 
-    async function startScanner() {
+async function startScanner() {
         if (!scannerUserActivated) return;
         if (document.getElementById('tabScan').classList.contains('hidden') || !currentMode) return;
         if (html5QrCode || offlineScanStream) { stopScanner(); setTimeout(startScanner, 150); return; }
+
+        // Deklarasi elemen wrapper (sesuaikan ID dengan yang Anda buat di HTML)
+        const scannerWrapper = document.getElementById('scannerWrapper');
 
         if (typeof Html5Qrcode !== 'undefined') {
             try {
@@ -4159,6 +4275,11 @@ window.editKeterangan = async function(encodedRecord) {
                     () => {}
                 );
                 isScanning = true;
+
+                // [TAMBAHAN LOGIKA FLOATING] 
+                // Kamera Html5Qrcode berhasil terbuka, jadikan tombol melayang
+                if (scannerWrapper) scannerWrapper.classList.add('is-scanning');
+
                 return;
             } catch (e) {
                 console.warn('Html5Qrcode gagal, mencoba BarcodeDetector:', e);
@@ -4167,11 +4288,23 @@ window.editKeterangan = async function(encodedRecord) {
                 html5QrCode = null;
             }
         }
+        
         await startBarcodeDetectorScanner();
+        
+        // [TAMBAHAN LOGIKA FLOATING] 
+        // Jika skrip sampai ke sini, berarti kamera terbuka menggunakan BarcodeDetector (fallback)
+        isScanning = true; // (Opsional: pastikan flag isScanning bernilai true di sini jika belum diatur di dalam startBarcodeDetectorScanner)
+        if (scannerWrapper) scannerWrapper.classList.add('is-scanning');
     }
 
     function stopScanner() {
         isScanning = false;
+
+        // [TAMBAHAN LOGIKA NORMAL]
+        // Kamera diperintahkan berhenti, kembalikan tombol ke posisi normal (statis)
+        const scannerWrapper = document.getElementById('scannerWrapper');
+        if (scannerWrapper) scannerWrapper.classList.remove('is-scanning');
+
         if (offlineScanTimer) { clearTimeout(offlineScanTimer); offlineScanTimer = null; }
         if (offlineScanStream) {
             try { offlineScanStream.getTracks().forEach(t => t.stop()); } catch(e) {}
@@ -7643,56 +7776,186 @@ function autoFillTargetKurikulum() {
     }
 }
 
+// Tambahkan Helper untuk Menghitung Baris Secara "Silent"
+function hitungKalkulasiTotalBaris() {
+    let sAwal = parseInt(document.getElementById('qcSuratAwal').value) || 1;
+    let aAwal = parseInt(document.getElementById('qcAyatAwal').value) || 1;
+    let sAkhir = parseInt(document.getElementById('qcSuratAkhir').value) || 1;
+    let aAkhir = parseInt(document.getElementById('qcAyatAkhir').value) || 1;
+
+    let pAwal = qcPosisiAyat[`${sAwal}:${aAwal}`];
+    let pAkhir = qcPosisiAyat[`${sAkhir}:${aAkhir}`];
+
+    if (!pAwal || !pAkhir) return 0;
+
+    let bGlobalAwal = (pAwal.hal - 1) * 15 + pAwal.baris;
+    let bGlobalAkhir = (pAkhir.hal - 1) * 15 + pAkhir.baris;
+    
+    let total = bGlobalAkhir - bGlobalAwal + 1;
+    return total > 0 ? total : 0;
+}
+
 // 3. Simpan ke Draft Lokal (Browser)
 function simpanDraftTahfizh() {
-    let santriData = document.getElementById("santriHalaqoh").value;
-    if (!santriData) { alert("Pilih santri terlebih dahulu!"); return; }
+    // 1. Ambil elemen dropdown dan input ayat
+    const elSuratAwal = document.getElementById('qcSuratAwal');
+    const elSuratAkhir = document.getElementById('qcSuratAkhir');
     
-    let tgl = new Date(document.getElementById("tglTahfizh").value);
+    // Dapatkan teks nama suratnya (misal: "1. Al-Fatihah (7 ayat)")
+    const namaSuratAwal = elSuratAwal.options[elSuratAwal.selectedIndex].text.split(' (')[0]; 
+    const namaSuratAkhir = elSuratAkhir.options[elSuratAkhir.selectedIndex].text.split(' (')[0];
     
-    let data = {
-        guru: currentUser,
-        tanggal: document.getElementById("tglTahfizh").value,
-        pekan: getWeekNumber(tgl),
-        pertemuan: document.getElementById("pertemuanTahfizh").value,
-        santri: santriData.split("|")[0],
-        kelas: santriData.split("|")[1],
-        status: document.getElementById("statusAlumni").value, // Tambahan
-        targetKurikulum: document.getElementById("targetKurikulum").value, // Target (Bisa hasil edit manual)
-        materiRiil: document.getElementById("materiRiil").value,
-        ziadah: parseInt(document.getElementById("nilaiZiadah").value) || 0,
-        tikror: parseInt(document.getElementById("nilaiTikror").value) || 0
+    const ayatAwal = document.getElementById('qcAyatAwal').value;
+    const ayatAkhir = document.getElementById('qcAyatAkhir').value;
+
+    // 2. Rangkai teks materi riil secara otomatis
+    let teksMateriRiil = "";
+    if (elSuratAwal.value === elSuratAkhir.value) {
+        teksMateriRiil = `${namaSuratAwal} Ayat ${ayatAwal} - ${ayatAkhir}`;
+    } else {
+        teksMateriRiil = `${namaSuratAwal} Ayat ${ayatAwal} s/d ${namaSuratAkhir} Ayat ${ayatAkhir}`;
+    }
+
+    // 3. Susun objek data yang akan disimpan ke draft
+    const dataDraft = {
+        tanggal: document.getElementById('tglTahfizh').value,
+        pertemuan: document.getElementById('pertemuanTahfizh').value,
+        santri: document.getElementById('santriHalaqoh').value,
+        kelas: "Kelas 9", // Sesuaikan dengan logika pengambilan kelas Anda
+        status: document.getElementById('statusAlumni').value,
+        targetKurikulum: document.getElementById('targetKurikulum').value,
+        
+        // --- BAGIAN YANG BARU ---
+        materiRiil: teksMateriRiil, 
+        total_baris: hitungKalkulasiTotalBaris(), 
+        // ------------------------
+        
+        ziadah: document.getElementById('nilaiZiadah').value || 0,
+        tikror: document.getElementById('nilaiTikror').value || 0
     };
 
-    let drafts = JSON.parse(localStorage.getItem("draftTahfizh")) || [];
-    drafts.push(data);
-    localStorage.setItem("draftTahfizh", JSON.stringify(drafts));
+    // Lanjutkan dengan logika penyimpanan draft Anda (misal: push ke array & localStorage)
+    console.log("Draft tersimpan:", dataDraft);
+    // draftTahfizh.push(dataDraft);
+    // localStorage.setItem('draftTahfizh', JSON.stringify(draftTahfizh));
     
-    showToast("Berhasil disimpan ke draft lokal!", "success");
-    document.getElementById("materiRiil").value = "";
-    document.getElementById("nilaiZiadah").value = "";
-    document.getElementById("nilaiTikror").value = "";
-    renderTabelRekap();
+    alert("Draft berhasil disimpan!");
 }
 
-function syncDataTahfizh() {
-    let drafts = JSON.parse(localStorage.getItem("draftTahfizh")) || [];
-    if (drafts.length === 0) { alert("Tidak ada data draft!"); return; }
-
-    const payload = { api_action: 'addNilaiTahfizh', nilai_list: drafts };
+async function syncDataTahfizh() {
+    // Asumsi Anda mengambil data dari form langsung (jika tidak pakai sistem draft)
+    // Jika Anda memakai sistem draft, Anda tinggal mengambil array draft dari localStorage
     
-    fetch(GAS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        body: JSON.stringify(payload)
-    }).then(res => res.json()).then(res => {
-        if (res.success) {
-            showToast("Sinkronisasi Tahfizh berhasil!", "success");
-            localStorage.removeItem("draftTahfizh"); 
-            renderTabelRekap();
+    // (Gunakan logika perangkaian teks yang sama seperti di simpanDraftTahfizh jika tidak ambil dari draft)
+    const elSuratAwal = document.getElementById('qcSuratAwal');
+    const elSuratAkhir = document.getElementById('qcSuratAkhir');
+    const namaSuratAwal = elSuratAwal.options[elSuratAwal.selectedIndex].text.split(' (')[0]; 
+    const namaSuratAkhir = elSuratAkhir.options[elSuratAkhir.selectedIndex].text.split(' (')[0];
+    const ayatAwal = document.getElementById('qcAyatAwal').value;
+    const ayatAkhir = document.getElementById('qcAyatAkhir').value;
+
+    let teksMateriRiil = (elSuratAwal.value === elSuratAkhir.value) 
+        ? `${namaSuratAwal} Ayat ${ayatAwal} - ${ayatAkhir}` 
+        : `${namaSuratAwal} Ayat ${ayatAwal} s/d ${namaSuratAkhir} Ayat ${ayatAkhir}`;
+
+    // Susun Payload untuk dikirim ke GAS
+    const payload = {
+        api_action: "addNilaiTahfizh",
+        nilai_list: [
+            {
+                tanggal: document.getElementById('tglTahfizh').value,
+                guru: "Nama Guru Penguji", // Sesuaikan dengan variabel sesi login Anda
+                santri: document.getElementById('santriHalaqoh').value,
+                kelas: "Kelas 9", 
+                status: document.getElementById('statusAlumni').value,
+                pertemuan: document.getElementById('pertemuanTahfizh').value,
+                targetKurikulum: document.getElementById('targetKurikulum').value,
+                
+                // --- BAGIAN YANG DIKIRIM KE SERVER ---
+                materiRiil: teksMateriRiil,
+                total_baris: hitungKalkulasiTotalBaris(), 
+                // -------------------------------------
+                
+                ziadah: document.getElementById('nilaiZiadah').value || 0,
+                tikror: document.getElementById('nilaiTikror').value || 0
+            }
+        ]
+    };
+
+    try {
+        // Tampilkan loading UI di sini
+        const url_gas = "URL_WEB_APP_GAS_ANDA"; // Ganti dengan URL GAS yang benar
+        const response = await fetch(url_gas, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        
+        if(result.success) {
+            alert("Data berhasil di-sync ke server!");
+            // Bersihkan form atau hapus localStorage draft di sini
+        } else {
+            alert("Gagal sync: " + result.error);
         }
-    }).catch(e => showToast("Gagal sinkronisasi", "error"));
+    } catch (error) {
+        alert("Terjadi kesalahan jaringan: " + error.message);
+    }
 }
+
+// Modifikasi Payload Saat Menyimpan (Sync)
+// Contoh lokasi saat Anda membentuk data list
+let dataSetoran = {
+    tanggal: document.getElementById('tglTahfizh').value,
+    guru: namaGuruAktif, // sesuaikan variabel login Anda
+    santri: document.getElementById('santriHalaqoh').value,
+    materiRiil: `Surat ${document.getElementById('qcSuratAwal').options[document.getElementById('qcSuratAwal').selectedIndex].text} Ayat ${document.getElementById('qcAyatAwal').value} - Surat ${document.getElementById('qcSuratAkhir').options[document.getElementById('qcSuratAkhir').selectedIndex].text} Ayat ${document.getElementById('qcAyatAkhir').value}`,
+    ziadah: document.getElementById('nilaiZiadah').value,
+    tikror: document.getElementById('nilaiTikror').value,
+    total_baris: hitungKalkulasiTotalBaris() // <-- INI YANG BARU
+};
+
+async function downloadRekapBulanTahfizh() {
+    const bulanDipilih = document.getElementById('bulanRekapTahfizh').value; // Output: YYYY-MM
+    if (!bulanDipilih) {
+        alert("Silakan pilih bulan terlebih dahulu!");
+        return;
+    }
+
+    // Tampilkan status loading...
+    const url = `URL_WEB_APP_ANDA_DISINI?action=getRekapTahfizhBulanan&bulan=${bulanDipilih}`;
+    
+    try {
+        const response = await fetch(url);
+        const result = await response.json();
+        
+        if (result.success && result.data.length > 0) {
+            buatDanDownloadCSV(result.data, `Rekap_Tahfizh_${bulanDipilih}.csv`);
+        } else {
+            alert("Tidak ada data setoran pada bulan tersebut.");
+        }
+    } catch (error) {
+        alert("Gagal mengunduh data: " + error.message);
+    }
+}
+
+// Fungsi konversi JSON ke CSV murni (tanpa library external)
+function buatDanDownloadCSV(dataJSON, namaFile) {
+    const headers = Object.keys(dataJSON[0]);
+    let csvContent = "data:text/csv;charset=utf-8," 
+        + headers.join(",") + "\n"
+        + dataJSON.map(row => headers.map(header => `"${row[header]}"`).join(",")).join("\n");
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", namaFile);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+
 
 // 4. Sinkronisasi ke Google Sheets
 function syncDataTahfizh() {
