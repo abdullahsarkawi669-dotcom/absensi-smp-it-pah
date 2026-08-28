@@ -842,8 +842,8 @@ function getNextClass() {
     }
 
 // 1. Deklarasikan file audio
-const audioRing = new Audio('ring.mp3');
-const audioAlarm = new Audio('alarm.mp3');
+const audioRing = new Audio('ring.wav');
+const audioAlarm = new Audio('alarm.wav');
 
 // 2. Variabel penanda izin audio
 let isAudioUnlocked = false;
