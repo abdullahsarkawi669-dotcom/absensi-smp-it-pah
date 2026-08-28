@@ -8,6 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Library QR dicache otomatis oleh sw.js setelah aplikasi pernah dibuka online. -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 	<!--<link rel="manifest" href="manifest.json">
 	<meta name="theme-color" content="#2563eb">-->
@@ -1580,6 +1581,15 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 
 
 <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+            try {
+                const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+                const worker = reg.active || (await navigator.serviceWorker.ready).active;
+                if (worker) worker.postMessage({ type: 'CACHE_OFFLINE_ASSETS' });
+            } catch (e) { console.warn('Service Worker offline belum aktif:', e); }
+        });
+    }
     const TEACHERS = [
         { name: 'Budiman, S. Pd.', isAdmin: true, subjects: [], adminType: 'admin' },
         { name: 'Adi Hardiyansyah, M. Pd.', isAdmin: true, subjects: ['IPA Terpadu'], adminType: 'admin' },
