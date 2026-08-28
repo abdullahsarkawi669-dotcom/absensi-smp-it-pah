@@ -4320,25 +4320,37 @@ async function renderMySchedule() {
 
             const mergedData = Array.from(mergedMap.values());
             
-            // --- AWAL INJEKSI JADWAL TERLEWAT (HARI INI) ---
+// --- AWAL INJEKSI JADWAL TERLEWAT (HARI INI) ---
             const hari = getDayName();
             const currentMins = new Date().getHours() * 60 + new Date().getMinutes();
             let blocks = getGroupedSchedule(currentUser, hari, currentMins, new Date());
             
+            // Buat Set untuk melacak kopel yang sudah dicek agar tidak muncul berulang
+            let processedKopel = new Set();
+
             blocks.forEach(b => {
                 let mMins = parseTimeToMins(b.masuk);
                 // Terlewat jika sudah lebih dari 15 menit dari jadwal masuk
                 if (currentMins > (mMins + 15)) {
                     let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
                     let fClass = formatKopelClass(b.class, b.mapel);
+                    let fClassClean = fClass.replace(/[()]/g, ''); // Normalisasi hapus kurung
+                    let uniqueKey = jpStr + '_' + fClassClean;
+
+                    if (processedKopel.has(uniqueKey)) return; // Mencegah duplikasi kelas kopel
+                    processedKopel.add(uniqueKey);
                     
-                    let isScanned = mergedData.some(d => d.action === 'masuk' && d.jp === jpStr && d.class === fClass);
+                    // Cek apakah ada record dengan kopel yang sama (tanpa melihat kurung yang mana)
+                    let isScanned = mergedData.some(d => {
+                        let dClassClean = (d.class || '').replace(/[()]/g, '');
+                        return d.action === 'masuk' && d.jp === jpStr && dClassClean === fClassClean;
+                    });
                     
                     if (!isScanned) {
                         mergedData.push({
                             isMissed: true,
                             time: '-',
-                            class: fClass,
+                            class: fClassClean, // Tampilkan tanpa kurung agar jelas ini satu kesatuan kopel
                             subject: b.mapel,
                             action: 'masuk',
                             keterangan: 'Tidak Scan Masuk',
@@ -4599,6 +4611,7 @@ async function loadRekap() {
                     
                     let blocks = getGroupedSchedule(currentUser, dHari, 0, tempDate);
                     
+					let processedRekapKopel = new Set();
                     blocks.forEach(b => {
                         let isPassed = true;
                         if (dStr === todayStrLocal) {
@@ -4609,11 +4622,21 @@ async function loadRekap() {
                         if (isPassed) {
                             let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
                             let fClass = formatKopelClass(b.class, b.mapel);
-                            let key = dStr + '_' + fClass + '_' + jpStr;
+                            let fClassClean = fClass.replace(/[()]/g, ''); // Normalisasi hapus kurung
+                            let kopelKey = dStr + '_' + fClassClean + '_' + jpStr;
+
+                            if (processedRekapKopel.has(kopelKey)) return; // Cegah injeksi ganda untuk kelas kopel
+                            processedRekapKopel.add(kopelKey);
                             
-                            if (!grouped[key]) {
-                                grouped[key] = {
-                                    date: dStr, class: fClass, subject: b.mapel, jp: jpStr,
+                            // Cek apakah ada record di grouped yang base kelasnya sama 
+                            let isScanned = Object.values(grouped).some(g => {
+                                return g.date === dStr && g.jp === jpStr && String(g.class).replace(/[()]/g, '') === fClassClean;
+                            });
+                            
+                            if (!isScanned) {
+                                // Tambahkan entry terlewat menggunakan key kopel bersih agar tidak duplikat
+                                grouped[kopelKey] = {
+                                    date: dStr, class: fClassClean, subject: b.mapel, jp: jpStr,
                                     jadwal_masuk: b.masuk, jadwal_keluar: b.keluar,
                                     waktu_masuk: '-', waktu_keluar: '-', ket: 'Tdk Scan (Alpa)',
                                     isMissed: true
