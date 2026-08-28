@@ -1581,15 +1581,33 @@ body.purple-skin #loginScreen { background: linear-gradient(135deg, #a78bfa 0%, 
 
 
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async () => {
-            try {
-                const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-                const worker = reg.active || (await navigator.serviceWorker.ready).active;
-                if (worker) worker.postMessage({ type: 'CACHE_OFFLINE_ASSETS' });
-            } catch (e) { console.warn('Service Worker offline belum aktif:', e); }
-        });
-    }
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', async () => {
+        try {
+            const registration = await navigator.serviceWorker.register('./sw.js', { 
+                scope: './' 
+            });
+            
+            console.log('✅ Service Worker registered:', registration.scope);
+            
+            // Tunggu worker aktif
+            const worker = registration.active || 
+                          (await navigator.serviceWorker.ready).active;
+            
+            if (worker) {
+                // Kirim pesan untuk caching
+                worker.postMessage({ 
+                    type: 'CACHE_OFFLINE_ASSETS',
+                    timestamp: Date.now() 
+                });
+                console.log('📦 Pesan caching dikirim ke Service Worker');
+            }
+            
+        } catch (error) {
+            console.warn('⚠️ Service Worker tidak terdaftar:', error);
+        }
+    });
+}
     const TEACHERS = [
         { name: 'Budiman, S. Pd.', isAdmin: true, subjects: [], adminType: 'admin' },
         { name: 'Adi Hardiyansyah, M. Pd.', isAdmin: true, subjects: ['IPA Terpadu'], adminType: 'admin' },
