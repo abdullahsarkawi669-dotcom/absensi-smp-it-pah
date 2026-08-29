@@ -425,52 +425,54 @@ function getCurrentJPInfo(mode = '') {
         });
     }
 
-    function saveAttendanceLocal(data) {
-        return new Promise((resolve, reject) => {
-            if (!db) { reject(new Error('Database tidak terbuka')); return; }
-            try {
-                const safeStr = (val) => { if (val === undefined || val === null) return ''; return String(val); };
-                const record = {
-                    teacher: safeStr(data.teacher || ''),
-                    class: safeStr(data.class || ''),
-                    subject: safeStr(data.subject || 'Kegiatan Lain'),
-                    action: safeStr(data.action || 'masuk'),
-                    date: safeStr(data.date || ''),
-                    time: safeStr(data.time || ''),
-                    day: safeStr(data.day || ''),
-                    jp: safeStr(data.jp || 'JP -'),
-                    jadwal_masuk: safeStr(data.jadwal_masuk || ''),
-                    jadwal_keluar: safeStr(data.jadwal_keluar || ''),
-                    timestamp: safeStr(data.timestamp || new Date().toISOString()),
-                    keterangan: safeStr(data.keterangan || ''),
-                    synced: false
-                };
-                const tx = db.transaction(STORE_NAME, 'readwrite');
-                const store = tx.objectStore(STORE_NAME);
-                const req = store.add(record);
-                req.onsuccess = () => resolve(req.result);
-                req.onerror = (e) => reject(e.target.error);
-            } catch (e) { reject(e); }
-        });
-    }
+function saveAttendanceLocal(data) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Pastikan koneksi database terbuka (auto-reconnect jika null/tertutup)
+            if (!db) {
+                db = await openDB();
+            }
+            
+            const safeStr = (val) => { if (val === undefined || val === null) return ''; return String(val); };
+            const record = {
+                teacher: safeStr(data.teacher || ''), class: safeStr(data.class || ''), subject: safeStr(data.subject || 'Kegiatan Lain'),
+                action: safeStr(data.action || 'masuk'), date: safeStr(data.date || ''), time: safeStr(data.time || ''),
+                day: safeStr(data.day || ''), jp: safeStr(data.jp || 'JP -'), jadwal_masuk: safeStr(data.jadwal_masuk || ''),
+                jadwal_keluar: safeStr(data.jadwal_keluar || ''), timestamp: safeStr(data.timestamp || new Date().toISOString()),
+                keterangan: safeStr(data.keterangan || ''), synced: false
+            };
+            const tx = db.transaction(STORE_NAME, 'readwrite');
+            const store = tx.objectStore(STORE_NAME);
+            const req = store.add(record);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = (e) => reject(e.target.error);
+        } catch (e) { reject(e); }
+    });
+}
 
     function getUnsynced() {
         return new Promise((resolve, reject) => {
-            if (!db) { reject(new Error('DB not open')); return; }
+            //if (!db) { reject(new Error('DB not open')); return; }
             try {
+				// Pastikan koneksi database terbuka
+				openDB().then(database => {
+                db = database;
                 const tx = db.transaction(STORE_NAME, 'readonly');
                 const store = tx.objectStore(STORE_NAME);
                 const req = store.getAll();
                 req.onsuccess = () => resolve((req.result || []).filter(item => item.synced === false));
                 req.onerror = () => reject(req.error);
+				}).catch(err => reject(err));
             } catch (e) { reject(e); }
         });
     }
 
     function processSyncedItem(item) {
     return new Promise((resolve, reject) => {
-        if (!db) { reject(new Error('DB not open')); return; }
+        //if (!db) { reject(new Error('DB not open')); return; }
         try {
+			openDB().then(database => {
+            db = database;
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
 
@@ -501,24 +503,29 @@ function getCurrentJPInfo(mode = '') {
                 store.delete(item.id);
                 resolve();
             }
+			}).catch(err => reject(err));
         } catch (e) { reject(e); }
     });
 	}
 
-    function getLocalHistory(teacher, date) {
-        return new Promise((resolve, reject) => {
-            if (!db) { reject(new Error('DB not open')); return; }
-            try {
-                const tx = db.transaction(STORE_NAME, 'readonly');
-                const store = tx.objectStore(STORE_NAME);
-                const index = store.index('teacher');
-                const range = IDBKeyRange.only(teacher);
-                const req = index.getAll(range);
-                req.onsuccess = () => resolve((req.result || []).filter(item => date ? item.date === date : true));
-                req.onerror = () => reject(req.error);
-            } catch (e) { reject(e); }
-        });
-    }
+function getLocalHistory(teacher, date) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Pastikan koneksi database terbuka (auto-reconnect jika null/tertutup)
+            if (!db) {
+                db = await openDB();
+            }
+
+            const tx = db.transaction(STORE_NAME, 'readonly');
+            const store = tx.objectStore(STORE_NAME);
+            const index = store.index('teacher');
+            const range = IDBKeyRange.only(teacher);
+            const req = index.getAll(range);
+            req.onsuccess = () => resolve((req.result || []).filter(item => date ? item.date === date : true));
+            req.onerror = () => reject(req.error);
+        } catch (e) { reject(e); }
+    });
+}
 
     function countPendingSync() { return getUnsynced().then(res => res.length).catch(() => 0); }
 
@@ -4619,3 +4626,94 @@ async function clearAppCacheAndReload() {
         window.location.reload(true); // Fallback reload
     }
 }
+
+// ==========================================
+// BLOK 9: TOMBOL DARURAT BERSIHKAN DATA & LOGOUT
+// ==========================================
+window.emergencyClearData = async function() {
+    const konfirmasi = confirm('APAKAH ANDA YAKIN?\n\nIni akan menghapus seluruh data aplikasi, cache, dan MENGELUARKAN (LOGOUT) Anda dari akun saat ini ke halaman login.\n\nGunakan hanya dalam KEADAAN DARURAT!');
+    
+    if (konfirmasi) {
+        try {
+            // 1. Matikan kamera & reset variabel sesi saat ini
+            currentUser = null; 
+            currentUserData = null; 
+            isAdmin = false; 
+            isAgus = false;
+            if (typeof stopScanner === 'function') stopScanner(); 
+			
+			// Kosongkan tampilan tabel riwayat dan jadwal agar langsung bersih di mata pengguna
+            const historyBody = document.getElementById('historyBody');
+            if (historyBody) historyBody.innerHTML = '';
+            const historyCount = document.getElementById('historyCount');
+            if (historyCount) historyCount.textContent = '0';
+            
+            // 2. Tutup koneksi database IndexedDB dengan aman
+            try {
+                if (typeof db !== 'undefined' && db && typeof db.close === 'function') {
+                    db.close();
+                }
+            } catch (err) {
+                console.warn("Catatan penutupan DB:", err);
+            }
+
+            // 3. Bersihkan Local Storage, Session Storage, & Kunci Login
+            localStorage.clear();
+            sessionStorage.clear();
+            localStorage.removeItem('absensi_user');
+            localStorage.removeItem('absensi_admin');
+            localStorage.removeItem('absensi_admin_type');
+
+            // 4. Hapus IndexedDB secara asinkronus
+            if (window.indexedDB) {
+                try {
+                    window.indexedDB.deleteDatabase('AbsensiGuruDB');
+                } catch (e) {}
+            }
+
+            // 5. Bersihkan Cache Storage
+            if ('caches' in window) {
+                try {
+                    const cacheNames = await caches.keys();
+                    await Promise.all(cacheNames.map(name => caches.delete(name)));
+                } catch (e) {}
+            }
+
+            // 6. Lepaskan Service Worker secara aman
+            if ('navigator' in window && 'serviceWorker' in navigator) {
+                try {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                    }
+                } catch (e) {}
+            }
+
+            // 7. Bersihkan Cookies
+            try {
+                const cookies = document.cookie.split(";");
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i];
+                    const eqPos = cookie.indexOf("=");
+                    const name = eqPos > -1 ? cookie.substr(0, eqPos) : cookie;
+                    document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                }
+            } catch (e) {}
+
+            // 8. Langsung lakukan reload bersih ke halaman utama (tanpa menimpa HTML tombol yang bikin nyangkut)
+            window.location.replace(window.location.origin + window.location.pathname);
+            
+			// 9. Panggil fungsi tombol Ganti User secara langsung agar UI tertutup
+			const switchUserBtn = document.getElementById('switchUserBtn');
+            if (switchUserBtn) {
+                switchUserBtn.click();
+            }
+			
+        } catch (e) {
+            console.error('Error saat membersihkan data:', e);
+            // Fallback darurat jika terjadi kendala
+            localStorage.clear();
+            window.location.reload(true);
+        }
+    }
+};
