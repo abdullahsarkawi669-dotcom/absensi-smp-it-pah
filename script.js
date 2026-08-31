@@ -113,9 +113,9 @@ function isEvenWeek(d = new Date()) {
 
 // Daftar Tanggal Libur / Merah (Termasuk 17 Agustus)
 const liburSpesifik = [
-    '2026-08-17', // 17 Agustus: Upacara / Hari Kemerdekaan
-    '2026-09-25', // Pembagian Rapor
-	'2026-09-01', // KKG & Pembagian Gaji
+    { tanggal: '2026-08-17', keterangan: '17 Agustus: Upacara / Hari Kemerdekaan' },
+    { tanggal: '2026-09-25', keterangan: 'Pembagian Rapor' },
+    { tanggal: '2026-09-01', keterangan: 'KKG & Pembagian Gaji' }
 ];
 
 // Rentang Tanggal Libur (Warna Merah)
@@ -139,15 +139,17 @@ const rentangKegiatan = [
     { mulai: '2027-04-23', selesai: '2027-04-24', nama: "Itqan al-Qur'an & Hadits" }
 ];
 
+
 function getStatusHariIni(dateObj) {
     const y = dateObj.getFullYear();
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
     const d = String(dateObj.getDate()).padStart(2, '0');
     const tanggalFormat = `${y}-${m}-${d}`;
 
-    // Cek Libur Spesifik
-    if (liburSpesifik.includes(tanggalFormat)) {
-        return { status: 'libur', label: 'Libur Spesifik / Tanggal Merah' };
+    // Cek Libur Spesifik (Ganti bagian ini)
+    const libur = liburSpesifik.find(l => l.tanggal === tanggalFormat);
+    if (libur) {
+        return { status: 'libur', label: libur.keterangan };
     }
 
     // Cek Rentang Libur (Libur Panjang)
@@ -166,6 +168,7 @@ function getStatusHariIni(dateObj) {
 
     return { status: 'normal', label: '' };
 }
+
 
 function isLiburSekolah(dateObj) {
     // Dengan fungsi ini, kita cukup memanggil getStatusHariIni.
