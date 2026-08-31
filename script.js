@@ -1364,10 +1364,13 @@ window.editKeterangan = async function(encodedRecord) {
 };
 // ----------------------------------------------
 
-function startScanner() {
+async function startScanner() {
         if (document.getElementById('tabScan').classList.contains('hidden') || !currentMode) return;
         if (html5QrCode) { stopScanner(); setTimeout(startScanner, 100); return; }
         
+        // Deklarasi elemen wrapper untuk logika floating
+        const scannerWrapper = document.getElementById('scannerWrapper');
+
         html5QrCode = new Html5Qrcode("reader");
         html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 220, height: 220 } },
             (text) => {
@@ -1375,7 +1378,11 @@ function startScanner() {
                 stopScanner();
                 processScan(text.trim().toUpperCase());
             }, () => {}
-        ).then(() => isScanning = true).catch((err) => {
+        ).then(() => {
+            isScanning = true;
+            // Kamera Html5Qrcode berhasil terbuka, jadikan tombol melayang
+            if (scannerWrapper) scannerWrapper.classList.add('is-scanning');
+        }).catch((err) => {
             console.error("Scanner initialization failed:", err);
             showToast('Error kamera/scan. Membersihkan cache...', 'error');
             
@@ -1385,6 +1392,12 @@ function startScanner() {
     }
 
     function stopScanner() {
+        isScanning = false;
+
+        // Kamera diperintahkan berhenti, kembalikan tombol ke posisi normal (statis)
+        const scannerWrapper = document.getElementById('scannerWrapper');
+        if (scannerWrapper) scannerWrapper.classList.remove('is-scanning');
+
         if (html5QrCode) { try { html5QrCode.stop().then(() => html5QrCode.clear()); } catch(e){} html5QrCode = null; isScanning = false; }
     }
 
