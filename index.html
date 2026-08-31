@@ -168,16 +168,22 @@
                 </div>
                 <p class="text-sm text-muted mb-4" id="scanInstruction">Arahkan kamera ke QR Code kelas untuk absen masuk</p>
 
-                <!-- JENDELA KAMERA DIPINDAHKAN KE SINI (Ditambah margin bottom mb-4 agar rapi) -->
-                <div class="scanner-overlay mb-4">
-                    <div id="reader"></div>
-                </div>
+<!-- Container Utama (diberi ID scannerWrapper) -->
+<div class="scanner-wrapper mb-4" id="scannerWrapper">
+    
+    <!-- Area Kamera -->
+    <div id="reader"></div>
 
-                <!-- TOMBOL MASUK DAN KELUAR -->
-                <div class="flex gap-2 mb-4">
-                    <button class="btn btn-sm btn-primary" id="modeMasuk" style="flex:1;"><i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk</button>
-                    <button class="btn btn-sm btn-outline" id="modeKeluar" style="flex:1;"><i class="fa-solid fa-door-open"></i> Keluar</button>
-                </div>
+    <!-- Container Tombol (Bisa statis, bisa floating) -->
+    <div class="scan-buttons-container flex gap-2" id="scanButtons">
+        <button class="btn btn-sm btn-primary shadow-lg hover-scale" id="modeMasuk" style="flex:1;">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Masuk
+        </button>
+        <button class="btn btn-sm btn-glass shadow-lg hover-scale" id="modeKeluar" style="flex:1;">
+            <i class="fa-solid fa-door-open"></i> Keluar
+        </button>
+    </div>
+</div>
 
                 <!-- INPUT KETERANGAN -->
                 <div class="input-group">
@@ -192,11 +198,6 @@
                     <button class="btn btn-success hidden" id="syncNowBtn"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Data</button>
                 </div>
                 
-<div class="flex gap-2 mt-4" id="manualScanContainer">
-    <button class="btn btn-accent hidden" id="manualScanBtn"><i class="fa-solid fa-keyboard"></i> Input Manual Kelas</button>
-    <!-- Tombol tidak dihapus, tapi disembunyikan dengan class 'hidden' -->
-    <button class="btn btn-success hidden" id="syncNowBtn"><i class="fa-solid fa-cloud-arrow-up"></i> Kirim Data</button>
-</div>
                 <div id="manualScanArea" class="mt-3 hidden p-4 bg-gray-50 rounded-xl border border-gray-200">
                     <div class="input-group">
                         <label>Pilih / Ketik Kode Kelas</label>
