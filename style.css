@@ -517,3 +517,50 @@ transform: translateX(-50%) translateY(var(--scroll-offset, 0px));
     top: 12px;
 }
 }
+
+/* Container Utama */
+.scanner-wrapper {
+    position: relative;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    background: transparent;
+}
+
+/* WUJUD 1: Posisi Normal (Kamera Mati) */
+.scan-buttons-container {
+    position: relative;
+    margin-top: 16px; /* Jarak tombol dari kotak di atasnya saat normal */
+    transition: all 0.3s ease-in-out; /* Animasi transisi halus */
+}
+
+/* Tombol Glass wujud normal (Bisa disesuaikan dengan tema aplikasi) */
+.btn-glass {
+    background: #e2e8f0;
+    color: #475569;
+    border: none;
+}
+
+/* ========================================= */
+/* WUJUD 2: Posisi Floating (Kamera Nyala)   */
+/* Aktif saat container punya class "is-scanning" */
+/* ========================================= */
+.scanner-wrapper.is-scanning .scan-buttons-container {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    right: 16px;
+    margin-top: 0;
+    z-index: 10;
+}
+
+/* Saat floating, tombol keluar jadi efek kaca (glassmorphism) */
+.scanner-wrapper.is-scanning .btn-glass {
+    background: rgba(255, 255, 255, 0.85) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    color: var(--primary-dark);
+}
+
+.shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
+.hover-scale:active { transform: scale(0.95); }
