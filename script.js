@@ -115,6 +115,7 @@ function isEvenWeek(d = new Date()) {
 const liburSpesifik = [
     '2026-08-17', // 17 Agustus: Upacara / Hari Kemerdekaan
     '2026-09-25', // Pembagian Rapor
+	'2026-09-01', // KKG & Pembagian Gaji
 ];
 
 // Rentang Tanggal Libur (Warna Merah)
