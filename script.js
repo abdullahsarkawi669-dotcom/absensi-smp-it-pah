@@ -3382,7 +3382,7 @@ function renderJadwalPekanIni() {
             </div>`;
 
         if (statusHari.status === 'libur') {
-            html += `<div class="text-center py-3 text-red-600 font-bold text-xs"><i class="fa-solid fa-mug-hot">></i> Hari Tidak Mengajar (Libur Tanggal Merah / Semester)</div>`;
+            html += `<div class="text-center py-3 text-red-600 font-bold text-xs"><i class="fa-solid fa-mug-hot">></i> Hari Tidak Mengajar</div>`;
         } else if (blocks.length > 0) {
             html += `<table class="w-full text-sm"><tbody>`;
             blocks.forEach(b => {
