@@ -975,7 +975,7 @@ if (diffSeconds > 0 && diffSeconds <= 300) {
     } else {
         warnCard.classList.remove('pulse-alarm');
         document.getElementById('upcomingClassWarningText').innerHTML =
-            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>SESAAT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
 
         if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
             window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500);
