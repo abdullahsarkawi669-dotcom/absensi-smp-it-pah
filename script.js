@@ -77,18 +77,10 @@ function getCurrentWITA() {
     return new Date(utc + (3600000 * 8)); // Paksa ke UTC+8
 }
 
-function getLocalDateString(d = getCurrentWITA()) {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-}
-
-
 
     let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
-	//'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
-	//'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
+        //'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
+        //'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD (WITA)
 function getLocalDateString(d = getCurrentWITA()) {
@@ -201,7 +193,7 @@ const WALI_KELAS_MAP = {
             'JP 8': { masuk: '12:25', keluar: '13:00' }
         },
         jumat: {
-			'Pembiasaan Pagi': { masuk: '07:15', keluar: '07:30' },
+                        'Pembiasaan Pagi': { masuk: '07:15', keluar: '07:30' },
             'JP 1': { masuk: '07:30', keluar: '08:05' },
             'JP 2': { masuk: '08:05', keluar: '08:40' },
             'JP 3': { masuk: '08:40', keluar: '09:15' },
@@ -227,8 +219,8 @@ const WALI_KELAS_MAP = {
             else if (['9C', '9D'].includes(kelas)) group = ['9C', '9D'];
             else if (['7D', '7E'].includes(kelas)) group = ['7D', '7E'];
             else if (['7A', '7B'].includes(kelas)) group = ['7A', '7B'];
-			else if (['8A', '8B'].includes(kelas)) group = ['8A', '8B'];
-			else if (['7C', '8E'].includes(kelas)) group = ['7C', '8E'];
+                        else if (['8A', '8B'].includes(kelas)) group = ['8A', '8B'];
+                        else if (['7C', '8E'].includes(kelas)) group = ['7C', '8E'];
         }
 
         if (group) {
@@ -411,6 +403,56 @@ function getCurrentJPInfo(mode = '') {
     let db = null;
     let serverDataCache = []; // Cache Data Server Hari Ini untuk mengecek jadwal terlewat
 
+
+/**
+ * ============================================================================
+ * GENERATOR DETERMINISTIC SESSION ID
+ * Dibuat untuk memastikan satu sesi mengajar memiliki 1 ID absolut yang tetap.
+ * ============================================================================
+ */
+function generateSessionId(dateStr, teacherName, subject, classCode, jpStr, action) {
+    // FIX: Jika parameter tidak lengkap, buat ID acak (bukan null) supaya
+    // idempotensi tetap terjaga saat record di-sync ulang dari IndexedDB.
+    if (!dateStr || !teacherName || !subject || !classCode || !jpStr) {
+        return 'SID_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    }
+
+    // 1. Normalisasi Tanggal (YYYY-MM-DD menjadi YYYYMMDD)
+    // Contoh: "2026-09-04" -> "20260904"
+    const safeDate = String(dateStr).replace(/[^0-9]/g, '');
+
+    // 2. Normalisasi Nama Guru (Hapus gelar, titik, koma, spasi, ubah ke UPPERCASE)
+    // Contoh: "Hafizh Bagis, Lc." -> "HAFIZHBAGISLC"
+    const safeTeacher = String(teacherName).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    // 3. Normalisasi Mata Pelajaran
+    // Contoh: "Bahasa Arab" -> "BAHASAARAB"
+    const safeSubject = String(subject).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    // 4. Normalisasi Kelas (Sangat krusial untuk Kelas Kopel/Gabungan)
+    // Menghapus tanda kurung, memecah berdasarkan koma, mengurutkan abjad, lalu digabung
+    // Contoh: "(7C,7A,7B)" akan selalu menjadi "7A7B7C"
+    const safeClass = String(classCode)
+        .replace(/[()]/g, '')           // Buang tanda kurung
+        .split(',')                     // Pecah jika ada koma
+        .map(c => c.trim().toUpperCase()) 
+        .sort()                         // Urutkan abjad agar posisinya selalu tetap
+        .join('');                      // Gabungkan
+
+    // 5. Normalisasi Jam Pelajaran
+    // Contoh: "JP 1-2" -> "JP12" | "Pembiasaan Pagi" -> "PEMBIASAANPAGI"
+    const safeJp = String(jpStr).replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
+    // 6. FIX KRITIS: sertakan ACTION (masuk/keluar) ke dalam ID.
+    // Tanpa ini, record "masuk" dan "keluar" dari sesi yang sama ber-ID identik,
+    // dan cek duplikat session_id di server akan MENOLAK scan keluar
+    // dengan pesan "Sesi sudah terekam".
+    // Hasil Akhir: "20260904_HAFIZHBAGISLC_BAHASAARAB_7A_JP78_MASUK"
+    const safeAction = String(action || '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    return `${safeDate}_${safeTeacher}_${safeSubject}_${safeClass}_${safeJp}_${safeAction || 'EVENT'}`;
+}
+
+
     function openDB() {
         return new Promise((resolve, reject) => {
             try {
@@ -444,7 +486,9 @@ function saveAttendanceLocal(data) {
                 action: safeStr(data.action || 'masuk'), date: safeStr(data.date || ''), time: safeStr(data.time || ''),
                 day: safeStr(data.day || ''), jp: safeStr(data.jp || 'JP -'), jadwal_masuk: safeStr(data.jadwal_masuk || ''),
                 jadwal_keluar: safeStr(data.jadwal_keluar || ''), timestamp: safeStr(data.timestamp || new Date().toISOString()),
-                keterangan: safeStr(data.keterangan || ''), synced: false
+                keterangan: safeStr(data.keterangan || ''),
+                session_id: safeStr(data.session_id || ''),  // FIX: simpan session_id ke IndexedDB agar tidak hilang saat sync ulang
+                synced: false
             };
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
@@ -459,15 +503,15 @@ function saveAttendanceLocal(data) {
         return new Promise((resolve, reject) => {
             //if (!db) { reject(new Error('DB not open')); return; }
             try {
-				// Pastikan koneksi database terbuka
-				openDB().then(database => {
+                                // Pastikan koneksi database terbuka
+                                openDB().then(database => {
                 db = database;
                 const tx = db.transaction(STORE_NAME, 'readonly');
                 const store = tx.objectStore(STORE_NAME);
                 const req = store.getAll();
                 req.onsuccess = () => resolve((req.result || []).filter(item => item.synced === false));
                 req.onerror = () => reject(req.error);
-				}).catch(err => reject(err));
+                                }).catch(err => reject(err));
             } catch (e) { reject(e); }
         });
     }
@@ -476,7 +520,7 @@ function saveAttendanceLocal(data) {
     return new Promise((resolve, reject) => {
         //if (!db) { reject(new Error('DB not open')); return; }
         try {
-			openDB().then(database => {
+                        openDB().then(database => {
             db = database;
             const tx = db.transaction(STORE_NAME, 'readwrite');
             const store = tx.objectStore(STORE_NAME);
@@ -508,10 +552,10 @@ function saveAttendanceLocal(data) {
                 store.delete(item.id);
                 resolve();
             }
-			}).catch(err => reject(err));
+                        }).catch(err => reject(err));
         } catch (e) { reject(e); }
     });
-	}
+        }
 
 function getLocalHistory(teacher, date) {
     return new Promise(async (resolve, reject) => {
@@ -559,14 +603,22 @@ function getLocalHistory(teacher, date) {
                 action: record.action || '', date: record.date || '', time: record.time || '',
                 day: record.day || '', jp: record.jp || '', timestamp: record.timestamp || '',
                 jadwal_masuk: record.jadwal_masuk || '', jadwal_keluar: record.jadwal_keluar || '',
-                keterangan: record.keterangan || ''
+                keterangan: record.keterangan || '',
+                session_id: record.session_id || ''  // FIX: kirim session_id ke server (kunci anti-duplikat)
             };
             const response = await fetch(GAS_URL, {
                 method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: JSON.stringify({ api_action: 'addAttendance', ...payload })
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return { success: true, data: await response.json() };
+            const json = await response.json();
+            // FIX: Web App GAS selalu membalas HTTP 200 meskipun logika server menolak.
+            // Tanpa cek ini, data yang ditolak server dianggap sukses lalu ditandai
+            // synced dan hilang diam-diam.
+            if (json && json.success === false) {
+                return { success: false, error: json.error || json.message || 'Server menolak data' };
+            }
+            return { success: true, data: json };
         } catch (e) { return { success: false, error: e.message }; }
     }
 
@@ -646,6 +698,19 @@ function getLocalHistory(teacher, date) {
 
                 // Jika ada record identik yang sudah synced, jangan POST ulang.
                 const all = await getLocalHistory(fresh.teacher, fresh.date).catch(() => []);
+
+                // FIX: cek event identik via session_id (paling andal) sebelum POST ulang.
+                const sameEventSynced = all.some(r =>
+                    r.id !== fresh.id &&
+                    fresh.session_id &&
+                    r.session_id === fresh.session_id &&
+                    r.synced === true
+                );
+                if (sameEventSynced) {
+                    await processSyncedItem(fresh);
+                    continue;
+                }
+
                 const sameLocal = all.some(r =>
                     r.id !== fresh.id &&
                     r.action === fresh.action &&
@@ -813,7 +878,7 @@ function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Dat
 
 function getNextClass() {
     if (!currentUser) return null;
-	let nextClassGlobal = null; // Variabel global untuk menyimpan nextClass
+        let nextClassGlobal = null; // Variabel global untuk menyimpan nextClass
     const hari = getDayName();
     const now = getCurrentWITA();//new Date();
     const totalMins = now.getHours() * 60 + now.getMinutes();
@@ -825,15 +890,15 @@ function getNextClass() {
         // Mencari jadwal yang menit masuknya lebih besar dari waktu saat ini
         if (mMins > totalMins) {
             //let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
-			// Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
-			let jpStr = b.jpStr;
+                        // Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
+                        let jpStr = b.jpStr;
             return { jp: jpStr, class: b.class, mapel: b.mapel, masuk: b.masuk, masukMins: mMins };
         }
     }
     return null;
 }
 
-	window.lastKnownJP = undefined;
+        window.lastKnownJP = undefined;
     window.isAlarmMuted = false;
     window.continuousAlarmInterval = null;
     window.nextClassNotifiedTeaching = false;
@@ -975,7 +1040,7 @@ if (diffSeconds > 0 && diffSeconds <= 300) {
     } else {
         warnCard.classList.remove('pulse-alarm');
         document.getElementById('upcomingClassWarningText').innerHTML =
-            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>SESAAT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
+            `<i class="fa-solid fa-triangle-exclamation fa-shake"></i> PERSIAPAN!<br>5 MENIT LAGI MASUK KELAS ${cFormatted} (${nextClass.mapel})!`;
 
         if (!window.isAlarmMuted && !window.continuousAlarmInterval) {
             window.continuousAlarmInterval = setInterval(playContinuousBeep, 1500);
@@ -1285,7 +1350,7 @@ document.getElementById('manualProcessBtn').addEventListener('click', () => {
 
 // --- TAMBAHAN UNTUK FITUR ALASAN TERLAMBAT ---
 window.showLateReasonModal = function(callback, initialValue = '') {
-	// Sembunyikan tombol X agar guru wajib menekan "Simpan Alasan"
+        // Sembunyikan tombol X agar guru wajib menekan "Simpan Alasan"
     document.getElementById('modalClose').style.display = 'none';
     document.getElementById('modalContent').innerHTML = `
         <div class="p-2">
@@ -1490,7 +1555,7 @@ let activeBlock = null;
             }
         }
 
-		let jpFinal, mapelFinal, jMasuk, jKeluar;
+                let jpFinal, mapelFinal, jMasuk, jKeluar;
         let activeTeaching = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
 
         // PERBAIKAN: Jika sedang Keluar dan ada sesi aktif, PAKAI data spesifik sesi tersebut (jangan tebak dari jam sekarang)
@@ -1640,6 +1705,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
 
             if (!oldAlreadyOutLocal && !oldAlreadyOutServer) {
                 const recordLupa = {
+                    session_id: generateSessionId(activeTeaching.date || dateStr, currentUser, oldSubject, oldClass, oldJp, 'keluar'), // FIX: auto-checkout juga wajib punya session_id
                     teacher: currentUser,
                     class: oldClass,
                     subject: oldSubject,
@@ -1679,8 +1745,12 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
         }
 
         // ----------------------------------------------------------
-        // CEK DUPLIKASI: LOKAL + SERVER
+        // CEK DUPLIKASI: LOKAL + SERVER + SESSION ID
         // ----------------------------------------------------------
+        // FIX: Session ID dibuat SEKALI di sini (saat tap), lalu dipakai untuk
+        // pengecekan duplikat, record IndexedDB, dan payload ke server.
+        const sessionId = generateSessionId(dateStr, currentUser, subject, formattedClass, jpFinal, action);
+
         const localHist = await getLocalHistory(currentUser, dateStr).catch(() => []);
         const duplicateLocal = localHist.some(h =>
             h.action === action &&
@@ -1698,7 +1768,13 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             h.date === dateStr
         );
 
-        if (duplicateLocal || duplicateServer) {
+        // FIX: cek berbasis session_id — paling andal, menangkap event yang sama
+        // persis walau atribut teksnya sedikit berbeda (spasi/format kelas/subject).
+        const duplicateServerById = serverDataCache.some(h =>
+            sessionId && h.session_id && h.session_id === sessionId
+        );
+
+        if (duplicateLocal || duplicateServer || duplicateServerById) {
             showScanResult(`⚠️ Anda sudah melakukan absen ${action.toUpperCase()} untuk ${formattedClass} / ${jpFinal}.`, 'warning');
             playBeepWarning();
             document.getElementById('keteranganInput').value = '';
@@ -1732,7 +1808,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             }
         }
 
-		// ----------------------------------------------------------
+                // ----------------------------------------------------------
         // UPDATE ACTIVE TEACHING
         // ----------------------------------------------------------
         if (action === 'masuk' && jKeluar !== '00:00') {
@@ -1767,6 +1843,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
         // SIMPAN LOKAL SEKALI -> KIRIM SERVER SEKALI
         // ----------------------------------------------------------
         const record = {
+            session_id: sessionId, // KUNCI UTAMA anti-duplikat (dibuat sekali saat tap, lihat bagian cek duplikat)
             teacher: currentUser,
             class: formattedClass,
             subject: subject,
@@ -1785,7 +1862,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
         const id = await saveAttendanceLocal(record);
         record.id = id;
 
-		// FIX: Hapus kuncian kelas secara lokal TERLEPAS dari status internet
+                // FIX: Hapus kuncian kelas secara lokal TERLEPAS dari status internet
         if (action === 'keluar') {
             const actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
             if (actTeach && actTeach.class === formattedClass && actTeach.jp === jpFinal) {
@@ -1797,7 +1874,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
                 updateScanModeUI();
             }
         }
-		
+                
         showScanResult( // (Tampilkan notifikasi berhasil lokal)
             ket
                 ? `${action === 'masuk' ? '✅ In' : '🚪 Out'} ${formattedClass} (${ket})`
@@ -1841,7 +1918,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
     } catch (err) {
         console.error('executeFinalScanRecord error:', err);
         showScanResult('❌ Terjadi kesalahan saat memproses absensi: ' + (err.message || err), 'error');
-		// Hapus tanda komentar di bawah ini jika ingin mereset cache saat gagal memproses absen
+                // Hapus tanda komentar di bawah ini jika ingin mereset cache saat gagal memproses absen
         //clearAppCacheAndReload();
     } finally {
         setTimeout(() => { scanInProgress = false; }, 500);
@@ -1902,7 +1979,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
         }
 
         // Mengambil data spesifik hanya dari kelas yang di-scan (rawClass)
-		let listSantriKelas = DATA_SANTRI[targetClass] || [];
+                let listSantriKelas = DATA_SANTRI[targetClass] || [];
         let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
         if (matched.length > 0) {
@@ -1944,8 +2021,8 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             CLASSES.forEach(c => { if(activeTeaching.class.includes(c)) targetClass = c; });
         }
 
-		// Mengambil data spesifik hanya dari kelas yang di-scan (rawClass)
-		let listSantriKelas = DATA_SANTRI[targetClass] || [];
+                // Mengambil data spesifik hanya dari kelas yang di-scan (rawClass)
+                let listSantriKelas = DATA_SANTRI[targetClass] || [];
         let matched = listSantriKelas.filter(nama => nama.toLowerCase().includes(keyword));
 
         if (matched.length > 0) {
@@ -2359,7 +2436,7 @@ async function renderMySchedule() {
     }
 }
 
-	function updateClock() {
+        function updateClock() {
         const now = getCurrentWITA();//new Date();
         document.getElementById('currentTimeDisplay').textContent = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         document.getElementById('loginDayInfo').innerHTML = '<i class="fa-regular fa-calendar"></i> ' + getDayNameID() + ', ' + now.toLocaleDateString('id-ID');
@@ -2379,8 +2456,8 @@ async function renderMySchedule() {
         updateTeachingTimer();
         updateNextClassInfo();
         checkTomorrowSchedule();
-		if (now.getSeconds() === 0) renderJadwalGrid(); // Auto refresh penyorot tiap berganti menit
-		autoResolveLupaAbsen(); // Tambahkan pemanggilan ini		
+                if (now.getSeconds() === 0) renderJadwalGrid(); // Auto refresh penyorot tiap berganti menit
+                autoResolveLupaAbsen(); // Tambahkan pemanggilan ini            
     }
     setInterval(updateClock, 1000);
     
@@ -2530,6 +2607,7 @@ async function autoResolveLupaAbsen() {
         let autoOutTime = String(outH).padStart(2, '0') + ':' + String(outM).padStart(2, '0') + ':00';
 
         const recordLupa = {
+            session_id: generateSessionId(activeData.date, currentUser, activeData.subject, activeData.class, activeData.jp || '-', 'keluar'), // FIX: auto-checkout juga wajib punya session_id
             teacher: currentUser, class: activeData.class, subject: activeData.subject, action: 'keluar',
             date: activeData.date, time: autoOutTime, day: getDayNameID(), 
             jp: activeData.jp || '-', 
@@ -2548,7 +2626,7 @@ async function autoResolveLupaAbsen() {
         if(timerCard) timerCard.classList.add('hidden');
         
         updateScanModeUI();
-        showToast('Sistem mencatat otomatis absen keluar (' + (isPembiasaan ? 'Batas Pembiasaan Pagi 08:29' : 'Lupa > 20 Menit') + ').', 'warning');
+        showToast('Sistem mencatat otomatis absen keluar (' + (isPembiasaan ? 'Batas Pembiasaan Pagi 07:29' : 'Lupa > 20 Menit') + ').', 'warning');
     }
 }
     
@@ -2735,7 +2813,7 @@ async function loadRekap() {
                     
                     let blocks = getGroupedSchedule(currentUser, dHari, 0, tempDate);
                     
-					let processedRekapKopel = new Set();
+                                        let processedRekapKopel = new Set();
                     blocks.forEach(b => {
                         let isPassed = true;
                         if (dStr === todayStrLocal) {
@@ -2831,7 +2909,7 @@ async function loadRekap() {
         filterSelect.innerHTML = '<option value="all">-- Semua Guru --</option>';
         TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
-	
+        
 function buildAdminMissedClasses(allData) {
     const tbody = document.getElementById('missedClassesBody');
     const todayStr = getLocalDateString(new Date()); 
@@ -3105,7 +3183,7 @@ function renderLiveMonitor() {
             renderLiveMonitor();
         }
     });
-	
+        
     async function loadAdminData() {
         if (!isAdmin) return;
         
@@ -3139,7 +3217,7 @@ function renderLiveMonitor() {
             
             currentServerDataCacheAdmin = res.data;
             renderLiveMonitor(); 
-			
+                        
             buildAdminMissedClasses(res.data);
             
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
@@ -3428,8 +3506,8 @@ function renderJadwalPekanIni() {
             html += `<table class="w-full text-sm"><tbody>`;
             blocks.forEach(b => {
                 //let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
-				// Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
-				let jpStr = b.jpStr;
+                                // Langsung ambil string yang sudah matang dari fungsi getGroupedSchedule
+                                let jpStr = b.jpStr;
                 html += `<tr class="border-b last:border-0 border-gray-200">
                             <td class="py-2 pr-2 font-bold text-gray-700 align-top whitespace-nowrap" style="width: 25%; font-size: 0.75rem;">
                                 ${jpStr}<br><span class="text-xs text-muted font-normal">${b.masuk} - ${b.keluar}</span>
@@ -3633,8 +3711,8 @@ function renderRiwayatData(allData, range) {
         document.getElementById('loginDayInfo').textContent = 'Hari ini: ' + getDayNameID() + ', ' + new Date().toLocaleDateString('id-ID');
         document.getElementById('jpDisplay').textContent = getCurrentJPInfo(); 
         initAdminFilters();
-		
-		// --- TAMBAHKAN DUA BARIS INI AGAR KOTA MATARAM LANGSUNG DIMUAT OTOMATIS ---
+                
+                // --- TAMBAHKAN DUA BARIS INI AGAR KOTA MATARAM LANGSUNG DIMUAT OTOMATIS ---
         updateTanggalIslami();
         fetchJadwalSholat();
         // ------------------------------------------------------------------------
@@ -3661,7 +3739,7 @@ function renderRiwayatData(allData, range) {
         updateOfflineStatus();
     });
 
-	// ==========================================
+        // ==========================================
     // FUNGSI GANTI SKIN (DENGAN DROPDOWN MENU)
     // ==========================================
     const savedSkin = localStorage.getItem('app_skin') || 'light';
@@ -4638,7 +4716,7 @@ function updateNextClassTimer() {
             //     }
             // }, 500);
         })();
-		
+                
 // Fungsi untuk menghapus cache browser, unregister service worker, dan reload halaman
 async function clearAppCacheAndReload() {
     try {
@@ -4683,8 +4761,8 @@ window.emergencyClearData = async function() {
             isAdmin = false; 
             isAgus = false;
             if (typeof stopScanner === 'function') stopScanner(); 
-			
-			// Kosongkan tampilan tabel riwayat dan jadwal agar langsung bersih di mata pengguna
+                        
+                        // Kosongkan tampilan tabel riwayat dan jadwal agar langsung bersih di mata pengguna
             const historyBody = document.getElementById('historyBody');
             if (historyBody) historyBody.innerHTML = '';
             const historyCount = document.getElementById('historyCount');
@@ -4745,12 +4823,12 @@ window.emergencyClearData = async function() {
             // 8. Langsung lakukan reload bersih ke halaman utama (tanpa menimpa HTML tombol yang bikin nyangkut)
             window.location.replace(window.location.origin + window.location.pathname);
             
-			// 9. Panggil fungsi tombol Ganti User secara langsung agar UI tertutup
-			const switchUserBtn = document.getElementById('switchUserBtn');
+                        // 9. Panggil fungsi tombol Ganti User secara langsung agar UI tertutup
+                        const switchUserBtn = document.getElementById('switchUserBtn');
             if (switchUserBtn) {
                 switchUserBtn.click();
             }
-			
+                        
         } catch (e) {
             console.error('Error saat membersihkan data:', e);
             // Fallback darurat jika terjadi kendala

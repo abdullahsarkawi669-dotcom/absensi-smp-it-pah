@@ -352,3 +352,22 @@
             }
         });
     });
+
+// Pecah 'JP x-y' menjadi 'JP x', 'JP x+1', ... agar terbaca mesin scan
+Object.keys(jadwalPelajaran).forEach(hari => {
+  Object.keys(jadwalPelajaran[hari]).forEach(jpKey => {
+    const m = jpKey.match(/^JP (\d+)-(\d+)$/);
+    if (m) {
+      const mapel = jadwalPelajaran[hari][jpKey];
+      for (let i = +m[1]; i <= +m[2]; i++) {
+        const single = 'JP ' + i;
+        if (!jadwalPelajaran[hari][single] || !Object.keys(jadwalPelajaran[hari][single]).length)
+          jadwalPelajaran[hari][single] = {};
+        // jangan timpa yang sudah ada (hardcode tunggal lebih spesifik)
+        Object.keys(mapel).forEach(kelas => {
+          if (!jadwalPelajaran[hari][single][kelas]) jadwalPelajaran[hari][single][kelas] = mapel[kelas];
+        });
+      }
+    }
+  });
+});
