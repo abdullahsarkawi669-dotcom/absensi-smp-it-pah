@@ -78,7 +78,8 @@ function getCurrentWITA() {
 }
 
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbyDUhvJSy5J4rudBsB9d7BCFYDGz_4OOp83J8IHKAT4eKnzVBtJJJeGiH7YFsXFM7MneA/exec';
+        //'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
         //'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
         //'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
