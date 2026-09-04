@@ -86,7 +86,8 @@ function getLocalDateString(d = getCurrentWITA()) {
 
 
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
+	//'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
 	//'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
 // Fungsi untuk mendapatkan tanggal lokal YYYY-MM-DD (WITA)
@@ -1731,24 +1732,35 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
             }
         }
 
-        // ----------------------------------------------------------
+		// ----------------------------------------------------------
         // UPDATE ACTIVE TEACHING
         // ----------------------------------------------------------
         if (action === 'masuk' && jKeluar !== '00:00') {
-            const activeTeachingData = {
-                class: formattedClass,
-                subject: subject,
-                jp: jpFinal,
-                masuk: jMasuk,
-                keluar: jKeluar,
-                notified: false,
-                rawClass: classCode,
-                keluarScanned: false,
-                date: dateStr
-            };
-            localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeachingData));
-            updateNextClassInfo();
-            checkActiveTeachingForIzinKasus();
+            // FIX: Cek apakah saat ini sudah lewat dari batas auto-checkout
+            let keluarMins = parseTimeToMins(jKeluar);
+            let isPembiasaan = jpFinal === 'Pembiasaan Pagi';
+            let triggerMins = isPembiasaan ? parseTimeToMins('07:29') : (keluarMins + 20);
+            let currentMins = now.getHours() * 60 + now.getMinutes();
+
+            // Hanya kunci kelas jika belum masuk masa auto-checkout
+            if (currentMins < triggerMins) {
+                const activeTeachingData = {
+                    class: formattedClass,
+                    subject: subject,
+                    jp: jpFinal,
+                    masuk: jMasuk,
+                    keluar: jKeluar,
+                    notified: false,
+                    rawClass: classCode,
+                    keluarScanned: false,
+                    date: dateStr
+                };
+                localStorage.setItem('activeTeaching_' + currentUser, JSON.stringify(activeTeachingData));
+                updateNextClassInfo();
+                checkActiveTeachingForIzinKasus();
+            } else {
+                showToast('Waktu mengajar sesi ini telah usai. Kunci kelas ditiadakan.', 'info');
+            }
         }
 
         // ----------------------------------------------------------
@@ -1773,7 +1785,20 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
         const id = await saveAttendanceLocal(record);
         record.id = id;
 
-        showScanResult(
+		// FIX: Hapus kuncian kelas secara lokal TERLEPAS dari status internet
+        if (action === 'keluar') {
+            const actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+            if (actTeach && actTeach.class === formattedClass && actTeach.jp === jpFinal) {
+                localStorage.removeItem('activeTeaching_' + currentUser);
+                const timerCard = document.getElementById('activeClassTimerCard');
+                if (timerCard) timerCard.classList.add('hidden');
+                checkActiveTeachingForIzinKasus();
+                currentMode = null;
+                updateScanModeUI();
+            }
+        }
+		
+        showScanResult( // (Tampilkan notifikasi berhasil lokal)
             ket
                 ? `${action === 'masuk' ? '✅ In' : '🚪 Out'} ${formattedClass} (${ket})`
                 : `${action === 'masuk' ? '✅ In' : '🚪 Out'} ${formattedClass} (${subject})`,
@@ -1790,17 +1815,17 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
 
                 showScanResult('✅ Data terkirim ke Server dan tersimpan sekali.', 'success');
 
-                if (action === 'keluar') {
-                    const actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
-                    if (actTeach && actTeach.class === formattedClass && actTeach.jp === jpFinal) {
-                        localStorage.removeItem('activeTeaching_' + currentUser);
-                        const timerCard = document.getElementById('activeClassTimerCard');
-                        if (timerCard) timerCard.classList.add('hidden');
-                        checkActiveTeachingForIzinKasus();
-                        currentMode = null;
-                        updateScanModeUI();
-                    }
-                }
+                //if (action === 'keluar') {
+                //    const actTeach = JSON.parse(localStorage.getItem('activeTeaching_' + currentUser) || "null");
+                //    if (actTeach && actTeach.class === formattedClass && actTeach.jp === jpFinal) {
+                //        localStorage.removeItem('activeTeaching_' + currentUser);
+                //        const timerCard = document.getElementById('activeClassTimerCard');
+                //        if (timerCard) timerCard.classList.add('hidden');
+                //        checkActiveTeachingForIzinKasus();
+                //        currentMode = null;
+                //        updateScanModeUI();
+                //    }
+                //}
             } else {
                 showScanResult('⚠️ Data tersimpan lokal. Gagal kirim ke server; tidak dibuat kiriman kedua.', 'warning');
             }
