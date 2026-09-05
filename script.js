@@ -78,8 +78,7 @@ function getCurrentWITA() {
 }
 
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbyDUhvJSy5J4rudBsB9d7BCFYDGz_4OOp83J8IHKAT4eKnzVBtJJJeGiH7YFsXFM7MneA/exec';
-        //'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
         //'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
         //'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
@@ -1179,17 +1178,23 @@ function updateScanModeUI() {
         }
     }
 
+    // PASTIKAN: Cek jika kelas selanjutnya mulai dalam waktu <= 5 Menit
+    // (komputasi dipindah ke atas agar bisa dipakai untuk relaksasi kunci currentMode)
+    let isNextClassNear = nextClass && ((nextClass.masukMins - currentMins) <= 5);
+
     // Set Status Mode Terkini
     if (activeTeaching && !isPastEndTime) {
-        currentMode = 'keluar';
+        // Jangan paksa 'keluar' bila kelas berikutnya sudah dekat waktu mulainya.
+        // Guru dibebaskan untuk scan MASUK kelas berikutnya; kelas aktif akan di-auto-checkout
+        // otomatis dengan keterangan 'lupa scan keluar' (lihat processScan & executeFinalScanRecord).
+        if (!isNextClassNear) {
+            currentMode = 'keluar';
+        }
     } else if (!activeTeaching) {
         // Biarkan currentMode sesuai pilihan terakhir user, jangan dipaksa otomatis pindah ke 'masuk' 
         // jika mereka sedang mencoba menekan tab 'keluar'.
         if (currentMode !== 'masuk' && currentMode !== 'keluar') currentMode = 'masuk';
     }
-
-    // PASTIKAN: Cek jika kelas selanjutnya mulai dalam waktu <= 5 Menit
-    let isNextClassNear = nextClass && ((nextClass.masukMins - currentMins) <= 5);
 
     // ==========================================================
     // LOGIKA TEKS, BUKA KUNCIAN, & ANIMASI
@@ -1212,10 +1217,10 @@ function updateScanModeUI() {
                 keluarClass = 'btn btn-sm'; 
                 
                 if (isNextClassNear) {
-                    // Transisi: Harus keluar, tapi kelas berikutnya mau mulai
+                    // Transisi: Boleh scan MASUK kelas berikutnya; kelas aktif otomatis di-checkout.
                     masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk Kelas ${nextClass.class}`;
                     masukClass = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
-                    document.getElementById('scanInstruction').innerHTML = `Fokus scan <b>KELUAR</b> terlebih dahulu sebelum menuju kelas ${nextClass.class}.`;
+                    document.getElementById('scanInstruction').innerHTML = `Bisa langsung scan <b>MASUK</b> kelas <b>${nextClass.class}</b>. Kelas <b>${activeTeaching.class}</b> akan otomatis di-checkout dengan keterangan <i>'lupa scan keluar'</i>.`;
                 } else {
                     masukClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
                     document.getElementById('scanInstruction').innerHTML = `Waktu kelas <b>${activeTeaching.class}</b> hampir/telah habis. Silakan scan <b>KELUAR</b>.`;
@@ -1228,7 +1233,7 @@ function updateScanModeUI() {
                 if (isNextClassNear) {
                     masukText = `<i class="fa-solid fa-arrow-right-to-bracket"></i> Scan Masuk Kelas ${nextClass.class}`;
                     masukClass = currentMode === 'masuk' ? 'btn btn-sm btn-primary' : 'btn btn-sm btn-outline';
-                    document.getElementById('scanInstruction').innerHTML = `Kelas <b>${nextClass.class}</b> akan segera dimulai. Jangan lupa <b>KELUAR</b> dari kelas saat ini.`;
+                    document.getElementById('scanInstruction').innerHTML = `Kelas <b>${nextClass.class}</b> akan segera dimulai. Boleh langsung scan <b>MASUK</b>; kelas <b>${activeTeaching.class}</b> otomatis di-checkout (<i>'lupa scan keluar'</i>).`;
                 } else {
                     masukClass = 'btn btn-sm btn-outline opacity-50 pointer-events-none';
                     document.getElementById('scanInstruction').innerHTML = `Anda sedang mengajar di kelas <b>${activeTeaching.class}</b>`;
@@ -1286,7 +1291,9 @@ function updateScanModeUI() {
     
     if (isKeluarAnimated) {
         btnKeluar.classList.add('btn-pulse-red');
-        if (currentMode !== 'keluar') { currentMode = 'keluar'; btnKeluar.classList.remove('btn-outline'); }
+        // Jangan paksa 'keluar' jika kelas berikutnya sudah dekat — guru boleh scan MASUK kelas berikutnya
+        // dan kelas aktif akan di-auto-checkout dengan keterangan 'lupa scan keluar'.
+        if (currentMode !== 'keluar' && !isNextClassNear) { currentMode = 'keluar'; btnKeluar.classList.remove('btn-outline'); }
     }
 }
 
@@ -1617,10 +1624,70 @@ let activeBlock = null;
             document.getElementById('btnGuruPengganti').onclick = () => {
                 document.getElementById('modalOverlay').classList.add('hidden');
                 document.getElementById('keteranganInput').value = "Guru Pengganti";
-                executeFinalScanRecord(classCode, "Guru Pengganti", 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
+                executeFinalScanRecord(classCode, "Guru Pengganti", 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now, autoCheckoutKet);
             };
             return;
         }
+
+        // =========================================================
+        // --- AUTO-OVERRIDE: Guru lupa scan keluar, langsung scan masuk kelas berikutnya ---
+        // =========================================================
+        // Skenario: Guru terkunci di kelas A (activeTeaching) tetapi lupa scan KELUAR.
+        // Saat guru scan QR kelas B (kelas berikutnya sesuai data_jadwal.js), sistem
+        // meng-override aksi menjadi MASUK. Auto-checkout kelas A akan otomatis
+        // dijalankan di executeFinalScanRecord dengan keterangan:
+        //   • 'lupa scan keluar'   bila selisih waktu scan dengan jMasuk B <= 5 menit
+        //   • 'tidak scan keluar'  bila guru terlambat 6+ menit dari jMasuk B
+        //
+        // Syarat (semua wajib dipenuhi):
+        //   1. activeTeaching exists & !keluarScanned (guru masih terkunci di A).
+        //   2. mapelFinal ditemukan untuk kelas B di jadwal guru (bukan 'Di Luar Jadwal').
+        //   3. kelas B berbeda dari kelas A (bukan anggota kopel Tahfizh/PJOK yang sama).
+        //   4. timeMins >= jMasukMins - 5
+        //      (boleh terlambat berapa pun, tetapi maksimal 5 menit lebih cepat).
+        //
+        // Catatan: pengecekan ini DILAKUKAN SEBELUM cek terlambat, sehingga
+        // keterlambatan (bila ada) tetap dicatat di kelas B (kelas kedua).
+        //
+        // Jika syarat 4 tidak terpenuhi (terlalu cepat 6+ menit), override DITOLAK.
+        // Guru wajib scan KELUAR kelas A secara manual terlebih dahulu.
+        let autoCheckoutKet = 'lupa scan keluar'; // default; akan di-override sesuai selisih waktu
+        if (activeTeaching && !activeTeaching.keluarScanned && mapelFinal && mapelFinal !== 'Di Luar Jadwal') {
+            const activeRawClass = activeTeaching.rawClass || (activeTeaching.class || '').split(',')[0].replace(/[()]/g, '');
+            const newFormattedClass = formatKopelClass(classCode, mapelFinal);
+            if (activeRawClass !== classCode && activeTeaching.class !== newFormattedClass) {
+                const jMasukMins = parseTimeToMins(jMasuk);
+                if (jMasukMins > 0) {
+                    const diffMins = timeMins - jMasukMins; // positif = telat, negatif = lebih cepat
+                    const absDiff = Math.abs(diffMins);
+
+                    if (diffMins >= -5) {
+                        // Override DIIZINKAN.
+                        // - Terlambat berapa pun (diffMins >= 0): tetap diizinkan.
+                        // - Lebih cepat maksimal 5 menit (-5 <= diffMins < 0): diizinkan.
+                        if (diffMins > 5) {
+                            // Terlambat 6+ menit dari jMasuk B → kelas A dicatat 'tidak scan keluar'.
+                            autoCheckoutKet = 'tidak scan keluar';
+                        } else {
+                            // Dalam rentang -5 s/d +5 menit dari jMasuk B → kelas A dicatat 'lupa scan keluar'.
+                            autoCheckoutKet = 'lupa scan keluar';
+                        }
+                        if (currentMode === 'keluar') {
+                            console.log(`[Auto-Override] ${activeTeaching.class} → MASUK ${classCode}. diff=${diffMins} min, ket='${autoCheckoutKet}'.`);
+                            currentMode = 'masuk';
+                            showToast(`🔄 Auto-checkout kelas ${activeTeaching.class} ('${autoCheckoutKet}') + scan MASUK ${classCode}...`, 'info');
+                        }
+                    } else {
+                        // Terlalu cepat (diffMins < -5, artinya 6+ menit sebelum jMasuk B): override DITOLAK.
+                        console.warn(`[Auto-Override DITOLAK] Scan ${absDiff} menit sebelum jMasuk ${classCode} (${jMasuk}). Batas maksimal 5 menit lebih awal.`);
+                        showScanResult(`⚠️ Auto-checkout ditolak. Anda scan ${absDiff} menit sebelum awal JP kelas <b>${classCode}</b> (jadwal masuk: ${jMasuk}). Batas maksimal 5 menit lebih awal. Silakan scan <b>KELUAR</b> kelas ${activeTeaching.class} terlebih dahulu atau tunggu mendekati jadwal masuk.`, 'error');
+                        playBeepWarning();
+                        return;
+                    }
+                }
+            }
+        }
+        // =========================================================
 
         // =========================================================
         // --- AWAL TAMBAHAN LOGIKA CEK TERLAMBAT SAAT SCAN ---
@@ -1647,7 +1714,7 @@ let activeBlock = null;
                 let finalKet = ket ? `${ket} | Telat: ${alasan}` : `Telat: ${alasan}`;
                 
                 // Lanjutkan proses simpan ke database dengan membawa alasan telat
-                executeFinalScanRecord(classCode, finalKet, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
+                executeFinalScanRecord(classCode, finalKet, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now, autoCheckoutKet);
             }, "");
             
             // Wajib diberi return agar baris executeFinalScanRecord reguler di bawah tidak ikut tereksekusi
@@ -1658,10 +1725,10 @@ let activeBlock = null;
         // =========================================================
 
         // Jika tidak telat, proses akan lurus saja mengeksekusi baris ini secara instan
-        executeFinalScanRecord(classCode, ket, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now);
+        executeFinalScanRecord(classCode, ket, mapelFinal || 'Di Luar Jadwal', jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now, autoCheckoutKet);
     }
 
-async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now) {
+async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, jKeluar, dateStr, timeStr, day, now, autoCheckoutKet) {
     if (scanInProgress) {
         showScanResult('⏳ Scan sedang diproses. Jangan scan ulang.', 'warning');
         return;
@@ -1718,7 +1785,7 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
                     jadwal_masuk: activeTeaching.masuk || '-',
                     jadwal_keluar: activeTeaching.keluar || '-',
                     timestamp: now.toISOString(),
-                    keterangan: 'lupa absen keluar',
+                    keterangan: autoCheckoutKet || 'lupa scan keluar',
                     synced: false
                 };
 
@@ -3242,7 +3309,7 @@ function renderLiveMonitor() {
             if (d.action === 'keluar') { 
                 grouped[key].waktu_keluar = d.time; 
                 grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
-                if (d.keterangan === 'Lupa scan keluar pada riwayat kelas sebelumnya') {
+                if (d.keterangan && (d.keterangan.toLowerCase().includes('lupa scan keluar') || d.keterangan.toLowerCase().includes('tidak scan keluar'))) {
                     grouped[key].isLupa = true;
                 }
             }
@@ -3379,7 +3446,7 @@ function renderLiveMonitor() {
                 grouped[key].waktu_keluar = d.time; 
                 grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
                 grouped[key].action_keluar = true; 
-                if (d.keterangan && d.keterangan.toLowerCase().includes('lupa')) grouped[key].isLupa = true;
+                if (d.keterangan && (d.keterangan.toLowerCase().includes('lupa') || d.keterangan.toLowerCase().includes('tidak scan'))) grouped[key].isLupa = true;
             }
             grouped[key].mapel = d.subject || grouped[key].mapel;
         });
