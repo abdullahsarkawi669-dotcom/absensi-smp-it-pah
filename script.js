@@ -826,6 +826,7 @@ function getLocalHistory(teacher, date) {
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
 // Tambahkan targetDate pada getGroupedSchedule
+// Tambahkan targetDate pada getGroupedSchedule
 function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Date()) {
     let blocks = [];
     if (isLiburSekolah(targetDate)) return blocks; 
@@ -850,7 +851,12 @@ function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Dat
                 if (currentBlock && currentBlock.class === formattedClass && currentBlock.mapel === mapel && currentBlock.jps[0] !== 'Pembiasaan Pagi') {
                     let lastJp = currentBlock.jps[currentBlock.jps.length - 1];
                     let currJpNum = parseInt(jp.replace('JP ', ''));
-                    if (lastJp === currJpNum - 1) isSequential = true;
+                    
+                    // PERBAIKAN: Jadwal hanya digabung jika berurutan DAN TIDAK ADA JEDA WAKTU (Jam istirahat)
+                    // (Jam masuk JP sekarang harus sama persis dengan jam keluar JP sebelumnya)
+                    if (lastJp === currJpNum - 1 && currentBlock.keluar === jadwal[jp].masuk) {
+                        isSequential = true;
+                    }
                 }
 
                 if (isSequential) {
@@ -3252,20 +3258,188 @@ function renderLiveMonitor() {
         }
     });
         
-    async function loadAdminData() {
+// === FUNGSI GENERATE TRACK RECORD MENDETAIL ===
+// === FUNGSI GENERATE TRACK RECORD MENDETAIL (BERDASARKAN DATA_JADWAL.JS) ===
+// === FUNGSI GENERATE TRACK RECORD MENDETAIL (BERDASARKAN DATA_JADWAL.JS) ===
+window.generateDetailedTrackRecord = function(serverData, filterPeriod, targetTeacher = 'all') {
+    const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+    const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+    const todayStr = getLocalDateString(new Date());
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    let startDate = new Date();
+    let endDate = new Date(); 
+    
+    const isMonthPick = /^\d{4}-\d{2}$/.test(filterPeriod);
+    if (isMonthPick) {
+        const [yStr, mStr] = filterPeriod.split('-');
+        startDate = new Date(Number(yStr), Number(mStr) - 1, 1);
+        endDate = new Date(Number(yStr), Number(mStr), 0); 
+    } else if (filterPeriod === 'day') {
+        startDate = new Date();
+    } else if (filterPeriod === 'week') {
+        startDate = new Date();
+        startDate.setDate(startDate.getDate() - startDate.getDay() + 1);
+        endDate = new Date(startDate);
+        endDate.setDate(endDate.getDate() + 6); // Sampai hari Ahad
+    } else if (filterPeriod === 'month') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (filterPeriod === 'semester') {
+        startDate = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
+        endDate = new Date(now.getFullYear(), now.getMonth() < 6 ? 6 : 12, 0);
+    } else if (filterPeriod === 'all') {
+        startDate = new Date(now.getFullYear(), 6, 1);
+        endDate = new Date(now.getFullYear() + 1, 5, 30);
+    }
+    
+    startDate.setHours(0,0,0,0);
+    endDate.setHours(0,0,0,0);
+    
+    let allRecords = [];
+
+    TEACHERS.forEach(teacher => {
+        if (teacher.name === 'Budiman, S. Pd.') return;
+        if (targetTeacher !== 'all' && teacher.name !== targetTeacher) return;
+
+        let tempDate = new Date(startDate);
+        while (tempDate <= endDate) {
+            let dStr = getLocalDateString(tempDate);
+            
+            // Eksekusi jika bukan hari minggu dan bukan libur sekolah
+            if (tempDate.getDay() !== 0 && !isLiburSekolah(tempDate)) {
+                let dayName = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][tempDate.getDay()];
+                let blocks = getGroupedSchedule(teacher.name, dayName, 0, tempDate);
+                
+                blocks.forEach(b => {
+                    let masukMins = parseTimeToMins(b.masuk);
+                    
+                    // CEK APAKAH SESI INI BELUM WAKTUNYA (Future / Grace Period)
+                    // Jika tanggalnya besok, atau hari ini tapi belum lewat 15 menit dari jadwal masuk
+                    let isFuture = (dStr > todayStr) || (dStr === todayStr && currentMins < (masukMins + 15));
+
+                    let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
+                    let formattedClass = formatKopelClass(b.class, b.mapel);
+                    
+                    let matchedMasuk = null;
+                    let matchedKeluar = null;
+
+                    const dailyData = serverData.filter(d => {
+                        let dDateStr = d.date.includes('T') ? d.date.split('T')[0] : d.date;
+                        return dDateStr === dStr && d.teacher === teacher.name;
+                    });
+                    
+                    const isOverlap = (recordJp, checkJps) => {
+                        if (!recordJp) return false;
+                        let rJps = recordJp.replace('JP ', '').split('-');
+                        let rStart = parseInt(rJps[0]);
+                        let rEnd = rJps.length > 1 ? parseInt(rJps[1]) : rStart;
+                        return checkJps.some(j => j >= rStart && j <= rEnd);
+                    };
+
+                    dailyData.forEach(d => {
+                        if (isOverlap(d.jp, b.jps)) {
+                            let serverClass = (d.class || "").replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
+                            let kopelArray = formattedClass.replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
+                            
+                            let classMatch = false;
+                            if (kopelArray.some(c => serverClass.includes(c))) classMatch = true;
+                            
+                            let mapelStr = (b.mapel || "").toLowerCase();
+                            let hMapelStr = (d.subject || "").toLowerCase();
+                            
+                            if (!classMatch && mapelStr.includes('tahfiz') && hMapelStr.includes('tahfiz')) {
+                                const kopelTahfizh = [['7a', '7b', '7c'], ['7d', '7e', '8a'], ['8b', '8c', '8d', '8e'], ['9a', '9b', '9c', '9d']];
+                                for (let group of kopelTahfizh) {
+                                    if (group.some(c => kopelArray.includes(c)) && group.some(c => serverClass.includes(c))) {
+                                        classMatch = true; break;
+                                    }
+                                }
+                            }
+                            if (!classMatch && mapelStr.includes('pjok') && hMapelStr.includes('pjok') && teacher.name === 'M. Tahir, M. Pd.') {
+                                const kopelPJOK = [['9a', '9b'], ['9c', '9d'], ['7d', '7e'], ['7a', '7b'], ['8a', '8b'], ['7c', '8e']];
+                                for (let group of kopelPJOK) {
+                                    if (group.some(c => kopelArray.includes(c)) && group.some(c => serverClass.includes(c))) {
+                                        classMatch = true; break;
+                                    }
+                                }
+                            }
+                            
+                            if (classMatch) {
+                                if (d.action === 'masuk') matchedMasuk = d;
+                                if (d.action === 'keluar') matchedKeluar = d;
+                            }
+                        }
+                    });
+
+                    let telatMenit = 0;
+                    let cepatMenit = 0;
+                    
+                    if (matchedMasuk && matchedMasuk.time) {
+                        let wM = parseTimeToMins(matchedMasuk.time);
+                        if (masukMins > 0 && wM > 0) {
+                            let diff = wM - masukMins;
+                            if (diff > tolMasuk) telatMenit = diff - tolMasuk;
+                        }
+                    }
+                    
+                    if (matchedKeluar && matchedKeluar.time) {
+                        let kMins = parseTimeToMins(b.keluar);
+                        let wK = parseTimeToMins(matchedKeluar.time);
+                        if (kMins > 0 && wK > 0) {
+                            let diff = kMins - wK;
+                            if (diff > tolKeluar) cepatMenit = diff - tolKeluar;
+                        }
+                    }
+
+                    // Tanda x (Alpa) HANYA muncul jika belum ada rekam masuk DAN jadwalnya sudah lewat
+                    let tidakScanMasuk = !matchedMasuk && !isFuture;
+                    
+                    allRecords.push({
+                        teacher: teacher.name,
+                        date: dStr,
+                        jp: jpStr,
+                        jpStartNum: b.jps[0] === 'Pembiasaan Pagi' ? 0 : b.jps[0],
+                        class: formattedClass,
+                        mapel: b.mapel,
+                        waktu_jadwal_masuk: b.masuk,
+                        waktu_jadwal_keluar: b.keluar,
+                        waktu_masuk: matchedMasuk ? matchedMasuk.time : '-',
+                        waktu_keluar: matchedKeluar ? matchedKeluar.time : '-',
+                        telat: telatMenit,
+                        cepat: cepatMenit,
+                        tidakScanMasuk: tidakScanMasuk,
+                        isFuture: isFuture, // Disimpan agar tahu ini jadwal masa depan/baru mulai
+                        ket: matchedMasuk ? matchedMasuk.keterangan || '-' : '-'
+                    });
+                });
+            }
+            tempDate.setDate(tempDate.getDate() + 1);
+        }
+    });
+
+    allRecords.sort((a, b) => {
+        if (a.teacher !== b.teacher) return a.teacher.localeCompare(b.teacher);
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.jpStartNum - b.jpStartNum;
+    });
+
+    return allRecords;
+};
+		
+async function loadAdminData() {
         if (!isAdmin) return;
-        
         const tbody = document.getElementById('adminBody');
-        // Catatan: card 'Rekap Guru Tidak Scan Masuk Hari Ini' (#adminMissedClassesCard)
-        // sudah dihapus dari DOM. Fungsi buildAdminMissedClasses() & copyRekapWA()
-        // tetap dipertahankan sebagai no-op agar tidak mematahkan referensi global.
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
+        
+        const tableHead = document.querySelector('#adminBody').closest('table').querySelector('thead tr');
+        tableHead.innerHTML = '<th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Alasan Telat</th><th>Cepat</th><th class="text-center">Tdk Scan Masuk</th>';
+        
+        tbody.innerHTML = '<tr><td colspan="11" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
         
         try {
             const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
             if (!res.success) throw new Error(res.error);
-            const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
-            const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
             
             res.data.forEach(d => {
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
@@ -3286,100 +3460,147 @@ function renderLiveMonitor() {
             
             currentServerDataCacheAdmin = res.data;
             renderLiveMonitor(); 
-            // buildAdminMissedClasses() tidak dipanggil lagi: card rekap missed
-            // classes telah dihapus dari dashboard ADMIN sesuai permintaan user.
             
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
             const filterPeriod = document.getElementById('adminPeriodFilter').value;
-            const todayStr = new Date().toISOString().split('T')[0];
-            // Deteksi apakah filterPeriod berformat YYYY-MM (mis. 2026-07)
-            // untuk rekap bulan spesifik seperti pada tab MASTER ADMIN (Agus).
-            const isMonthPick = /^\d{4}-\d{2}$/.test(filterPeriod);
-            let monthStart = null, monthEnd = null;
-            if (isMonthPick) {
-                const [yStr, mStr] = filterPeriod.split('-');
-                const y = Number(yStr), m = Number(mStr);
-                monthStart = new Date(y, m - 1, 1);
-                monthEnd = new Date(y, m, 1); // tanggal 1 bulan berikutnya (eksklusif)
-            }
-            let filtered = res.data.filter(d => {
-                if (filterTeacher !== 'all' && d.teacher !== filterTeacher) return false;
-                if (isMonthPick) {
-                    const dd = new Date(d.date + 'T00:00:00');
-                    return dd >= monthStart && dd < monthEnd;
+            
+            const allRecords = generateDetailedTrackRecord(res.data, filterPeriod, filterTeacher);
+            
+            // PISAHKAN DATA REGULER DAN PEMBIASAAN PAGI
+            const mainRecords = allRecords.filter(g => g.jp !== 'Pembiasaan Pagi');
+            const pembiasaanRecords = allRecords.filter(g => g.jp === 'Pembiasaan Pagi');
+            
+            let tLate = 0, tEarly = 0, tLupa = 0, visibleRecords = 0; 
+            tbody.innerHTML = '';
+            
+            // RENDER TABEL UTAMA (TANPA PEMBIASAAN PAGI)
+            mainRecords.forEach(g => {
+                if (adminViewMode === 'late' && g.telat <= 0) return;
+                if (adminViewMode === 'early' && g.cepat <= 0) return;
+                if (adminViewMode === 'tidakscanmasuk' && !g.tidakScanMasuk) return;
+                
+                if (g.tidakScanMasuk) tLupa++;
+                tLate += g.telat; tEarly += g.cepat; visibleRecords++;
+
+                let alasanText = g.ket !== '-' ? g.ket : '-';
+                if (alasanText.startsWith('Telat: ')) {
+                    alasanText = alasanText.substring(7).trim();
                 }
-                if (filterPeriod === 'day') return d.date === todayStr;
-                if (filterPeriod === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
-                if (filterPeriod === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-                if (filterPeriod === 'semester') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
-                return true;
+                
+                let tandaX = g.tidakScanMasuk ? 'x' : '-';
+                if (g.isFuture && g.waktu_masuk === '-') {
+                    tandaX = '<span class="text-xs text-gray-400">Belum Waktunya</span>';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${g.date}</td>
+                    <td class="font-bold">${g.teacher}</td>
+                    <td>${g.mapel}</td>
+                    <td>${g.class}</td>
+                    <td class="font-bold">${g.jp}</td>
+                    <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.waktu_jadwal_masuk}</span></td>
+                    <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.waktu_jadwal_keluar}</span></td>
+                    <td class="${g.telat > 0 ? 'text-danger font-bold' : ''}">${g.telat > 0 ? g.telat : '-'}</td>
+                    <td class="text-xs ${g.telat > 0 ? 'text-danger font-bold' : ''}" style="max-width: 150px; word-wrap: break-word;">${alasanText}</td>
+                    <td class="${g.cepat > 0 ? 'text-warning font-bold' : ''}">${g.cepat > 0 ? g.cepat : '-'}</td>
+                    <td class="text-center ${g.tidakScanMasuk ? 'text-danger font-bold text-xl' : ''}">${tandaX}</td>`;
+                tbody.appendChild(tr);
+            });
+            
+            if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
+
+            document.getElementById('adminStatTotal').textContent = visibleRecords; 
+            document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
+            document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
+            document.getElementById('adminStatLupa').textContent = tLupa + ' Kali';
+
+            // ==============================================================
+            // RENDER TABEL KHUSUS PEMBIASAAN PAGI DI BAWAHNYA
+            // ==============================================================
+            let pembiasaanContainer = document.getElementById('adminPembiasaanContainer');
+            if (!pembiasaanContainer) {
+                const adminCard = tbody.closest('.card');
+                pembiasaanContainer = document.createElement('div');
+                pembiasaanContainer.id = 'adminPembiasaanContainer';
+                pembiasaanContainer.className = 'mt-6 pt-4 border-t-2 border-dashed border-emerald-200';
+                pembiasaanContainer.innerHTML = `
+                    <div class="card-header text-emerald-700 mb-3" style="font-size: 0.95rem;">
+                        <span><i class="fa-solid fa-sun"></i> Rekap Pembiasaan Pagi (Khusus Wali Kelas)</span>
+                    </div>
+                    <div class="table-wrap" style="max-height:300px;overflow-y:auto;">
+                        <table>
+                            <thead class="bg-emerald-50">
+                                <tr>
+                                    <th>Wali Kelas</th>
+                                    <th>Kelas</th>
+                                    <th class="text-center">Total Sesi<br><span style="font-size:0.65rem; font-weight:normal;">(Wajib Absen)</span></th>
+                                    <th class="text-center">Tepat</th>
+                                    <th class="text-center">Telat</th>
+                                    <th class="text-center">Tdk Scan<br>(Alpa)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminPembiasaanBody"></tbody>
+                        </table>
+                    </div>
+                `;
+                adminCard.appendChild(pembiasaanContainer);
+            }
+
+            const pembiasaanBody = document.getElementById('adminPembiasaanBody');
+            pembiasaanBody.innerHTML = '';
+
+            // Siapkan Map Khusus Wali Kelas
+            const waliMap = {};
+            for (let w in WALI_KELAS_MAP) {
+                waliMap[w] = { name: w, class: WALI_KELAS_MAP[w], total: 0, tepat: 0, telat: 0, lupa: 0 };
+            }
+
+            // Agregasi Data Pembiasaan
+            pembiasaanRecords.forEach(g => {
+                if (waliMap[g.teacher] && !g.isFuture) {
+                    waliMap[g.teacher].total++;
+                    if (g.tidakScanMasuk) waliMap[g.teacher].lupa++;
+                    else if (g.telat > 0) waliMap[g.teacher].telat++;
+                    else waliMap[g.teacher].tepat++;
+                }
             });
 
-            const grouped = {};
-        filtered.forEach(d => {
-            if (!d.date || !d.teacher || !d.jp) return;
-            const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
-            if (!grouped[key]) grouped[key] = { date: d.date, teacher: d.teacher, subject: d.subject, class: d.class, jp: d.jp, jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-', waktu_masuk: '-', waktu_keluar: '-', isLupa: false };
-            if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; }
-            if (d.action === 'keluar') { 
-                grouped[key].waktu_keluar = d.time; 
-                grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
-                // Tandai 'Tidak Scan Masuk' bila ada keterangan auto-checkout:
-                //   - 'lupa scan keluar' (frontend, pindah kelas <=5 menit)
-                //   - 'tidak scan keluar' (frontend, pindah kelas 6+ menit)
-                //   - 'Auto-checkout Sistem' (server-side, code.gs)
-                if (d.keterangan) {
-                    const ketLow = d.keterangan.toLowerCase();
-                    if (ketLow.includes('lupa') || ketLow.includes('tidak scan') || ketLow.includes('auto-checkout')) {
-                        grouped[key].isLupa = true;
-                    }
-                }
+            // Terapkan Filter Guru (jika ada) dan Urutkan
+            let waliArray = Object.values(waliMap);
+            if (filterTeacher !== 'all') {
+                waliArray = waliArray.filter(w => w.name === filterTeacher);
             }
-        });
 
-        let tLate = 0, tEarly = 0, tLupa = 0, visibleRecords = 0; 
-        tbody.innerHTML = '';
-        const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || a.teacher.localeCompare(b.teacher));
-        
-        finalData.forEach(g => {
-            let telatMenit = 0, cepatMenit = 0;
-            let jM = parseTimeToMins(g.jadwal_masuk), wM = parseTimeToMins(g.waktu_masuk);
-            if (jM > 0 && wM > 0) { let diff = wM - jM; if (diff > tolMasuk) telatMenit = diff - tolMasuk; }
-            let jK = parseTimeToMins(g.jadwal_keluar), wK = parseTimeToMins(g.waktu_keluar);
-            if (jK > 0 && wK > 0) { let diff = jK - wK; if (diff > tolKeluar) cepatMenit = diff - tolKeluar; }
-            
-            // Filter Logika
-            if (adminViewMode === 'late' && telatMenit <= 0) return;
-            if (adminViewMode === 'early' && cepatMenit <= 0) return;
-            if (adminViewMode === 'tidakscanmasuk' && !g.isLupa) return;
-            
-            if (g.isLupa) tLupa++;
-            tLate += telatMenit; tEarly += cepatMenit; visibleRecords++;
-
-            const badgeLupa = g.isLupa ? `<br><span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:0.7rem;">Tidak Scan Masuk</span>` : '';
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td class="font-bold">${g.jp}</td>
-                <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
-                <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
-                <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>
-                <td class="text-center ${g.isLupa?'text-danger font-bold':''}">${g.isLupa?'<i class="fa-solid fa-xmark"></i>':'-'}</td>`;
-            tbody.appendChild(tr);
-        });
-        
-        if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
-
-        document.getElementById('adminStatTotal').textContent = visibleRecords; 
-        document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
-        document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
-        document.getElementById('adminStatLupa').textContent = tLupa + ' Kali';
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
+            if (waliArray.length === 0) {
+                pembiasaanBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada data wali kelas untuk filter ini.</td></tr>';
+            } else {
+                waliArray.sort((a,b) => a.class.localeCompare(b.class)).forEach(w => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td class="font-bold">${w.name}</td>
+                        <td class="font-bold text-emerald-700">${w.class}</td>
+                        <td class="text-center font-bold text-primary">${w.total}</td>
+                        <td class="text-center ${w.tepat > 0 ? 'text-emerald-600 font-bold' : ''}">${w.tepat}</td>
+                        <td class="text-center ${w.telat > 0 ? 'text-warning font-bold' : ''}">${w.telat}</td>
+                        <td class="text-center ${w.lupa > 0 ? 'text-danger font-bold' : ''}">${w.lupa}</td>
+                    `;
+                    pembiasaanBody.appendChild(tr);
+                });
+            }
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
     }
 
-    function exportTableToExcel(tableId, filename = 'Data_Absensi.xls') {
-        const table = document.getElementById(tableId); if (!table) return;
-        const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table>${table.cloneNode(true).innerHTML}</table></body></html>`;
-        const blob = new Blob([template], { type: 'application/vnd.ms-excel' }); const url = URL.createObjectURL(blob);
+function exportTableToExcel(elementId, filename = 'Data_Absensi.xls') {
+        const el = document.getElementById(elementId); 
+        if (!el) return;
+        
+        // Ambil elemen tabel induk terdekat agar tag <thead> (Header Kolom) ikut terbawa
+        const table = el.closest('table') || el;
+        
+        const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1">${table.cloneNode(true).innerHTML}</table></body></html>`;
+        const blob = new Blob([template], { type: 'application/vnd.ms-excel' }); 
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
     }
     
@@ -3410,146 +3631,108 @@ function renderLiveMonitor() {
 
     document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
 
-    async function loadAgusData() {
-    if (!isAgus) return;
-    const tbody = document.getElementById('agusBody');
-    const period = document.getElementById('agusFilterPeriod').value;
-    const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
-    const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
-    
-    // Perbaikan struktur Header Tabel
-    const tableHead = document.querySelector('#agusBody').closest('table').querySelector('thead tr');
-    tableHead.innerHTML = '<th>Nama Guru</th><th>Mapel</th><th>Total Sesi</th><th>Telat (Mnt)</th><th>Cepat (Mnt)</th><th>Tidak Scan</th>';
-    
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
-    
-    try {
-        const response = await fetch(GAS_URL + '?action=getAbsensi');
-        const res = await response.json();
-        if (!res.success) throw new Error(res.error);
+async function loadAgusData() {
+        if (!isAgus) return;
+        const tbody = document.getElementById('agusBody');
+        const period = document.getElementById('agusFilterPeriod').value;
         
-        res.data.forEach(d => {
-            if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
-                let dt = new Date(d.date);
-                if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-            }
-            ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
-                if (d[k] && typeof d[k] === 'string') {
-                    if (d[k].includes('T')) {
-                        let dt = new Date(d[k]);
-                        if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
-                    } else {
-                        d[k] = d[k].replace(/\./g, ':'); 
+        const tableHead = document.querySelector('#agusBody').closest('table').querySelector('thead tr');
+        tableHead.innerHTML = '<th>Nama Guru</th><th class="text-center">Total Sesi<br><span style="font-size:0.65rem; font-weight:normal;">(Sudah Lewat)</span></th><th class="text-center">Tepat Waktu<br>(Sesi)</th><th class="text-center">Telat<br>(Mnt)</th><th class="text-center">Cepat<br>(Mnt)</th><th class="text-center">Tdk Scan<br>(Alpa)</th><th>Alasan Telat</th>';
+        
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengkalkulasi rekap dari jadwal sistem...</td></tr>';
+        
+        try {
+            const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
+            if (!res.success) throw new Error(res.error);
+            
+            res.data.forEach(d => {
+                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                    let dt = new Date(d.date);
+                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                }
+                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                    if (d[k] && typeof d[k] === 'string') {
+                        if (d[k].includes('T')) {
+                            let dt = new Date(d[k]);
+                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                        } else {
+                            d[k] = d[k].replace(/\./g, ':'); 
+                        }
+                    }
+                });
+            });
+            
+            const allRecords = window.generateDetailedTrackRecord(res.data, period, 'all');
+            const reportMap = {};
+            
+            TEACHERS.forEach(t => {
+                if (t.name === 'Budiman, S. Pd.') return;
+                reportMap[t.name] = { 
+                    name: t.name, 
+                    total_sesi: 0,
+                    tepat: 0,
+                    telat: 0, 
+                    cepat: 0, 
+                    lupa: 0,
+                    alasan: []
+                };
+            });
+            
+            allRecords.forEach(g => {
+                // PENGECUALIAN: Lewati Pembiasaan Pagi agar tidak masuk kalkulasi Master Admin
+                if (g.jp === 'Pembiasaan Pagi') return;
+
+                if (!reportMap[g.teacher]) return;
+                
+                if (!g.isFuture) {
+                    reportMap[g.teacher].total_sesi++;
+                    
+                    if (g.telat > 0) reportMap[g.teacher].telat += g.telat;
+                    if (g.cepat > 0) reportMap[g.teacher].cepat += g.cepat;
+                    
+                    if (g.tidakScanMasuk) {
+                        reportMap[g.teacher].lupa++;
+                    } else if (g.telat === 0 && g.cepat === 0) {
+                        reportMap[g.teacher].tepat++;
+                    }
+                    
+                    if (g.telat > 0 && g.ket && g.ket !== '-') {
+                        let alasanText = g.ket;
+                        if (alasanText.startsWith('Telat: ')) {
+                            alasanText = alasanText.substring(7).trim();
+                        }
+                        if (alasanText) {
+                            reportMap[g.teacher].alasan.push(alasanText);
+                        }
                     }
                 }
             });
-        });
-        
-        const now = new Date();
-        // Deteksi apakah period berformat YYYY-MM (mis. 2026-07) untuk rekap bulan spesifik
-        const isMonthPick = /^\d{4}-\d{2}$/.test(period);
-        let monthStart = null, monthEnd = null, monthLabel = '';
-        if (isMonthPick) {
-            const [yStr, mStr] = period.split('-');
-            const y = Number(yStr), m = Number(mStr);
-            monthStart = new Date(y, m - 1, 1);
-            monthEnd = new Date(y, m, 1); // tanggal 1 bulan berikutnya (eksklusif)
-            const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-            monthLabel = `${namaBulan[m - 1]} ${y}`;
-        }
-        let filtered = res.data.filter(d => {
-            if (!d.date) return false;
-            if (isMonthPick) {
-                // Rekap bulan spesifik (mis. Juli 2026, Agustus 2026, ...)
-                const dd = new Date(d.date + 'T00:00:00');
-                return dd >= monthStart && dd < monthEnd;
-            }
-            if (period === 'day') return d.date === now.toISOString().split('T')[0];
-            if (period === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
-            if (period === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-            if (period === 'semester') return d.date >= new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
-            return true;
-        });
-        
-        const grouped = {};
-        filtered.forEach(d => {
-            if (!d.date || !d.teacher || !d.jp) return;
-            const key = d.date + '_' + d.teacher + '_' + d.class + '_' + d.jp;
-            if (!grouped[key]) grouped[key] = {
-                date: d.date, teacher: d.teacher, mapel: d.subject || '-',
-                jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
-                waktu_masuk: '-', waktu_keluar: '-', action_masuk: false, action_keluar: false, isLupa: false
-            };
-            if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; grouped[key].action_masuk = true; }
-            // Deteksi keterangan 'Tidak Scan Masuk' / 'Alpa' yang tercatat pada aksi 'masuk'
-            if (d.action === 'masuk' && d.keterangan) {
-                const ketM = d.keterangan.toLowerCase();
-                if (ketM.includes('tidak scan') || ketM.includes('alpa')) grouped[key].isLupa = true;
-            }
-            if (d.action === 'keluar') { 
-                grouped[key].waktu_keluar = d.time; 
-                grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
-                grouped[key].action_keluar = true; 
-                // Tandai sebagai 'Tidak Scan' bila keluar tercatat karena auto-checkout sistem
-                // (lupa scan keluar / tidak scan keluar / Auto-checkout Sistem server-side).
-                if (d.keterangan) {
-                    const ketLow = d.keterangan.toLowerCase();
-                    if (ketLow.includes('lupa') || ketLow.includes('tidak scan') || ketLow.includes('auto-checkout')) {
-                        grouped[key].isLupa = true;
-                    }
-                }
-            }
-            grouped[key].mapel = d.subject || grouped[key].mapel;
-        });
-
-        const reportMap = {};
-        Object.values(grouped).forEach(g => {
-            if (!reportMap[g.teacher]) reportMap[g.teacher] = { name: g.teacher, mapel: g.mapel, total_sesi: 0, telat: 0, cepat: 0, lupa: 0 };
-            reportMap[g.teacher].total_sesi++;
             
-            if (g.isLupa) reportMap[g.teacher].lupa++;
+            tbody.innerHTML = '';
+            const finalData = Object.values(reportMap).sort((a,b) => a.name.localeCompare(b.name));
             
-            if (g.action_masuk && g.jadwal_masuk !== '-') {
-                let jM = parseTimeToMins(g.jadwal_masuk); let wM = parseTimeToMins(g.waktu_masuk);
-                if (jM > 0 && wM > 0) {
-                    let diff = wM - jM;
-                    if (diff > tolMasuk) reportMap[g.teacher].telat += (diff - tolMasuk);
-                }
+            if (finalData.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Tidak ada data untuk periode ini.</td></tr>`;
+                return;
             }
-            if (g.action_keluar && g.jadwal_keluar !== '-' && !g.isLupa) {
-                let jK = parseTimeToMins(g.jadwal_keluar); let wK = parseTimeToMins(g.waktu_keluar);
-                if (jK > 0 && wK > 0) {
-                    let diff = jK - wK;
-                    if (diff > tolKeluar) reportMap[g.teacher].cepat += (diff - tolKeluar);
-                }
-            }
-        });
 
-        tbody.innerHTML = '';
-        // Sisipkan baris info periode (mis. "Rekap: Juli 2026") agar Master Admin tahu periode aktif
-        const periodText = isMonthPick ? monthLabel
-            : (period === 'day' ? 'Hari Ini'
-                : period === 'week' ? 'Pekan Ini'
-                : period === 'month' ? 'Bulan Berjalan'
-                : period === 'semester' ? 'Semester Ganjil (Jul-Des 2026)' : 'Semua Periode');
-        Object.values(reportMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(item => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td class="font-bold">${item.name}</td><td>${item.mapel}</td>
-                <td class="text-primary font-bold text-center">${item.total_sesi}</td>
-                <td class="text-center ${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
-                <td class="text-center ${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
-                <td class="text-center ${item.lupa > 0 ? 'text-purple-600 font-bold' : ''}">${item.lupa}</td>`;
-            tbody.appendChild(tr);
-        });
-        if (Object.keys(reportMap).length === 0) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4">Tidak ada data terakumulasi untuk periode <b>${periodText}</b>.</td></tr>`;
-        else {
-            // Sisipkan header ringkasan periode di atas baris data
-            const infoTr = document.createElement('tr');
-            infoTr.innerHTML = `<td colspan="6" style="background:#f5f3ff;color:#6b21a8;font-weight:700;text-align:center;font-size:0.85rem;">Rekap Periode: ${periodText} &mdash; Total Guru: ${Object.keys(reportMap).length}</td>`;
-            tbody.insertBefore(infoTr, tbody.firstChild);
-        }
-    } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
-}
+            finalData.forEach(item => {
+                const alasanStr = item.alasan.length > 0 ? item.alasan.join(', ') : '-';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="font-bold">${item.name}</td>
+                    <td class="text-primary font-bold text-center">${item.total_sesi}</td>
+                    <td class="text-emerald-600 font-bold text-center">${item.tepat}</td>
+                    <td class="text-center ${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
+                    <td class="text-center ${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
+                    <td class="text-center ${item.lupa > 0 ? 'text-purple-600 font-bold' : ''}">${item.lupa}</td>
+                    <td class="text-xs ${item.telat > 0 ? 'text-danger' : ''}" style="max-width: 200px; word-wrap: break-word;">${alasanStr}</td>`;
+                tbody.appendChild(tr);
+            });
+            
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
+    }
 
     document.getElementById('agusEditLink').addEventListener('click', () => {
         document.getElementById('modalContent').innerHTML = `<div class="input-group"><label>URL Apps Script Terpasang</label><input type="text" id="gasUrlInput" value="${GAS_URL}" /></div><button class="btn btn-primary" id="saveGasUrl">Simpan Link</button>`;
