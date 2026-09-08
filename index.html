@@ -677,27 +677,6 @@
                 </table>
             </div>
         </div>
-            <!-- REKAP GURU TIDAK MASUK KELAS (MISSED CLASSES) CARD -->
-			<!--fitur copy screenshot (berbentuk teks yang diformat rapi untuk WhatsApp)-->
-<div class="card bg-red-50 border-red-200" id="adminMissedClassesCard">
-    <div class="card-header text-red-600" style="margin-bottom: 12px; font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center;">
-        <span><i class="fa-solid fa-user-xmark"></i> Rekap Guru Tidak Scan Masuk Hari Ini</span>
-        <button class="btn btn-sm btn-primary" style="font-size: 0.8rem; padding: 4px 8px; border-radius: 4px; border: none; background-color: #2563eb; color: white; cursor: pointer;" onclick="copyRekapWA()">
-            <i class="fa-solid fa-copy"></i> Copy via WA
-        </button>
-    </div>
-    <div class="table-wrap" style="max-height: 250px;">
-        <table id="missedClassesTable">
-            <thead>
-                <tr><th>Guru</th><th>Kls</th><th>Mapel</th><th>JP</th><th>Waktu</th></tr>
-            </thead>
-            <tbody id="missedClassesBody">
-                <tr><td colspan="5" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menghitung rekap...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
             <div class="card">
                 <div class="card-header">
                     <span><i class="fa-solid fa-clipboard-user"></i> Dashboard Admin</span>
@@ -708,7 +687,7 @@
 					<button class="btn btn-sm btn-primary admin-view active" data-view="all">Semua</button>
 					<button class="btn btn-sm btn-outline admin-view" data-view="late">Terlambat</button>
 					<button class="btn btn-sm btn-outline admin-view" data-view="early">Keluar Cepat</button>
-					<button class="btn btn-sm btn-outline admin-view" data-view="lupa">Lupa Keluar</button>
+					<button class="btn btn-sm btn-outline admin-view" data-view="tidakscanmasuk">Tidak Scan Masuk</button>
 				</div>
 			
 				<div class="input-group">
@@ -720,7 +699,7 @@
 					<div class="stat"><div class="num text-primary" id="adminStatTotal">0</div><div class="label">Total Sesi</div></div>
 					<div class="stat"><div class="num text-warning" id="adminStatLate">0</div><div class="label">Mnt Telat</div></div>
 					<div class="stat"><div class="num text-danger" id="adminStatEarly">0</div><div class="label">Mnt Cepat</div></div>
-					<div class="stat"><div class="num" style="color: #9333ea;" id="adminStatLupa">0</div><div class="label">Lupa Out</div></div>
+					<div class="stat"><div class="num" style="color: #9333ea;" id="adminStatLupa">0</div><div class="label">Tidak Scan Masuk</div></div>
 				</div>
 
                 <div class="input-group">
@@ -729,14 +708,27 @@
                         <option value="all">Semua Waktu</option>
                         <option value="day">Hari Ini</option>
                         <option value="week">Pekan Ini</option>
-                        <option value="month">Bulan Ini</option>
+                        <option value="month">Bulan Berjalan</option>
+                        <option value="semester">Semester Ganjil (Jul-Des 2026)</option>
+                        <option value="2026-07">Juli 2026</option>
+                        <option value="2026-08">Agustus 2026</option>
+                        <option value="2026-09">September 2026</option>
+                        <option value="2026-10">Oktober 2026</option>
+                        <option value="2026-11">November 2026</option>
+                        <option value="2026-12">Desember 2026</option>
+                        <option value="2027-01">Januari 2027</option>
+                        <option value="2027-02">Februari 2027</option>
+                        <option value="2027-03">Maret 2027</option>
+                        <option value="2027-04">April 2027</option>
+                        <option value="2027-05">Mei 2027</option>
+                        <option value="2027-06">Juni 2027</option>
                     </select>
                 </div>
 
                 <div class="table-wrap" style="max-height:400px;overflow-y:auto;">
                     <table>
                         <thead>
-                            <tr><th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Cepat</th></tr>
+                            <tr><th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Cepat</th><th class="text-center">Tidak Scan Masuk</th></tr>
                         </thead>
                         <tbody id="adminBody"></tbody>
                     </table>
@@ -818,8 +810,20 @@
                     <select id="agusFilterPeriod">
                         <option value="day">Hari Ini</option>
                         <option value="week" selected>Pekan Ini</option>
-                        <option value="month">Bulan Ini</option>
-                        <option value="semester">Semester Ini</option>
+                        <option value="month">Bulan Berjalan</option>
+                        <option value="semester">Semester Ganjil (Jul-Des 2026)</option>
+                        <option value="2026-07">Juli 2026</option>
+                        <option value="2026-08">Agustus 2026</option>
+                        <option value="2026-09">September 2026</option>
+                        <option value="2026-10">Oktober 2026</option>
+                        <option value="2026-11">November 2026</option>
+                        <option value="2026-12">Desember 2026</option>
+                        <option value="2027-01">Januari 2027</option>
+                        <option value="2027-02">Februari 2027</option>
+                        <option value="2027-03">Maret 2027</option>
+                        <option value="2027-04">April 2027</option>
+                        <option value="2027-05">Mei 2027</option>
+                        <option value="2027-06">Juni 2027</option>
                     </select>
                 </div>
 
@@ -837,7 +841,7 @@
 								<th class="text-center">Total Sesi</th>
 								<th class="text-center">Telat (Mnt)</th>
 								<th class="text-center">Cepat (Mnt)</th>
-								<th class="text-center">Lupa Out</th>
+								<th class="text-center">Tidak Scan</th>
 							</tr>
 						</thead>
 					<tbody id="agusBody"></tbody>

@@ -3256,9 +3256,10 @@ function renderLiveMonitor() {
         if (!isAdmin) return;
         
         const tbody = document.getElementById('adminBody');
-        const missedTbody = document.getElementById('missedClassesBody');
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
-        missedTbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Mengecek rekap...</td></tr>';
+        // Catatan: card 'Rekap Guru Tidak Scan Masuk Hari Ini' (#adminMissedClassesCard)
+        // sudah dihapus dari DOM. Fungsi buildAdminMissedClasses() & copyRekapWA()
+        // tetap dipertahankan sebagai no-op agar tidak mematahkan referensi global.
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
         
         try {
             const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
@@ -3285,18 +3286,32 @@ function renderLiveMonitor() {
             
             currentServerDataCacheAdmin = res.data;
             renderLiveMonitor(); 
-                        
-            buildAdminMissedClasses(res.data);
+            // buildAdminMissedClasses() tidak dipanggil lagi: card rekap missed
+            // classes telah dihapus dari dashboard ADMIN sesuai permintaan user.
             
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
             const filterPeriod = document.getElementById('adminPeriodFilter').value;
             const todayStr = new Date().toISOString().split('T')[0];
-
+            // Deteksi apakah filterPeriod berformat YYYY-MM (mis. 2026-07)
+            // untuk rekap bulan spesifik seperti pada tab MASTER ADMIN (Agus).
+            const isMonthPick = /^\d{4}-\d{2}$/.test(filterPeriod);
+            let monthStart = null, monthEnd = null;
+            if (isMonthPick) {
+                const [yStr, mStr] = filterPeriod.split('-');
+                const y = Number(yStr), m = Number(mStr);
+                monthStart = new Date(y, m - 1, 1);
+                monthEnd = new Date(y, m, 1); // tanggal 1 bulan berikutnya (eksklusif)
+            }
             let filtered = res.data.filter(d => {
                 if (filterTeacher !== 'all' && d.teacher !== filterTeacher) return false;
+                if (isMonthPick) {
+                    const dd = new Date(d.date + 'T00:00:00');
+                    return dd >= monthStart && dd < monthEnd;
+                }
                 if (filterPeriod === 'day') return d.date === todayStr;
                 if (filterPeriod === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
                 if (filterPeriod === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+                if (filterPeriod === 'semester') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth() < 6 ? 0 : 6, 1).toISOString().split('T')[0];
                 return true;
             });
 
@@ -3309,8 +3324,15 @@ function renderLiveMonitor() {
             if (d.action === 'keluar') { 
                 grouped[key].waktu_keluar = d.time; 
                 grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
-                if (d.keterangan && (d.keterangan.toLowerCase().includes('lupa scan keluar') || d.keterangan.toLowerCase().includes('tidak scan keluar'))) {
-                    grouped[key].isLupa = true;
+                // Tandai 'Tidak Scan Masuk' bila ada keterangan auto-checkout:
+                //   - 'lupa scan keluar' (frontend, pindah kelas <=5 menit)
+                //   - 'tidak scan keluar' (frontend, pindah kelas 6+ menit)
+                //   - 'Auto-checkout Sistem' (server-side, code.gs)
+                if (d.keterangan) {
+                    const ketLow = d.keterangan.toLowerCase();
+                    if (ketLow.includes('lupa') || ketLow.includes('tidak scan') || ketLow.includes('auto-checkout')) {
+                        grouped[key].isLupa = true;
+                    }
                 }
             }
         });
@@ -3329,28 +3351,29 @@ function renderLiveMonitor() {
             // Filter Logika
             if (adminViewMode === 'late' && telatMenit <= 0) return;
             if (adminViewMode === 'early' && cepatMenit <= 0) return;
-            if (adminViewMode === 'lupa' && !g.isLupa) return;
+            if (adminViewMode === 'tidakscanmasuk' && !g.isLupa) return;
             
             if (g.isLupa) tLupa++;
             tLate += telatMenit; tEarly += cepatMenit; visibleRecords++;
 
-            const badgeLupa = g.isLupa ? `<br><span class="badge" style="background:#f3e8ff; color:#9333ea; font-size:0.7rem;">Lupa Scan Keluar</span>` : '';
+            const badgeLupa = g.isLupa ? `<br><span class="badge" style="background:#fee2e2; color:#b91c1c; font-size:0.7rem;">Tidak Scan Masuk</span>` : '';
 
             const tr = document.createElement('tr');
             tr.innerHTML = `<td>${g.date}</td><td class="font-bold">${g.teacher}</td><td>${g.subject}</td><td>${g.class}</td><td class="font-bold">${g.jp}</td>
                 <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
-                <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span>${badgeLupa}</td>
-                <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>`;
+                <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
+                <td class="${telatMenit>0?'text-danger font-bold':''}">${telatMenit}</td><td class="${cepatMenit>0?'text-warning font-bold':''}">${cepatMenit}</td>
+                <td class="text-center ${g.isLupa?'text-danger font-bold':''}">${g.isLupa?'<i class="fa-solid fa-xmark"></i>':'-'}</td>`;
             tbody.appendChild(tr);
         });
         
-        if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="9" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
+        if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="10" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
 
         document.getElementById('adminStatTotal').textContent = visibleRecords; 
         document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
         document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
         document.getElementById('adminStatLupa').textContent = tLupa + ' Kali';
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
     }
 
     function exportTableToExcel(tableId, filename = 'Data_Absensi.xls') {
@@ -3396,7 +3419,7 @@ function renderLiveMonitor() {
     
     // Perbaikan struktur Header Tabel
     const tableHead = document.querySelector('#agusBody').closest('table').querySelector('thead tr');
-    tableHead.innerHTML = '<th>Nama Guru</th><th>Mapel</th><th>Total Sesi</th><th>Telat (Mnt)</th><th>Cepat (Mnt)</th><th>Lupa Out</th>';
+    tableHead.innerHTML = '<th>Nama Guru</th><th>Mapel</th><th>Total Sesi</th><th>Telat (Mnt)</th><th>Cepat (Mnt)</th><th>Tidak Scan</th>';
     
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
     
@@ -3423,8 +3446,24 @@ function renderLiveMonitor() {
         });
         
         const now = new Date();
+        // Deteksi apakah period berformat YYYY-MM (mis. 2026-07) untuk rekap bulan spesifik
+        const isMonthPick = /^\d{4}-\d{2}$/.test(period);
+        let monthStart = null, monthEnd = null, monthLabel = '';
+        if (isMonthPick) {
+            const [yStr, mStr] = period.split('-');
+            const y = Number(yStr), m = Number(mStr);
+            monthStart = new Date(y, m - 1, 1);
+            monthEnd = new Date(y, m, 1); // tanggal 1 bulan berikutnya (eksklusif)
+            const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            monthLabel = `${namaBulan[m - 1]} ${y}`;
+        }
         let filtered = res.data.filter(d => {
             if (!d.date) return false;
+            if (isMonthPick) {
+                // Rekap bulan spesifik (mis. Juli 2026, Agustus 2026, ...)
+                const dd = new Date(d.date + 'T00:00:00');
+                return dd >= monthStart && dd < monthEnd;
+            }
             if (period === 'day') return d.date === now.toISOString().split('T')[0];
             if (period === 'week') return d.date >= new Date(new Date().setDate(new Date().getDate() - new Date().getDay() + 1)).toISOString().split('T')[0];
             if (period === 'month') return d.date >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
@@ -3442,11 +3481,23 @@ function renderLiveMonitor() {
                 waktu_masuk: '-', waktu_keluar: '-', action_masuk: false, action_keluar: false, isLupa: false
             };
             if (d.action === 'masuk') { grouped[key].waktu_masuk = d.time; grouped[key].jadwal_masuk = d.jadwal_masuk || grouped[key].jadwal_masuk; grouped[key].action_masuk = true; }
+            // Deteksi keterangan 'Tidak Scan Masuk' / 'Alpa' yang tercatat pada aksi 'masuk'
+            if (d.action === 'masuk' && d.keterangan) {
+                const ketM = d.keterangan.toLowerCase();
+                if (ketM.includes('tidak scan') || ketM.includes('alpa')) grouped[key].isLupa = true;
+            }
             if (d.action === 'keluar') { 
                 grouped[key].waktu_keluar = d.time; 
                 grouped[key].jadwal_keluar = d.jadwal_keluar || grouped[key].jadwal_keluar; 
                 grouped[key].action_keluar = true; 
-                if (d.keterangan && (d.keterangan.toLowerCase().includes('lupa') || d.keterangan.toLowerCase().includes('tidak scan'))) grouped[key].isLupa = true;
+                // Tandai sebagai 'Tidak Scan' bila keluar tercatat karena auto-checkout sistem
+                // (lupa scan keluar / tidak scan keluar / Auto-checkout Sistem server-side).
+                if (d.keterangan) {
+                    const ketLow = d.keterangan.toLowerCase();
+                    if (ketLow.includes('lupa') || ketLow.includes('tidak scan') || ketLow.includes('auto-checkout')) {
+                        grouped[key].isLupa = true;
+                    }
+                }
             }
             grouped[key].mapel = d.subject || grouped[key].mapel;
         });
@@ -3475,6 +3526,12 @@ function renderLiveMonitor() {
         });
 
         tbody.innerHTML = '';
+        // Sisipkan baris info periode (mis. "Rekap: Juli 2026") agar Master Admin tahu periode aktif
+        const periodText = isMonthPick ? monthLabel
+            : (period === 'day' ? 'Hari Ini'
+                : period === 'week' ? 'Pekan Ini'
+                : period === 'month' ? 'Bulan Berjalan'
+                : period === 'semester' ? 'Semester Ganjil (Jul-Des 2026)' : 'Semua Periode');
         Object.values(reportMap).sort((a,b) => a.name.localeCompare(b.name)).forEach(item => {
             const tr = document.createElement('tr');
             tr.innerHTML = `<td class="font-bold">${item.name}</td><td>${item.mapel}</td>
@@ -3484,7 +3541,13 @@ function renderLiveMonitor() {
                 <td class="text-center ${item.lupa > 0 ? 'text-purple-600 font-bold' : ''}">${item.lupa}</td>`;
             tbody.appendChild(tr);
         });
-        if (Object.keys(reportMap).length === 0) tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Tidak ada data terakumulasi.</td></tr>';
+        if (Object.keys(reportMap).length === 0) tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4">Tidak ada data terakumulasi untuk periode <b>${periodText}</b>.</td></tr>`;
+        else {
+            // Sisipkan header ringkasan periode di atas baris data
+            const infoTr = document.createElement('tr');
+            infoTr.innerHTML = `<td colspan="6" style="background:#f5f3ff;color:#6b21a8;font-weight:700;text-align:center;font-size:0.85rem;">Rekap Periode: ${periodText} &mdash; Total Guru: ${Object.keys(reportMap).length}</td>`;
+            tbody.insertBefore(infoTr, tbody.firstChild);
+        }
     } catch (e) { tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
 }
 
