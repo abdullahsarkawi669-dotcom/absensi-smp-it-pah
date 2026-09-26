@@ -310,8 +310,8 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
         if (jadwalRaw.includes('SBDP') || jadwalRaw.includes('Informatika')) {
             // DETEKSI GENAP/GANJIL MENGGUNAKAN TARGET DATE (TANGGAL PEKAN LALU/DLL)
             const genap = isEvenWeek(targetDate);
-            if (genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
-            if (!genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+            if (!genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
+            if (genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
             return null; 
         }
         if (jadwalRaw.includes(guruName)) return jadwalRaw.split('(')[0].trim();
