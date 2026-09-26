@@ -79,6 +79,7 @@
 	jadwalPelajaran['jumat']['JP 1']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
 	jadwalPelajaran['jumat']['JP 2']['7C'] = 'SBDP / Informatika';
 	jadwalPelajaran['jumat']['JP 3-4']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
+	jadwalPelajaran['jumat']['JP 5-6']['7C'] = 'PJOK (M. Tahir, M. Pd.)';
 	jadwalPelajaran['sabtu']['JP 1-2']['7C'] = 'Aqidah (Abdul Hafizh Hizam, Lc.)';
 	jadwalPelajaran['sabtu']['JP 3']['7C'] = 'IPA Terpadu (Adiandri Suhaili, M. Pd.)';
 	jadwalPelajaran['sabtu']['JP 4']['7C'] = 'IPS / Pancasila (Jumadil Awal, SE.)';
@@ -243,6 +244,7 @@
 	jadwalPelajaran['kamis']['JP 7']['8E'] = 'SBDP / Informatika';
 	jadwalPelajaran['kamis']['JP 8']['8E'] = 'Aqidah (Syahrul Hasyim, Lc.)';
 	jadwalPelajaran['jumat']['JP 1-2']['8E'] = 'Bahasa Arab (Ahmad Mahsan Haikal, Lc.)';
+	jadwalPelajaran['jumat']['JP 3-4']['8E'] = 'PJOK (M. Tahir, M. Pd.)';
 	jadwalPelajaran['sabtu']['JP 1-2']['8E'] = 'Bahasa Inggris (Ludfi Rusdiyono, S. Pd.)';
 	jadwalPelajaran['sabtu']['JP 3-4']['8E'] = 'Fiqih (Lalu M. Sulistiono, SP.)';
 	jadwalPelajaran['sabtu']['JP 5-6']['8E'] = 'Qowaidul Lughoh (Syamsul Bahri, Lc.)';
