@@ -110,7 +110,7 @@ const liburSpesifik = [
     { tanggal: '2026-08-17', keterangan: '17 Agustus: Upacara / Hari Kemerdekaan' },
     { tanggal: '2026-09-25', keterangan: 'Pembagian Rapor' },
     { tanggal: '2026-09-01', keterangan: 'KKG & Pembagian Gaji' },
-	{ tanggal: '2026-30-01', keterangan: 'Ijtimak Bulanan Pembagian Gaji & Festival Online' }
+	{ tanggal: '2026-10-01', keterangan: 'Ijtimak Bulanan Pembagian Gaji & Festival Online' }
 ];
 
 // Rentang Tanggal Libur (Warna Merah)
