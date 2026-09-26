@@ -222,7 +222,7 @@ const WALI_KELAS_MAP = {
             else if (['7D', '7E'].includes(kelas)) group = ['7D', '7E'];
             else if (['7A', '7B'].includes(kelas)) group = ['7A', '7B'];
                         else if (['8A', '8B'].includes(kelas)) group = ['8A', '8B'];
-                        else if (['7C', '8E'].includes(kelas)) group = ['7C', '8E'];
+                        //else if (['7C', '8E'].includes(kelas)) group = ['7C', '8E'];
         }
 
         if (group) {
@@ -255,7 +255,7 @@ function getDaftarSantriKopel(baseClass, subject) {
     else if (subjectLower.includes('pjok') || subjectLower.includes('olahraga')) {
         const kopelPJOK = [
             ['9A', '9B'], ['9C', '9D'], ['7D', '7E'],
-            ['7A', '7B'], ['8A', '8B'], ['7C', '8E']
+            ['7A', '7B'], ['8A', '8B'], //['7C', '8E']
         ];
         for (let group of kopelPJOK) {
             if (group.includes(baseClass)) {
@@ -302,7 +302,7 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
         if (['7D', '7E'].includes(kelas) && hari === 'kamis' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
         if (['7A', '7B'].includes(kelas) && hari === 'jumat' && (jp === 'JP 1' || jp === 'JP 2')) return 'PJOK';
         if (['8A', '8B'].includes(kelas) && hari === 'kamis' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
-        if (['7C', '8E'].includes(kelas) && hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
+        //if (['7C', '8E'].includes(kelas) && hari === 'jumat' && (jp === 'JP 3' || jp === 'JP 4')) return 'PJOK';
     }
 
     if (jadwalPelajaran[hari] && jadwalPelajaran[hari][jp] && jadwalPelajaran[hari][jp][kelas]) {
