@@ -109,7 +109,8 @@ function isEvenWeek(d = new Date()) {
 const liburSpesifik = [
     { tanggal: '2026-08-17', keterangan: '17 Agustus: Upacara / Hari Kemerdekaan' },
     { tanggal: '2026-09-25', keterangan: 'Pembagian Rapor' },
-    { tanggal: '2026-09-01', keterangan: 'KKG & Pembagian Gaji' }
+    { tanggal: '2026-09-01', keterangan: 'KKG & Pembagian Gaji' },
+	{ tanggal: '2026-30-01', keterangan: 'Ijtimak Bulanan Pembagian Gaji & Festival Online' }
 ];
 
 // Rentang Tanggal Libur (Warna Merah)
@@ -124,7 +125,7 @@ const rentangLibur = [
 // Rentang Kegiatan / STS / Festival (Warna Hijau)
 const rentangKegiatan = [
     { mulai: '2026-09-14', selesai: '2026-09-23', nama: 'Sumatif Tengah Semester (STS)' },
-    { mulai: '2026-09-30', selesai: '2026-10-01', nama: 'Audisi Festival 13 Abu Hurairah' },
+    { mulai: '2026-09-30', selesai: '2026-09-30', nama: 'Audisi Festival 13 Abu Hurairah' },
     { mulai: '2026-10-23', selesai: '2026-10-24', nama: "Itqan al-Qur'an & Hadits" },
     { mulai: '2026-11-09', selesai: '2026-11-13', nama: 'Final Festival Internal' },
     { mulai: '2026-11-30', selesai: '2026-12-12', nama: 'Sumatif Akhir Semester (SAS)' },
