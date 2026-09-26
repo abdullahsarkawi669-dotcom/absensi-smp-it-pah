@@ -31,7 +31,7 @@ if ('serviceWorker' in navigator) {
         { name: 'Agus Sarkawi, S. T.', isAdmin: true, subjects: ['Informatika'], adminType: 'agus' },
         { name: 'Abdul Hafizh Hizam, Lc.', subjects: ['Aqidah'] },
         { name: 'Adiandri Suhaili, M. Pd.', subjects: ['IPA Terpadu'] },
-        { name: 'Ahmad Arroiyan, Lc.', subjects: ['Bahasa Arab', 'Qowaidul Lughoh', 'Kitabah & Khat'] },
+        { name: 'Ahmad Arroiyan, Lc.', subjects: ['Aqidah', 'Qowaidul Lughoh', 'Adab Akhlak'] },
         { name: 'Ahmad Mahsan Haikal, Lc.', subjects: ['Kitabah & Khat', 'Bahasa Arab', "Ta'bir"] },
         { name: 'Andri Jaelani, Lc., M. H.', subjects: ["Ta'bir", 'Kitabah & Khat'] },
         { name: 'Arsyad, S. Pd.', subjects: ['Bahasa Indonesia'] },
