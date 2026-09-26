@@ -39,6 +39,7 @@ if ('serviceWorker' in navigator) {
         { name: 'Hafizh Bagis, Lc.', subjects: ['Bahasa Arab', 'Kitabah & Khat'] },
         { name: 'Hairul Umam Insani, S. Pd.', subjects: ['Bahasa Inggris'] },
         { name: 'Haqikahurrahman, S. Pd.', subjects: ['Matematika'] },
+        { name: 'Iyas Widiatmo', subjects: ['Bahasa Arab', 'Kitabah & Khat'] },
         { name: 'Jamaluddin, Lc.', subjects: ['Fiqih'] },
         { name: 'Jumadil Awal, SE.', subjects: ['IPS', 'Pancasila'] },
         { name: 'Junaidi, S. Pd.', subjects: ['IPS', 'Pancasila'] },
@@ -123,7 +124,7 @@ const rentangLibur = [
 // Rentang Kegiatan / STS / Festival (Warna Hijau)
 const rentangKegiatan = [
     { mulai: '2026-09-14', selesai: '2026-09-23', nama: 'Sumatif Tengah Semester (STS)' },
-    { mulai: '2026-10-05', selesai: '2026-10-07', nama: 'Audisi Festival Internal Abu Hurairah' },
+    { mulai: '2026-09-30', selesai: '2026-10-01', nama: 'Audisi Festival 13 Abu Hurairah' },
     { mulai: '2026-10-23', selesai: '2026-10-24', nama: "Itqan al-Qur'an & Hadits" },
     { mulai: '2026-11-09', selesai: '2026-11-13', nama: 'Final Festival Internal' },
     { mulai: '2026-11-30', selesai: '2026-12-12', nama: 'Sumatif Akhir Semester (SAS)' },
