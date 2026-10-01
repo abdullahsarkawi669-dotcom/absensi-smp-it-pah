@@ -79,7 +79,8 @@ function getCurrentWITA() {
 }
 
 
-    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
+    let GAS_URL = localStorage.getItem('GAS_URL') || 'https://script.google.com/macros/s/AKfycbzuWxfGqmIbKdJvMc6sJvK3FlOYX45RE-glsD3ZjCZukdJQjF4DV9Q1hwqBs_PhcwaX-g/exec';
+                //'https://script.google.com/macros/s/AKfycbzxWViRYvQjYP4J42TznIC0wRFp-PLTGU76h90X8u8hgHJKSRwgfVGE82RbANkow4ikhg/exec';
         //'https://script.google.com/macros/s/AKfycbxfWbpuYgFis9tumFFOynaNrjZueRCuzH2akyLWg0Y4mr9nY1tMAav7yd1hv0wsPHWKOA/exec';
         //'https://script.google.com/macros/s/AKfycbwTPzLaw_wwbvVu-GzbUiUkK9jIqh7d5N_BXY9PJrLk3jk-3qvsRgoBiFOtTcaIHmtC/exec';
 
@@ -110,7 +111,7 @@ const liburSpesifik = [
     { tanggal: '2026-08-17', keterangan: '17 Agustus: Upacara / Hari Kemerdekaan' },
     { tanggal: '2026-09-25', keterangan: 'Pembagian Rapor' },
     { tanggal: '2026-09-01', keterangan: 'KKG & Pembagian Gaji' },
-	{ tanggal: '2026-10-01', keterangan: 'Ijtimak Bulanan Pembagian Gaji & Festival Online' }
+        { tanggal: '2026-10-01', keterangan: 'Ijtimak Bulanan Pembagian Gaji & Festival Online' }
 ];
 
 // Rentang Tanggal Libur (Warna Merah)
@@ -828,7 +829,6 @@ function getLocalHistory(teacher, date) {
     document.getElementById('adminPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); document.getElementById('adminLoginBtn').click(); } });
 
 // Tambahkan targetDate pada getGroupedSchedule
-// Tambahkan targetDate pada getGroupedSchedule
 function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Date()) {
     let blocks = [];
     if (isLiburSekolah(targetDate)) return blocks; 
@@ -853,12 +853,7 @@ function getGroupedSchedule(teacherName, hari, currentMins, targetDate = new Dat
                 if (currentBlock && currentBlock.class === formattedClass && currentBlock.mapel === mapel && currentBlock.jps[0] !== 'Pembiasaan Pagi') {
                     let lastJp = currentBlock.jps[currentBlock.jps.length - 1];
                     let currJpNum = parseInt(jp.replace('JP ', ''));
-                    
-                    // PERBAIKAN: Jadwal hanya digabung jika berurutan DAN TIDAK ADA JEDA WAKTU (Jam istirahat)
-                    // (Jam masuk JP sekarang harus sama persis dengan jam keluar JP sebelumnya)
-                    if (lastJp === currJpNum - 1 && currentBlock.keluar === jadwal[jp].masuk) {
-                        isSequential = true;
-                    }
+                    if (lastJp === currJpNum - 1) isSequential = true;
                 }
 
                 if (isSequential) {
@@ -2768,11 +2763,10 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
         stopScanner();
         
         if (tab.dataset.tab === 'rekap') loadRekap();
-        if (tab.dataset.tab === 'jadwal') renderJadwalPekanIni();
         if (tab.dataset.tab === 'admin' && isAdmin) loadAdminData();
         if (tab.dataset.tab === 'agus' && isAgus) loadAgusData();
         
-        // --- TAMBAHAN UNTUK TAB RIWAYAT ---
+        // --- TANPA TAB PEKAN (RIWAYAT + JADWAL SUDAH DIGABUNG) ---
         if (tab.dataset.tab === 'riwayat') {
             populateRiwayatWeeks();
             loadRiwayatPekanan();
@@ -2983,7 +2977,12 @@ async function loadRekap() {
     function initAdminFilters() {
         const filterSelect = document.getElementById('adminTeacherFilter');
         filterSelect.innerHTML = '<option value="all">-- Semua Guru --</option>';
-        TEACHERS.forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
+        // Budiman, S. Pd. sengaja TIDAK dimasukkan karena tidak memiliki jadwal
+        // mengajar pada data_jadwal.js (hanya admin murni tanpa jadwal kelas).
+        TEACHERS
+            .filter(t => t.name !== 'Budiman, S. Pd.')
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(t => { const opt = document.createElement('option'); opt.value = t.name; opt.textContent = t.name; filterSelect.appendChild(opt); });
     }
         
 function buildAdminMissedClasses(allData) {
@@ -3120,6 +3119,38 @@ function buildAdminMissedClasses(allData) {
 function renderLiveMonitor() {
     const tbody = document.getElementById('liveMonitorBody');
     const info = document.getElementById('liveMonitorJpInfo');
+    const card = document.getElementById('adminLiveMonitorCard');
+    
+    // === Cek apakah hari ini libur/kegiatan ===
+    // Pada hari libur/kegiatan, live monitor tidak ditayangkan.
+    // Tampilkan keterangan libur sebagai gantinya.
+    const todayHoliday = getStatusHariIni(getCurrentWITA());
+    const isTodayNonNormal = todayHoliday.status === 'libur' || todayHoliday.status === 'kegiatan';
+    
+    // Sembunyikan toggle buttons & tabel live monitor bila hari libur/kegiatan
+    if (card) {
+        const toggles = card.querySelector('.flex.gap-2');
+        const tableWrap = card.querySelector('.table-wrap');
+        if (toggles) toggles.style.display = isTodayNonNormal ? 'none' : '';
+        if (tableWrap) tableWrap.style.display = isTodayNonNormal ? 'none' : '';
+    }
+    
+    if (isTodayNonNormal) {
+        const labelType = todayHoliday.status === 'libur' ? 'Libur' : 'Kegiatan';
+        const bgColor = todayHoliday.status === 'libur' ? '#fef2f2' : '#ecfdf5';
+        const textColor = todayHoliday.status === 'libur' ? '#991b1b' : '#065f46';
+        const borderColor = todayHoliday.status === 'libur' ? '#fecaca' : '#a7f3d0';
+        const iconClass = todayHoliday.status === 'libur' ? 'fa-triangle-exclamation' : 'fa-calendar-check';
+        
+        info.innerHTML = `<div style="background: ${bgColor}; color: ${textColor}; padding: 20px; border-radius: 8px; text-align: center; font-weight: bold; border: 1px solid ${borderColor};">
+            <i class="fa-solid ${iconClass}" style="font-size: 1.8rem; display: block; margin-bottom: 8px;"></i>
+            <div style="font-size: 1.05rem; margin-bottom: 4px;">Hari ${labelType}</div>
+            <div style="font-weight: normal; font-size: 0.85rem; margin-bottom: 6px;">${todayHoliday.label}</div>
+            <div style="font-size: 0.7rem; opacity: 0.75;">Live monitor tidak ditayangkan pada hari ${labelType.toLowerCase()}.</div>
+        </div>`;
+        tbody.innerHTML = '';
+        return;
+    }
     
     if (currentServerDataCacheAdmin.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada data dari server...</td></tr>'; return;
@@ -3260,188 +3291,227 @@ function renderLiveMonitor() {
         }
     });
         
-// === FUNGSI GENERATE TRACK RECORD MENDETAIL ===
-// === FUNGSI GENERATE TRACK RECORD MENDETAIL (BERDASARKAN DATA_JADWAL.JS) ===
-// === FUNGSI GENERATE TRACK RECORD MENDETAIL (BERDASARKAN DATA_JADWAL.JS) ===
-window.generateDetailedTrackRecord = function(serverData, filterPeriod, targetTeacher = 'all') {
-    const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
-    const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
-    const todayStr = getLocalDateString(new Date());
-    const now = new Date();
-    const currentMins = now.getHours() * 60 + now.getMinutes();
+    // ============================================================
+    // HELPER: Susun seluruh baris jadwal setiap guru (kecuali Budiman, S. Pd.)
+    // Berguna untuk tabel ADMIN dan MASTER ADMIN agar konsisten.
+    // Sort: 1. Nama guru, 2. Tanggal, 3. Jam pelajaran (jadwal_masuk).
+    // Baris yang TIDAK ada scan masuk di-flag isMissedMasuk = true → ditandai "x".
+    // ============================================================
+    function getPeriodDateRange(filterPeriod) {
+        const today = getCurrentWITA();
+        today.setHours(0, 0, 0, 0);
+        const todayStr = getLocalDateString(today);
 
-    let startDate = new Date();
-    let endDate = new Date(); 
-    
-    const isMonthPick = /^\d{4}-\d{2}$/.test(filterPeriod);
-    if (isMonthPick) {
-        const [yStr, mStr] = filterPeriod.split('-');
-        startDate = new Date(Number(yStr), Number(mStr) - 1, 1);
-        endDate = new Date(Number(yStr), Number(mStr), 0); 
-    } else if (filterPeriod === 'day') {
-        startDate = new Date();
-    } else if (filterPeriod === 'week') {
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - startDate.getDay() + 1);
-        endDate = new Date(startDate);
-        endDate.setDate(endDate.getDate() + 6); // Sampai hari Ahad
-    } else if (filterPeriod === 'month') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    } else if (filterPeriod === 'semester') {
-        startDate = new Date(now.getFullYear(), now.getMonth() < 6 ? 0 : 6, 1);
-        endDate = new Date(now.getFullYear(), now.getMonth() < 6 ? 6 : 12, 0);
-    } else if (filterPeriod === 'all') {
-        startDate = new Date(now.getFullYear(), 6, 1);
-        endDate = new Date(now.getFullYear() + 1, 5, 30);
+        if (/^\d{4}-\d{2}$/.test(filterPeriod)) {
+            const [yStr, mStr] = filterPeriod.split('-');
+            const y = Number(yStr), m = Number(mStr);
+            const start = new Date(y, m - 1, 1);
+            const endOfMonth = new Date(y, m, 0);
+            const end = endOfMonth > today ? today : endOfMonth;
+            return { start, end };
+        }
+        if (filterPeriod === 'day') return { start: new Date(today), end: new Date(today) };
+        if (filterPeriod === 'week') {
+            const monday = new Date(today);
+            monday.setDate(today.getDate() - today.getDay() + 1);
+            return { start: monday, end: today };
+        }
+        if (filterPeriod === 'month') {
+            return { start: new Date(today.getFullYear(), today.getMonth(), 1), end: today };
+        }
+        if (filterPeriod === 'semester') {
+            const startMonth = today.getMonth() < 6 ? 0 : 6;
+            return { start: new Date(today.getFullYear(), startMonth, 1), end: today };
+        }
+        // 'all' atau undefined → dari awal tahun ajaran (1 Juli 2026)
+        return { start: new Date(2026, 6, 1), end: today };
     }
-    
-    startDate.setHours(0,0,0,0);
-    endDate.setHours(0,0,0,0);
-    
-    let allRecords = [];
 
-    TEACHERS.forEach(teacher => {
-        if (teacher.name === 'Budiman, S. Pd.') return;
-        if (targetTeacher !== 'all' && teacher.name !== targetTeacher) return;
+    function buildAllScheduleRows(allServerData, filterPeriod, filterTeacher, tolMasuk, tolKeluar) {
+        const { start, end } = getPeriodDateRange(filterPeriod);
+        const today = getCurrentWITA();
+        const todayStr = getLocalDateString(today);
+        const nowMins = today.getHours() * 60 + today.getMinutes();
 
-        let tempDate = new Date(startDate);
-        while (tempDate <= endDate) {
-            let dStr = getLocalDateString(tempDate);
-            
-            // Eksekusi jika bukan hari minggu dan bukan libur sekolah
-            if (tempDate.getDay() !== 0 && !isLiburSekolah(tempDate)) {
-                let dayName = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][tempDate.getDay()];
-                let blocks = getGroupedSchedule(teacher.name, dayName, 0, tempDate);
-                
+        // Pre-proses data server: key = date|teacher → array records
+        const recordsByDateTeacher = {};
+        allServerData.forEach(d => {
+            if (!d.date || !d.teacher) return;
+            const key = d.date + '|' + d.teacher;
+            if (!recordsByDateTeacher[key]) recordsByDateTeacher[key] = [];
+            recordsByDateTeacher[key].push(d);
+        });
+
+        // Daftar guru (kecuali Budiman, S. Pd. karena tidak punya jadwal mengajar)
+        const sortedTeachers = TEACHERS
+            .filter(t => t.name !== 'Budiman, S. Pd.')
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+        const rows = [];
+        let tempDate = new Date(start);
+        tempDate.setHours(0, 0, 0, 0);
+        const endStr = getLocalDateString(end);
+
+        while (getLocalDateString(tempDate) <= endStr) {
+            const dStr = getLocalDateString(tempDate);
+            const dayIdx = tempDate.getDay();
+            if (dayIdx === 0 || isLiburSekolah(tempDate)) {
+                tempDate.setDate(tempDate.getDate() + 1);
+                continue;
+            }
+            const dHari = ['ahad', 'senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'][dayIdx];
+
+            sortedTeachers.forEach(t => {
+                if (filterTeacher && filterTeacher !== 'all' && filterTeacher !== t.name) return;
+
+                const blocks = getGroupedSchedule(t.name, dHari, 0, new Date(tempDate));
+                const processedKopel = new Set();
+
                 blocks.forEach(b => {
-                    let masukMins = parseTimeToMins(b.masuk);
-                    
-                    // CEK APAKAH SESI INI BELUM WAKTUNYA (Future / Grace Period)
-                    // Jika tanggalnya besok, atau hari ini tapi belum lewat 15 menit dari jadwal masuk
-                    let isFuture = (dStr > todayStr) || (dStr === todayStr && currentMins < (masukMins + 15));
+                    // SKIP Pembiasaan Pagi dari Dashboard Admin/Master agar
+                    // tabel hanya mencatat jadwal reguler (tanpa jam pembiasaan pagi).
+                    // Rekap pembiasaan pagi dipindahkan ke tabel terpisah "Rekap
+                    // Pembiasaan Pagi (Khusus Wali Kelas)".
+                    if (b.jpStr === 'Pembiasaan Pagi') return;
+                    const jpStr = b.jpStr;
+                    const fClass = b.class;
+                    const fClassClean = (fClass || '').replace(/[()]/g, '').toLowerCase().trim();
+                    const kopelKey = dStr + '|' + t.name + '|' + fClassClean + '|' + jpStr;
+                    if (processedKopel.has(kopelKey)) return;
+                    processedKopel.add(kopelKey);
 
-                    let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
-                    let formattedClass = formatKopelClass(b.class, b.mapel);
-                    
-                    let matchedMasuk = null;
-                    let matchedKeluar = null;
+                    const records = recordsByDateTeacher[dStr + '|' + t.name] || [];
+                    const fClasses = fClassClean.split(',').map(c => c.trim());
 
-                    const dailyData = serverData.filter(d => {
-                        let dDateStr = d.date.includes('T') ? d.date.split('T')[0] : d.date;
-                        return dDateStr === dStr && d.teacher === teacher.name;
+                    const matchRecord = (action) => records.find(r => {
+                        if (r.action !== action) return false;
+                        if (r.jp !== jpStr) return false;
+                        const rClass = (r.class || '').replace(/[()]/g, '').toLowerCase().trim();
+                        const rClasses = rClass.split(',').map(c => c.trim());
+                        return fClasses.some(c => rClasses.includes(c));
                     });
-                    
-                    const isOverlap = (recordJp, checkJps) => {
-                        if (!recordJp) return false;
-                        let rJps = recordJp.replace('JP ', '').split('-');
-                        let rStart = parseInt(rJps[0]);
-                        let rEnd = rJps.length > 1 ? parseInt(rJps[1]) : rStart;
-                        return checkJps.some(j => j >= rStart && j <= rEnd);
-                    };
 
-                    dailyData.forEach(d => {
-                        if (isOverlap(d.jp, b.jps)) {
-                            let serverClass = (d.class || "").replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
-                            let kopelArray = formattedClass.replace(/[()]/g, '').toLowerCase().split(',').map(c => c.trim());
-                            
-                            let classMatch = false;
-                            if (kopelArray.some(c => serverClass.includes(c))) classMatch = true;
-                            
-                            let mapelStr = (b.mapel || "").toLowerCase();
-                            let hMapelStr = (d.subject || "").toLowerCase();
-                            
-                            if (!classMatch && mapelStr.includes('tahfiz') && hMapelStr.includes('tahfiz')) {
-                                const kopelTahfizh = [['7a', '7b', '7c'], ['7d', '7e', '8a'], ['8b', '8c', '8d', '8e'], ['9a', '9b', '9c', '9d']];
-                                for (let group of kopelTahfizh) {
-                                    if (group.some(c => kopelArray.includes(c)) && group.some(c => serverClass.includes(c))) {
-                                        classMatch = true; break;
-                                    }
-                                }
-                            }
-                            if (!classMatch && mapelStr.includes('pjok') && hMapelStr.includes('pjok') && teacher.name === 'M. Tahir, M. Pd.') {
-                                const kopelPJOK = [['9a', '9b'], ['9c', '9d'], ['7d', '7e'], ['7a', '7b'], ['8a', '8b'], ['7c', '8e']];
-                                for (let group of kopelPJOK) {
-                                    if (group.some(c => kopelArray.includes(c)) && group.some(c => serverClass.includes(c))) {
-                                        classMatch = true; break;
-                                    }
-                                }
-                            }
-                            
-                            if (classMatch) {
-                                if (d.action === 'masuk') matchedMasuk = d;
-                                if (d.action === 'keluar') matchedKeluar = d;
-                            }
+                    const matchedMasuk = matchRecord('masuk');
+                    const matchedKeluar = matchRecord('keluar');
+
+                    let waktu_masuk = '-', waktu_keluar = '-';
+                    let isMissedMasuk = false;
+                    let ketMasuk = '', ketKeluar = '';
+
+                    if (matchedMasuk) {
+                        waktu_masuk = matchedMasuk.time || '-';
+                        ketMasuk = matchedMasuk.keterangan || '';
+                        if (matchedKeluar) {
+                            waktu_keluar = matchedKeluar.time || '-';
+                            ketKeluar = matchedKeluar.keterangan || '';
                         }
-                    });
+                    } else {
+                        // Belum scan masuk. Untuk hari ini, hanya catat "terlewat"
+                        // bila waktu saat ini sudah lewat batas toleransi (jadwal masuk + 15 menit).
+                        if (dStr === todayStr) {
+                            const blockMasukMins = parseTimeToMins(b.masuk);
+                            if (nowMins < (blockMasukMins + 15)) return; // Belum waktunya dicatat terlewat
+                        }
+                        isMissedMasuk = true;
+                    }
 
-                    let telatMenit = 0;
-                    let cepatMenit = 0;
-                    
-                    if (matchedMasuk && matchedMasuk.time) {
-                        let wM = parseTimeToMins(matchedMasuk.time);
-                        if (masukMins > 0 && wM > 0) {
-                            let diff = wM - masukMins;
+                    let telatMenit = 0, cepatMenit = 0;
+                    if (!isMissedMasuk) {
+                        const jM = parseTimeToMins(b.masuk);
+                        const wM = parseTimeToMins(waktu_masuk);
+                        if (jM > 0 && wM > 0) {
+                            const diff = wM - jM;
                             if (diff > tolMasuk) telatMenit = diff - tolMasuk;
                         }
                     }
-                    
-                    if (matchedKeluar && matchedKeluar.time) {
-                        let kMins = parseTimeToMins(b.keluar);
-                        let wK = parseTimeToMins(matchedKeluar.time);
-                        if (kMins > 0 && wK > 0) {
-                            let diff = kMins - wK;
-                            if (diff > tolKeluar) cepatMenit = diff - tolKeluar;
-                        }
+                    const jK = parseTimeToMins(b.keluar);
+                    const wK = parseTimeToMins(waktu_keluar);
+                    if (jK > 0 && wK > 0) {
+                        const diff = jK - wK;
+                        if (diff > tolKeluar) cepatMenit = diff - tolKeluar;
                     }
 
-                    // Tanda x (Alpa) HANYA muncul jika belum ada rekam masuk DAN jadwalnya sudah lewat
-                    let tidakScanMasuk = !matchedMasuk && !isFuture;
-                    
-                    allRecords.push({
-                        teacher: teacher.name,
+                    rows.push({
+                        teacher: t.name,
                         date: dStr,
+                        kelas: fClass,
+                        subject: b.mapel,
                         jp: jpStr,
-                        jpStartNum: b.jps[0] === 'Pembiasaan Pagi' ? 0 : b.jps[0],
-                        class: formattedClass,
-                        mapel: b.mapel,
-                        waktu_jadwal_masuk: b.masuk,
-                        waktu_jadwal_keluar: b.keluar,
-                        waktu_masuk: matchedMasuk ? matchedMasuk.time : '-',
-                        waktu_keluar: matchedKeluar ? matchedKeluar.time : '-',
-                        telat: telatMenit,
-                        cepat: cepatMenit,
-                        tidakScanMasuk: tidakScanMasuk,
-                        isFuture: isFuture, // Disimpan agar tahu ini jadwal masa depan/baru mulai
-                        ket: matchedMasuk ? matchedMasuk.keterangan || '-' : '-'
+                        jadwal_masuk: b.masuk,
+                        jadwal_keluar: b.keluar,
+                        waktu_masuk,
+                        waktu_keluar,
+                        isMissedMasuk,
+                        telatMenit,
+                        cepatMenit,
+                        ketMasuk,
+                        ketKeluar
                     });
                 });
-            }
+            });
+
             tempDate.setDate(tempDate.getDate() + 1);
         }
-    });
 
-    allRecords.sort((a, b) => {
-        if (a.teacher !== b.teacher) return a.teacher.localeCompare(b.teacher);
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        return a.jpStartNum - b.jpStartNum;
-    });
+        // Sort: 1. Nama guru, 2. Tanggal, 3. Jam pelajaran (jadwal_masuk)
+        rows.sort((a, b) => {
+            if (a.teacher !== b.teacher) return a.teacher.localeCompare(b.teacher);
+            if (a.date !== b.date) return a.date.localeCompare(b.date);
+            return parseTimeToMins(a.jadwal_masuk) - parseTimeToMins(b.jadwal_masuk);
+        });
 
-    return allRecords;
-};
-		
-async function loadAdminData() {
+        return rows;
+    }
+
+    // Render baris tabel untuk admin/agus (shared)
+    function renderScheduleRows(tbody, rows, emptyMsg, showInfoRow, periodText) {
+        tbody.innerHTML = '';
+        if (rows.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center py-4">${emptyMsg}</td></tr>`;
+            return;
+        }
+        if (showInfoRow) {
+            const teacherCount = new Set(rows.map(r => r.teacher)).size;
+            const infoTr = document.createElement('tr');
+            infoTr.innerHTML = `<td colspan="10" style="background:#f5f3ff;color:#6b21a8;font-weight:700;text-align:center;font-size:0.85rem;">Rekap Periode: ${periodText} &mdash; Total Guru: ${teacherCount} &mdash; Total Baris Jadwal: ${rows.length}</td>`;
+            tbody.appendChild(infoTr);
+        }
+        rows.forEach(g => {
+            const tr = document.createElement('tr');
+            if (g.isMissedMasuk) tr.className = 'bg-red-50';
+            const tglStyle = g.isMissedMasuk ? 'text-danger font-bold' : '';
+            const inStyle = g.telatMenit > 0 ? 'text-danger font-bold' : '';
+            const outStyle = g.cepatMenit > 0 ? 'text-warning font-bold' : '';
+            const missMark = g.isMissedMasuk ? '<i class="fa-solid fa-xmark"></i>' : '-';
+            const missStyle = g.isMissedMasuk ? 'text-danger font-bold' : '';
+            tr.innerHTML = `<td class="${tglStyle}">${g.date}</td>
+                <td class="font-bold">${g.teacher}</td>
+                <td>${g.subject}</td>
+                <td>${g.kelas}</td>
+                <td class="font-bold">${g.jp}</td>
+                <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_masuk}</span></td>
+                <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.jadwal_keluar}</span></td>
+                <td class="${inStyle}">${g.telatMenit}</td>
+                <td class="${outStyle}">${g.cepatMenit}</td>
+                <td class="text-center ${missStyle}">${missMark}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function loadAdminData() {
         if (!isAdmin) return;
+        
         const tbody = document.getElementById('adminBody');
-        
-        const tableHead = document.querySelector('#adminBody').closest('table').querySelector('thead tr');
-        tableHead.innerHTML = '<th>Tgl</th><th>Guru</th><th>Mapel</th><th>Kls</th><th>JP</th><th>In</th><th>Out</th><th>Telat</th><th>Alasan Telat</th><th>Cepat</th><th class="text-center">Tdk Scan Masuk</th>';
-        
-        tbody.innerHTML = '<tr><td colspan="11" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
+        // Catatan: card 'Rekap Guru Tidak Scan Masuk Hari Ini' (#adminMissedClassesCard)
+        // sudah dihapus dari DOM. Fungsi buildAdminMissedClasses() & copyRekapWA()
+        // tetap dipertahankan sebagai no-op agar tidak mematahkan referensi global.
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
         
         try {
             const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
             if (!res.success) throw new Error(res.error);
+            const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+            const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
             
             res.data.forEach(d => {
                 if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
@@ -3462,147 +3532,62 @@ async function loadAdminData() {
             
             currentServerDataCacheAdmin = res.data;
             renderLiveMonitor(); 
+            // Render tabel Rekap Pembiasaan Pagi (Khusus Wali Kelas) di section admin
+            renderPembiasaanPagiAdminTable();
+            // buildAdminMissedClasses() tidak dipanggil lagi: card rekap missed
+            // classes telah dihapus dari dashboard ADMIN sesuai permintaan user.
             
             const filterTeacher = document.getElementById('adminTeacherFilter').value;
             const filterPeriod = document.getElementById('adminPeriodFilter').value;
-            
-            const allRecords = generateDetailedTrackRecord(res.data, filterPeriod, filterTeacher);
-            
-            // PISAHKAN DATA REGULER DAN PEMBIASAAN PAGI
-            const mainRecords = allRecords.filter(g => g.jp !== 'Pembiasaan Pagi');
-            const pembiasaanRecords = allRecords.filter(g => g.jp === 'Pembiasaan Pagi');
-            
-            let tLate = 0, tEarly = 0, tLupa = 0, visibleRecords = 0; 
-            tbody.innerHTML = '';
-            
-            // RENDER TABEL UTAMA (TANPA PEMBIASAAN PAGI)
-            mainRecords.forEach(g => {
-                if (adminViewMode === 'late' && g.telat <= 0) return;
-                if (adminViewMode === 'early' && g.cepat <= 0) return;
-                if (adminViewMode === 'tidakscanmasuk' && !g.tidakScanMasuk) return;
-                
-                if (g.tidakScanMasuk) tLupa++;
-                tLate += g.telat; tEarly += g.cepat; visibleRecords++;
 
-                let alasanText = g.ket !== '-' ? g.ket : '-';
-                if (alasanText.startsWith('Telat: ')) {
-                    alasanText = alasanText.substring(7).trim();
-                }
-                
-                let tandaX = g.tidakScanMasuk ? 'x' : '-';
-                if (g.isFuture && g.waktu_masuk === '-') {
-                    tandaX = '<span class="text-xs text-gray-400">Belum Waktunya</span>';
-                }
+            // Susun seluruh baris jadwal setiap guru (kecuali Budiman, S. Pd.)
+            // untuk periode & filter guru yang dipilih. Setiap baris jadwal TANPA
+            // scan masuk akan ditandai isMissedMasuk = true (keluar "x" di kolom
+            // Tidak Scan Masuk). Ini menggantikan logika lama yang keliru menandai
+            // baris dengan keterangan 'lupa scan keluar' / 'tidak scan keluar' /
+            // 'auto-checkout' sebagai "Tidak Scan Masuk" — keterangan2 itu berkaitan
+            // dengan scan KELUAR, bukan scan MASUK.
+            const allRows = buildAllScheduleRows(res.data, filterPeriod, filterTeacher, tolMasuk, tolKeluar);
 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${g.date}</td>
-                    <td class="font-bold">${g.teacher}</td>
-                    <td>${g.mapel}</td>
-                    <td>${g.class}</td>
-                    <td class="font-bold">${g.jp}</td>
-                    <td>${g.waktu_masuk} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.waktu_jadwal_masuk}</span></td>
-                    <td>${g.waktu_keluar} <br><span style="font-size:0.7rem;color:gray">Jdw: ${g.waktu_jadwal_keluar}</span></td>
-                    <td class="${g.telat > 0 ? 'text-danger font-bold' : ''}">${g.telat > 0 ? g.telat : '-'}</td>
-                    <td class="text-xs ${g.telat > 0 ? 'text-danger font-bold' : ''}" style="max-width: 150px; word-wrap: break-word;">${alasanText}</td>
-                    <td class="${g.cepat > 0 ? 'text-warning font-bold' : ''}">${g.cepat > 0 ? g.cepat : '-'}</td>
-                    <td class="text-center ${g.tidakScanMasuk ? 'text-danger font-bold text-xl' : ''}">${tandaX}</td>`;
-                tbody.appendChild(tr);
+            // Terapkan filter view mode (Semua / Terlambat / Keluar Cepat / Tidak Scan Masuk)
+            const visibleRows = allRows.filter(r => {
+                if (adminViewMode === 'late')         return r.telatMenit > 0;
+                if (adminViewMode === 'early')        return r.cepatMenit > 0;
+                if (adminViewMode === 'tidakscanmasuk') return r.isMissedMasuk;
+                return true; // 'all'
             });
-            
-            if (visibleRecords === 0) { tbody.innerHTML = '<tr><td colspan="11" class="text-center py-4">Tidak ada data yang sesuai filter.</td></tr>'; }
 
-            document.getElementById('adminStatTotal').textContent = visibleRecords; 
-            document.getElementById('adminStatLate').textContent = tLate + ' Mnt'; 
+            // Hitung statistik berdasarkan baris yang terlihat
+            let tLate = 0, tEarly = 0, tMissed = 0;
+            visibleRows.forEach(r => {
+                tLate  += r.telatMenit;
+                tEarly += r.cepatMenit;
+                if (r.isMissedMasuk) tMissed++;
+            });
+
+            // Render tabel
+            renderScheduleRows(tbody, visibleRows, 'Tidak ada data yang sesuai filter.', false, '');
+
+            document.getElementById('adminStatTotal').textContent = visibleRows.length;
+            document.getElementById('adminStatLate').textContent  = tLate  + ' Mnt';
             document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
-            document.getElementById('adminStatLupa').textContent = tLupa + ' Kali';
-
-            // ==============================================================
-            // RENDER TABEL KHUSUS PEMBIASAAN PAGI DI BAWAHNYA
-            // ==============================================================
-            let pembiasaanContainer = document.getElementById('adminPembiasaanContainer');
-            if (!pembiasaanContainer) {
-                const adminCard = tbody.closest('.card');
-                pembiasaanContainer = document.createElement('div');
-                pembiasaanContainer.id = 'adminPembiasaanContainer';
-                pembiasaanContainer.className = 'mt-6 pt-4 border-t-2 border-dashed border-emerald-200';
-                pembiasaanContainer.innerHTML = `
-                    <div class="card-header text-emerald-700 mb-3" style="font-size: 0.95rem;">
-                        <span><i class="fa-solid fa-sun"></i> Rekap Pembiasaan Pagi (Khusus Wali Kelas)</span>
-                    </div>
-                    <div class="table-wrap" style="max-height:300px;overflow-y:auto;">
-                        <table>
-                            <thead class="bg-emerald-50">
-                                <tr>
-                                    <th>Wali Kelas</th>
-                                    <th>Kelas</th>
-                                    <th class="text-center">Total Sesi<br><span style="font-size:0.65rem; font-weight:normal;">(Wajib Absen)</span></th>
-                                    <th class="text-center">Tepat</th>
-                                    <th class="text-center">Telat</th>
-                                    <th class="text-center">Tdk Scan<br>(Alpa)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="adminPembiasaanBody"></tbody>
-                        </table>
-                    </div>
-                `;
-                adminCard.appendChild(pembiasaanContainer);
-            }
-
-            const pembiasaanBody = document.getElementById('adminPembiasaanBody');
-            pembiasaanBody.innerHTML = '';
-
-            // Siapkan Map Khusus Wali Kelas
-            const waliMap = {};
-            for (let w in WALI_KELAS_MAP) {
-                waliMap[w] = { name: w, class: WALI_KELAS_MAP[w], total: 0, tepat: 0, telat: 0, lupa: 0 };
-            }
-
-            // Agregasi Data Pembiasaan
-            pembiasaanRecords.forEach(g => {
-                if (waliMap[g.teacher] && !g.isFuture) {
-                    waliMap[g.teacher].total++;
-                    if (g.tidakScanMasuk) waliMap[g.teacher].lupa++;
-                    else if (g.telat > 0) waliMap[g.teacher].telat++;
-                    else waliMap[g.teacher].tepat++;
-                }
-            });
-
-            // Terapkan Filter Guru (jika ada) dan Urutkan
-            let waliArray = Object.values(waliMap);
-            if (filterTeacher !== 'all') {
-                waliArray = waliArray.filter(w => w.name === filterTeacher);
-            }
-
-            if (waliArray.length === 0) {
-                pembiasaanBody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada data wali kelas untuk filter ini.</td></tr>';
-            } else {
-                waliArray.sort((a,b) => a.class.localeCompare(b.class)).forEach(w => {
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `
-                        <td class="font-bold">${w.name}</td>
-                        <td class="font-bold text-emerald-700">${w.class}</td>
-                        <td class="text-center font-bold text-primary">${w.total}</td>
-                        <td class="text-center ${w.tepat > 0 ? 'text-emerald-600 font-bold' : ''}">${w.tepat}</td>
-                        <td class="text-center ${w.telat > 0 ? 'text-warning font-bold' : ''}">${w.telat}</td>
-                        <td class="text-center ${w.lupa > 0 ? 'text-danger font-bold' : ''}">${w.lupa}</td>
-                    `;
-                    pembiasaanBody.appendChild(tr);
-                });
-            }
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
+            document.getElementById('adminStatLupa').textContent   = tMissed + ' Kali';
+        } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
     }
 
-function exportTableToExcel(elementId, filename = 'Data_Absensi.xls') {
-        const el = document.getElementById(elementId); 
-        if (!el) return;
-        
-        // Ambil elemen tabel induk terdekat agar tag <thead> (Header Kolom) ikut terbawa
-        const table = el.closest('table') || el;
-        
-        const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1">${table.cloneNode(true).innerHTML}</table></body></html>`;
-        const blob = new Blob([template], { type: 'application/vnd.ms-excel' }); 
-        const url = URL.createObjectURL(blob);
+    function exportTableToExcel(tableId, filename = 'Data_Absensi.xls') {
+        const table = document.getElementById(tableId); if (!table) return;
+        // Clone tabel agar tidak mengganggu DOM. outerHTML sudah mencakup <table><thead>…<tbody>…
+        // sehingga header kolom ikut terbawa ke file XLS.
+        const cloned = table.cloneNode(true);
+        const template = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"><style>
+            table { border-collapse: collapse; font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
+            th, td { border: 1px solid #999; padding: 4px 6px; vertical-align: top; }
+            thead th { background: #4f46e5; color: #ffffff; font-weight: bold; text-align: center; }
+            tr:first-child td[colspan] { background: #f5f3ff; color: #6b21a8; font-weight: bold; text-align: center; }
+            td.font-bold { font-weight: bold; }
+        </style></head><body>${cloned.outerHTML}</body></html>`;
+        const blob = new Blob([template], { type: 'application/vnd.ms-excel' }); const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); URL.revokeObjectURL(url);
     }
     
@@ -3611,6 +3596,10 @@ function exportTableToExcel(elementId, filename = 'Data_Absensi.xls') {
     document.getElementById('adminTeacherFilter').addEventListener('change', loadAdminData);
     document.getElementById('adminPeriodFilter').addEventListener('change', loadAdminData);
     document.getElementById('adminRefresh').addEventListener('click', loadAdminData);
+
+    // Listener untuk filter periode Rekap Pembiasaan Pagi (Khusus Wali Kelas)
+    const filterPembiasaanEl = document.getElementById('filterPembiasaanPeriode');
+    if (filterPembiasaanEl) filterPembiasaanEl.addEventListener('change', renderPembiasaanPagiAdminTable);
 
     document.getElementById('saveToleranceBtn').addEventListener('click', () => {
         const m = document.getElementById('toleranceMasukInput').value;
@@ -3633,108 +3622,77 @@ function exportTableToExcel(elementId, filename = 'Data_Absensi.xls') {
 
     document.getElementById('agusLoadReport').addEventListener('click', loadAgusData);
 
-async function loadAgusData() {
-        if (!isAgus) return;
-        const tbody = document.getElementById('agusBody');
-        const period = document.getElementById('agusFilterPeriod').value;
-        
-        const tableHead = document.querySelector('#agusBody').closest('table').querySelector('thead tr');
-        tableHead.innerHTML = '<th>Nama Guru</th><th class="text-center">Total Sesi<br><span style="font-size:0.65rem; font-weight:normal;">(Sudah Lewat)</span></th><th class="text-center">Tepat Waktu<br>(Sesi)</th><th class="text-center">Telat<br>(Mnt)</th><th class="text-center">Cepat<br>(Mnt)</th><th class="text-center">Tdk Scan<br>(Alpa)</th><th>Alasan Telat</th>';
-        
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengkalkulasi rekap dari jadwal sistem...</td></tr>';
-        
-        try {
-            const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
-            if (!res.success) throw new Error(res.error);
-            
-            res.data.forEach(d => {
-                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
-                    let dt = new Date(d.date);
-                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-                }
-                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
-                    if (d[k] && typeof d[k] === 'string') {
-                        if (d[k].includes('T')) {
-                            let dt = new Date(d[k]);
-                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
-                        } else {
-                            d[k] = d[k].replace(/\./g, ':'); 
-                        }
-                    }
-                });
-            });
-            
-            const allRecords = window.generateDetailedTrackRecord(res.data, period, 'all');
-            const reportMap = {};
-            
-            TEACHERS.forEach(t => {
-                if (t.name === 'Budiman, S. Pd.') return;
-                reportMap[t.name] = { 
-                    name: t.name, 
-                    total_sesi: 0,
-                    tepat: 0,
-                    telat: 0, 
-                    cepat: 0, 
-                    lupa: 0,
-                    alasan: []
-                };
-            });
-            
-            allRecords.forEach(g => {
-                // PENGECUALIAN: Lewati Pembiasaan Pagi agar tidak masuk kalkulasi Master Admin
-                if (g.jp === 'Pembiasaan Pagi') return;
+    async function loadAgusData() {
+    if (!isAgus) return;
+    const tbody = document.getElementById('agusBody');
+    const period = document.getElementById('agusFilterPeriod').value;
+    const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+    const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
 
-                if (!reportMap[g.teacher]) return;
-                
-                if (!g.isFuture) {
-                    reportMap[g.teacher].total_sesi++;
-                    
-                    if (g.telat > 0) reportMap[g.teacher].telat += g.telat;
-                    if (g.cepat > 0) reportMap[g.teacher].cepat += g.cepat;
-                    
-                    if (g.tidakScanMasuk) {
-                        reportMap[g.teacher].lupa++;
-                    } else if (g.telat === 0 && g.cepat === 0) {
-                        reportMap[g.teacher].tepat++;
-                    }
-                    
-                    if (g.telat > 0 && g.ket && g.ket !== '-') {
-                        let alasanText = g.ket;
-                        if (alasanText.startsWith('Telat: ')) {
-                            alasanText = alasanText.substring(7).trim();
-                        }
-                        if (alasanText) {
-                            reportMap[g.teacher].alasan.push(alasanText);
-                        }
-                    }
-                }
-            });
-            
-            tbody.innerHTML = '';
-            const finalData = Object.values(reportMap).sort((a,b) => a.name.localeCompare(b.name));
-            
-            if (finalData.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4">Tidak ada data untuk periode ini.</td></tr>`;
-                return;
+    // Tabel MASTER ADMIN sekarang menampilkan DETAIL baris jadwal per guru
+    // (sama persis struktur & header-nya dengan tabel ADMIN) — bukan rekap
+    // agregat per guru seperti versi sebelumnya. Header sudah didefinisikan
+    // langsung di index.html: Tgl, Guru, Mapel, Kls, JP, In, Out, Telat,
+    // Cepat, Tidak Scan Masuk (10 kolom).
+    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
+
+    try {
+        const response = await fetch(GAS_URL + '?action=getAbsensi');
+        const res = await response.json();
+        if (!res.success) throw new Error(res.error);
+
+        res.data.forEach(d => {
+            if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                let dt = new Date(d.date);
+                if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
             }
-
-            finalData.forEach(item => {
-                const alasanStr = item.alasan.length > 0 ? item.alasan.join(', ') : '-';
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td class="font-bold">${item.name}</td>
-                    <td class="text-primary font-bold text-center">${item.total_sesi}</td>
-                    <td class="text-emerald-600 font-bold text-center">${item.tepat}</td>
-                    <td class="text-center ${item.telat > 0 ? 'text-warning font-bold' : ''}">${item.telat}</td>
-                    <td class="text-center ${item.cepat > 0 ? 'text-danger font-bold' : ''}">${item.cepat}</td>
-                    <td class="text-center ${item.lupa > 0 ? 'text-purple-600 font-bold' : ''}">${item.lupa}</td>
-                    <td class="text-xs ${item.telat > 0 ? 'text-danger' : ''}" style="max-width: 200px; word-wrap: break-word;">${alasanStr}</td>`;
-                tbody.appendChild(tr);
+            ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                if (d[k] && typeof d[k] === 'string') {
+                    if (d[k].includes('T')) {
+                        let dt = new Date(d[k]);
+                        if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                    } else {
+                        d[k] = d[k].replace(/\./g, ':');
+                    }
+                }
             });
-            
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
-    }
+        });
+
+        currentServerDataCacheAdmin = res.data;
+        renderLiveMonitor();
+        renderMasterAdminMonitor();
+        // Render tabel Rekap Pembiasaan Pagi (Khusus Wali Kelas) — disalin ke Master juga
+        renderPembiasaanPagiAdminTable();
+
+        // Susun seluruh baris jadwal untuk SEMUA guru (kecuali Budiman, S. Pd.)
+        // pada periode yang dipilih. Master Admin melihat seluruh guru tanpa filter.
+        const rows = buildAllScheduleRows(res.data, period, 'all', tolMasuk, tolKeluar);
+
+        // Hitung teks periode untuk info row
+        const isMonthPick = /^\d{4}-\d{2}$/.test(period);
+        let periodText = '';
+        if (isMonthPick) {
+            const [yStr, mStr] = period.split('-');
+            const y = Number(yStr), m = Number(mStr);
+            const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+            periodText = `${namaBulan[m - 1]} ${y}`;
+        } else {
+            periodText = period === 'day' ? 'Hari Ini'
+                : period === 'week' ? 'Pekan Ini'
+                : period === 'month' ? 'Bulan Berjalan'
+                : period === 'semester' ? 'Semester Ganjil (Jul-Des 2026)' : 'Semua Periode';
+        }
+
+        // Render tabel dengan baris info periode paling atas
+        renderScheduleRows(
+            tbody,
+            rows,
+            `Tidak ada data terakumulasi untuk periode <b>${periodText}</b>.`,
+            true,
+            periodText
+        );
+    } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
+}
 
     document.getElementById('agusEditLink').addEventListener('click', () => {
         document.getElementById('modalContent').innerHTML = `<div class="input-group"><label>URL Apps Script Terpasang</label><input type="text" id="gasUrlInput" value="${GAS_URL}" /></div><button class="btn btn-primary" id="saveGasUrl">Simpan Link</button>`;
@@ -3862,13 +3820,40 @@ function getWeekDateRange(offsetWeeks = 0) {
 
 function populateRiwayatWeeks() {
     const select = document.getElementById('riwayatWeekSelect');
-    if (select.options.length > 0) return; 
-    for (let i = 0; i < 5; i++) {
+    if (select.options.length > 0) return;
+
+    // === URUT KRONOLOGIS (TERLAMA → TERBARU → MENDATANG) ===
+    // Riwayat lampau dari 12 pekan lalu (terlama) sampai 1 pekan lalu (terbaru)
+    for (let i = 12; i >= 1; i--) {
         let opt = document.createElement('option');
         opt.value = i;
-        opt.textContent = i === 0 ? 'Pekan Ini' : `${i} Pekan Lalu`;
+        opt.textContent = i === 1 ? 'Riwayat Pekan Lalu' : `Riwayat ${i} Pekan Lalu`;
         select.appendChild(opt);
     }
+
+    // Pekan Berjalan (pekan aktif saat ini) — default terpilih
+    let optNow = document.createElement('option');
+    optNow.value = 0;
+    optNow.textContent = 'Pekan Berjalan';
+    select.appendChild(optNow);
+
+    // Separator visual antara riwayat & jadwal
+    let sep = document.createElement('option');
+    sep.disabled = true;
+    sep.value = 'sep';
+    sep.textContent = '──── Jadwal Mendatang ────';
+    select.appendChild(sep);
+
+    // === KELOMPOK JADWAL (PEKAN MENDATANG) - urut waktu naik ===
+    for (let i = 1; i <= 4; i++) {
+        let opt = document.createElement('option');
+        opt.value = -i;
+        opt.textContent = i === 1 ? 'Jadwal Pekan Depan' : `Jadwal ${i} Pekan Depan`;
+        select.appendChild(opt);
+    }
+
+    // Default tampil sebagai Pekan Berjalan
+    select.value = '0';
     select.addEventListener('change', loadRiwayatPekanan);
 }
 
@@ -3880,9 +3865,22 @@ async function loadRiwayatPekanan() {
     
     const offset = parseInt(document.getElementById('riwayatWeekSelect').value) || 0;
     const range = getWeekDateRange(offset);
-    
+    const isFuture = offset < 0;
+
     const formatTgl = (d) => `${String(d.getDate()).padStart(2,'0')} ${['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][d.getMonth()]} ${d.getFullYear()}`;
-    document.getElementById('riwayatNotice').innerHTML = `<div class="bg-purple-50 border border-purple-200 text-purple-800 p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-calendar-days"></i> Periode: <b>${formatTgl(range.start)} - ${formatTgl(range.end)}</b></div>`;
+    // Label dinamis: Pekan Berjalan (offset 0), Riwayat Pekan Lampau (>0), Jadwal Pekan Mendatang (<0)
+    let noticeLabel, noticeBg;
+    if (isFuture) {
+        noticeLabel = 'Jadwal Pekan Mendatang';
+        noticeBg = 'bg-blue-50 border-blue-200 text-blue-800';
+    } else if (offset === 0) {
+        noticeLabel = 'Pekan Berjalan';
+        noticeBg = 'bg-amber-50 border-amber-200 text-amber-800';
+    } else {
+        noticeLabel = 'Riwayat Pekan Lampau';
+        noticeBg = 'bg-purple-50 border-purple-200 text-purple-800';
+    }
+    document.getElementById('riwayatNotice').innerHTML = `<div class="${noticeBg} border p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-calendar-days"></i> ${noticeLabel} &mdash; Periode: <b>${formatTgl(range.start)} - ${formatTgl(range.end)}</b></div>`;
     
     container.innerHTML = '<div class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menarik data server...</div>';
     
@@ -3893,13 +3891,13 @@ async function loadRiwayatPekanan() {
             if (res.success) cachedFullRiwayat = res.data;
             else throw new Error("Gagal load data");
         }
-        renderRiwayatData(cachedFullRiwayat, range);
+        renderRiwayatData(cachedFullRiwayat, range, isFuture);
     } catch(e) {
         container.innerHTML = `<div class="text-center py-6 text-danger"><i class="fa-solid fa-triangle-exclamation"></i> Gagal memuat riwayat: Cek koneksi Anda.</div>`;
     }
 }
 
-function renderRiwayatData(allData, range) {
+function renderRiwayatData(allData, range, isFutureWeek) {
     const container = document.getElementById('riwayatPekanContainer');
     let html = '';
     const days = ['senin', 'selasa', 'rabu', 'kamis', 'jumat', 'sabtu'];
@@ -3928,19 +3926,59 @@ function renderRiwayatData(allData, range) {
         
         let blocks = getGroupedSchedule(currentUser, day, 0, currentDate);
         
-        if (blocks.length > 0) {
+        // Cek status hari (libur / kegiatan / normal)
+        let statusHari = getStatusHariIni(currentDate);
+        let isHoliday = statusHari.status === 'libur';
+        let isKegiatan = statusHari.status === 'kegiatan';
+        let isNonNormal = isHoliday || isKegiatan;
+        
+        // Render kartu hari bila ada jadwal ATAU hari libur/kegiatan
+        if (blocks.length > 0 || isNonNormal) {
             let dayName = day.charAt(0).toUpperCase() + day.slice(1);
             let dateDisplay = `${String(currentDate.getDate()).padStart(2,'0')}/${String(currentDate.getMonth()+1).padStart(2,'0')}`;
             
             // Cek apakah hari ini berada di masa depan
             let isFutureDay = currentDateStr > todayStr;
-            let headerBg = isFutureDay ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-purple-50 text-purple-700 border-purple-200';
+            let isToday = currentDateStr === todayStr;
+            // Styling header: merah (libur), hijau (kegiatan), biru (jadwal), amber (hari ini), ungu (riwayat)
+            let headerBg;
+            if (isHoliday) {
+                headerBg = 'bg-red-50 text-red-700 border-red-200';
+            } else if (isKegiatan) {
+                headerBg = 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            } else if (isFutureWeek || isFutureDay) {
+                headerBg = 'bg-blue-50 text-blue-700 border-blue-200';
+            } else if (isToday) {
+                headerBg = 'bg-amber-50 text-amber-700 border-amber-200';
+            } else {
+                headerBg = 'bg-purple-50 text-purple-700 border-purple-200';
+            }
             
-            html += `<div class="p-3 rounded-xl border border-gray-200" style="background: var(--input-bg);">
+            // Border & background card berdasarkan status hari
+            let cardBorder = isHoliday ? 'border-red-300' : (isKegiatan ? 'border-emerald-300' : 'border-gray-200');
+            let cardBg = isHoliday ? '#fef2f2' : (isKegiatan ? '#ecfdf5' : 'var(--input-bg)');
+            
+            html += `<div class="p-3 rounded-xl border ${cardBorder}" style="background: ${cardBg};">
                 <div class="font-bold mb-2 border-b pb-2 flex justify-between items-center px-2 rounded-t-lg ${headerBg}">
                     <span><i class="fa-regular fa-calendar-check"></i> ${dayName}, ${dateDisplay}</span>
-                </div>
-                <table class="w-full text-sm"><tbody>`;
+                </div>`;
+            
+            // Badge keterangan libur/kegiatan di bawah header hari
+            if (isHoliday) {
+                html += `<div class="my-2 px-3 py-2 rounded-lg bg-red-100 text-red-800 text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Libur: ${statusHari.label}</span>
+                </div>`;
+            } else if (isKegiatan) {
+                html += `<div class="my-2 px-3 py-2 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-bold flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Kegiatan: ${statusHari.label}</span>
+                </div>`;
+            }
+            
+            // Tabel jadwal (hanya bila ada blok jadwal) atau pesan libur
+            if (blocks.length > 0) {
+                html += `<table class="w-full text-sm"><tbody>`;
             
             blocks.forEach(b => {
                 let jpStr = b.jps.length > 1 ? `JP ${b.jps[0]}-${b.jps[b.jps.length-1]}` : `JP ${b.jps[0]}`;
@@ -4010,10 +4048,15 @@ function renderRiwayatData(allData, range) {
                          </tr>`;
                 totalSesi++;
             });
-            html += `</tbody></table></div>`;
+                html += `</tbody></table>`;
+            } else if (isNonNormal) {
+                // Hari libur/kegiatan tanpa jadwal mengajar reguler
+                html += `<div class="text-center py-4 text-gray-500 text-sm font-bold"><i class="fa-solid fa-info-circle mr-1"></i> Hari Tidak Mengajar (Libur/Kegiatan Sekolah)</div>`;
+            }
+            html += `</div>`;
         }
     }
-    if (totalSesi === 0) { html = `<div class="text-center py-8 text-muted"><i class="fa-solid fa-calendar-xmark text-4xl mb-3 text-gray-300"></i><br>Tidak ada jadwal mengajar pada pekan ini.</div>`; }
+    if (totalSesi === 0 && html === '') { html = `<div class="text-center py-8 text-muted"><i class="fa-solid fa-calendar-xmark text-4xl mb-3 text-gray-300"></i><br>Tidak ada jadwal mengajar pada pekan ini.</div>`; }
     container.innerHTML = html;
 }
 
@@ -4176,8 +4219,58 @@ function cekPembiasaanPagi(namaGuru) {
 function renderMasterAdminMonitor() {
     const tbody = document.getElementById('listMasterAdminBody');
     const totalBadge = document.getElementById('totalGuruMonitor');
+    const panel = document.getElementById('panelMasterAdmin');
     
     if (!tbody) return;
+
+    // === Cek apakah hari ini libur/kegiatan ===
+    // Pada hari libur/kegiatan, live monitor tidak ditayangkan.
+    // Tampilkan keterangan libur sebagai gantinya.
+    const todayHoliday = getStatusHariIni(getCurrentWITA());
+    const isTodayNonNormal = todayHoliday.status === 'libur' || todayHoliday.status === 'kegiatan';
+
+    // Kelola visibilitas tabel & banner libur sesuai status hari
+    if (panel) {
+        const tableWrap = panel.querySelector('.table-wrap');
+        if (tableWrap) tableWrap.style.display = isTodayNonNormal ? 'none' : '';
+        // Hapus banner libur lama bila hari sudah normal kembali (transisi libur -> non-libur)
+        const existingBanner = panel.querySelector('.holiday-monitor-banner');
+        if (existingBanner && !isTodayNonNormal) existingBanner.remove();
+    }
+
+    if (isTodayNonNormal) {
+        const labelType = todayHoliday.status === 'libur' ? 'Libur' : 'Kegiatan';
+        const bgColor = todayHoliday.status === 'libur' ? '#fef2f2' : '#ecfdf5';
+        const textColor = todayHoliday.status === 'libur' ? '#991b1b' : '#065f46';
+        const borderColor = todayHoliday.status === 'libur' ? '#fecaca' : '#a7f3d0';
+        const iconClass = todayHoliday.status === 'libur' ? 'fa-triangle-exclamation' : 'fa-calendar-check';
+
+        if (totalBadge) totalBadge.textContent = '\u2014';
+
+        // Sisipkan / perbarui banner libur di posisi tabel (sebagai sibling pengganti table-wrap)
+        let banner = panel ? panel.querySelector('.holiday-monitor-banner') : null;
+        if (panel && !banner) {
+            banner = document.createElement('div');
+            banner.className = 'holiday-monitor-banner';
+            const tableWrap = panel.querySelector('.table-wrap');
+            if (tableWrap && tableWrap.parentNode) {
+                tableWrap.parentNode.insertBefore(banner, tableWrap);
+            } else {
+                panel.appendChild(banner);
+            }
+        }
+        if (banner) {
+            banner.style.cssText = `background: ${bgColor}; color: ${textColor}; padding: 24px; text-align: center; font-weight: bold; border-left: 4px solid ${textColor}; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;`;
+            banner.innerHTML = `
+                <i class="fa-solid ${iconClass}" style="font-size: 1.8rem; display: block; margin-bottom: 8px;"></i>
+                <div style="font-size: 1.05rem; margin-bottom: 4px;">Hari ${labelType}</div>
+                <div style="font-weight: normal; font-size: 0.85rem; margin-bottom: 6px;">${todayHoliday.label}</div>
+                <div style="font-size: 0.7rem; opacity: 0.75;">Live Monitor Seluruh Guru tidak ditayangkan pada hari ${labelType.toLowerCase()}.</div>
+            `;
+        }
+        tbody.innerHTML = '';
+        return;
+    }
 
     // 1. Ambil data absensi hari ini yang ada di cache admin
     const todayStr = getLocalDateString(getCurrentWITA());
@@ -4240,59 +4333,129 @@ function renderMasterAdminMonitor() {
     tbody.innerHTML = rowsHTML || '<tr><td colspan="3" style="text-align: center; padding: 10px;">Tidak ada data guru.</td></tr>';
 }
 
-function renderPembiasaanPagiAdmin() {
-    const tbody = document.getElementById('bodyPembiasaan');
-    if (!tbody || currentServerDataCacheAdmin.length === 0) return;
-    
-    const period = document.getElementById('filterPembiasaanPeriode').value;
-    const todayStr = getLocalDateString(new Date());
-    const now = new Date();
-    
-    // Tentukan hari aktif sekolah (mengecualikan minggu & hari libur nasional)
-    let validDates = [];
-    let startDate = new Date();
-    if (period === 'day') startDate = new Date();
-    if (period === 'week') startDate = new Date(now.setDate(now.getDate() - now.getDay() + 1));
-    if (period === 'month') startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-    
+// ===========================================================
+// REKAP PEMBIASAAN PAGI (KHUSUS WALI KELAS)
+// Versi baru: mencantumkan LIST JP Pembiasaan Pagi setiap wali
+// kelas terdaftar. Header row per wali kelas menampilkan ringkasan
+// (Hadir/Telat/Alpa), baris-baris di bawahnya menampilkan detail
+// tanggal + jam In/Out + status.
+// ===========================================================
+function renderPembiasaanPagiAdminTable() {
+    const tbody = document.getElementById('bodyPembiasaanAdmin');
+    if (!tbody) return;
+    if (!currentServerDataCacheAdmin || currentServerDataCacheAdmin.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-4">Belum ada data absensi.</td></tr>';
+        return;
+    }
+
+    const periodFilter = document.getElementById('filterPembiasaanPeriode');
+    const period = periodFilter ? periodFilter.value : 'week';
+
+    // Rentang tanggal sesuai periode
+    const today = getCurrentWITA();
+    today.setHours(0, 0, 0, 0);
+    const todayStr = getLocalDateString(today);
+    let startDate = new Date(today);
+    let endDate = new Date(today);
+    if (period === 'day') {
+        // hari ini
+    } else if (period === 'week') {
+        startDate = new Date(today);
+        startDate.setDate(today.getDate() - today.getDay() + 1); // Senin
+    } else if (period === 'month') {
+        startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else { // 'all'
+        startDate = new Date(2026, 6, 1); // 1 Juli 2026 (awal tahun ajaran)
+    }
+
+    const startStr = getLocalDateString(startDate);
+    const endStr = getLocalDateString(endDate);
+
+    // Hitung total hari aktif sekolah (Senin-Sabtu, bukan hari libur) dalam rentang
+    let totalHariAktif = 0;
     let tempDate = new Date(startDate);
-    while (getLocalDateString(tempDate) <= todayStr) {
-        // Cek bukan hari minggu (0) dan bukan hari libur kalender sekolah
+    while (getLocalDateString(tempDate) <= endStr) {
         if (tempDate.getDay() !== 0 && !isLiburSekolah(tempDate)) {
-            validDates.push(getLocalDateString(tempDate));
+            totalHariAktif++;
         }
         tempDate.setDate(tempDate.getDate() + 1);
     }
-    
-    let totalHariAktif = validDates.length;
-    let dataPembiasaan = currentServerDataCacheAdmin.filter(d => d.jp === 'Pembiasaan Pagi' && d.action === 'masuk' && validDates.includes(d.date));
-    
+
+    // Filter record pembiasaan pagi (action apa saja) dalam rentang
+    const pembiasaanRecords = currentServerDataCacheAdmin.filter(d => {
+        if (d.jp !== 'Pembiasaan Pagi') return false;
+        let tgl = d.date && typeof d.date === 'string' && d.date.includes('T') ? d.date.split('T')[0] : d.date;
+        return tgl >= startStr && tgl <= endStr;
+    });
+
+    // Susun daftar wali kelas (sudah ada di WALI_KELAS_MAP) urut abjad
+    const waliKelasList = Object.keys(WALI_KELAS_MAP).sort((a, b) => a.localeCompare(b));
+
     let html = '';
-    for (let guru in WALI_KELAS_MAP) {
-        let kelas = WALI_KELAS_MAP[guru];
-        let records = dataPembiasaan.filter(d => d.teacher === guru);
-        
-        let totalHadir = records.length;
-        let alfa = totalHariAktif - totalHadir;
-        let telat = 0;
-        
-        records.forEach(r => {
-            let m = parseTimeToMins('07:15'); // Jadwal fix
-            let w = parseTimeToMins(r.time);
-            if (w > (m + 3)) telat++; // Absen di atas pukul 07.18 dicatat telat
+    waliKelasList.forEach(guru => {
+        const kelas = WALI_KELAS_MAP[guru];
+        const recordsGuru = pembiasaanRecords.filter(d => d.teacher === guru);
+
+        // Group per-tanggal: in, out, status
+        const byDate = {};
+        recordsGuru.forEach(r => {
+            let tgl = r.date && typeof r.date === 'string' && r.date.includes('T') ? r.date.split('T')[0] : r.date;
+            if (!byDate[tgl]) byDate[tgl] = { in: '-', out: '-', status: 'Alpa' };
+            if (r.action === 'masuk') {
+                byDate[tgl].in = r.time ? String(r.time).substring(0, 5) : '-';
+                const mMins = parseTimeToMins('07:15');
+                const wMins = parseTimeToMins(r.time);
+                byDate[tgl].status = (wMins > (mMins + 3)) ? 'Telat' : 'Tepat';
+            }
+            if (r.action === 'keluar') {
+                byDate[tgl].out = r.time ? String(r.time).substring(0, 5) : '-';
+            }
         });
-        
-        html += `<tr>
-            <td class="font-bold text-xs">${guru}</td>
-            <td class="font-bold text-xs">${kelas}</td>
-            <td class="text-success font-bold text-center">${totalHadir}</td>
-            <td class="${telat > 0 ? 'text-warning' : 'text-gray-400'} font-bold text-center">${telat}</td>
-            <td class="${alfa > 0 ? 'text-danger' : 'text-gray-400'} font-bold text-center">${alfa > 0 ? alfa : 0}</td>
+
+        const totalHadir = Object.keys(byDate).length;
+        let telatCount = 0;
+        Object.values(byDate).forEach(v => { if (v.status === 'Telat') telatCount++; });
+        const alpa = Math.max(0, totalHariAktif - totalHadir);
+
+        // === HEADER ROW per wali kelas (ringkasan) ===
+        html += `<tr style="background:#d1fae5;">
+            <td colspan="6" style="font-weight:bold; color:#065f46; padding:8px; font-size:0.8rem;">
+                <i class="fa-solid fa-user"></i> ${guru} &mdash; Kelas <b>${kelas}</b>
+                &nbsp;|&nbsp; Hadir: <b>${totalHadir}</b>/${totalHariAktif}
+                &nbsp;|&nbsp; Telat: <b style="color:#b45309;">${telatCount}</b>
+                &nbsp;|&nbsp; Alpa: <b style="color:#b91c1c;">${alpa}</b>
+            </td>
         </tr>`;
-    }
-    
-    tbody.innerHTML = html;
+
+        // === DETAIL ROWS per tanggal ===
+        const sortedDates = Object.keys(byDate).sort().reverse();
+        if (sortedDates.length === 0) {
+            html += `<tr><td colspan="6" class="text-center text-muted" style="padding:6px; font-size:0.75rem;">— Belum ada riwayat pembiasaan pagi pada periode ini —</td></tr>`;
+        } else {
+            sortedDates.forEach(tgl => {
+                const r = byDate[tgl];
+                const statusBadge = r.status === 'Telat'
+                    ? `<span class="badge bg-amber-100 text-amber-700 font-bold px-2 py-1 text-xs">Telat</span>`
+                    : (r.status === 'Alpa'
+                        ? `<span class="badge bg-red-100 text-red-700 font-bold px-2 py-1 text-xs">Alpa</span>`
+                        : `<span class="badge bg-emerald-100 text-emerald-700 font-bold px-2 py-1 text-xs">Tepat</span>`);
+                html += `<tr>
+                    <td class="text-xs" style="padding:4px 8px;">${guru}</td>
+                    <td class="font-bold text-xs" style="padding:4px 8px;">${kelas}</td>
+                    <td class="text-xs" style="padding:4px 8px;">${tgl}</td>
+                    <td class="text-xs font-bold text-emerald-700" style="padding:4px 8px;">${r.in}</td>
+                    <td class="text-xs font-bold text-emerald-700" style="padding:4px 8px;">${r.out}</td>
+                    <td class="text-center" style="padding:4px 8px;">${statusBadge}</td>
+                </tr>`;
+            });
+        }
+    });
+
+    tbody.innerHTML = html || '<tr><td colspan="6" class="text-center text-muted py-4">Tidak ada data wali kelas.</td></tr>';
 }
+
+// Alias untuk kompatibilitas (jika ada referensi lama di tempat lain)
+function renderPembiasaanPagiAdmin() { return renderPembiasaanPagiAdminTable(); }
 
 // Fungsi Copy Rekap Pribadi ke WA
 window.copyRekapPribadiWA = function() {
@@ -4771,146 +4934,14 @@ window.copyRekapNilaiWA = function() {
 };
 
 // ==========================================
-// LOGIKA DASHBOARD WALI KELAS
+// CATATAN: LOGIKA DASHBOARD WALI KELAS TELAH DIHAPUS
+// Tab "Wali" dan seluruh UI dashboard wali kelas (Absensi
+// Santri Harian + Riwayat Pembiasaan Pribadi) sudah
+// dihilangkan dari halaman sesuai permintaan user.
+// Rekap pembiasaan pagi seluruh wali kelas sekarang
+// ditampilkan dalam tabel khusus di section Admin
+// (lihat fungsi renderPembiasaanPagiAdminTable()).
 // ==========================================
-
-// Setup Tab Switching Wali Kelas
-document.querySelectorAll('.tab-wali').forEach(btn => {
-    btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-wali').forEach(b => b.classList.replace('btn-primary', 'btn-outline'));
-        btn.classList.replace('btn-outline', 'btn-primary');
-        document.getElementById('waliAbsensiSantri').classList.add('hidden');
-        document.getElementById('waliRekapPembiasaan').classList.add('hidden');
-        document.getElementById(btn.dataset.target).classList.remove('hidden');
-        
-        if(btn.dataset.target === 'waliRekapPembiasaan') renderPembiasaanWali();
-    });
-});
-
-// Listener untuk inisialisasi Wali Kelas saat login
-const originalDoLogin = doLogin;
-doLogin = async function(name, isAdminUser, adminType) {
-    await originalDoLogin(name, isAdminUser, adminType);
-
-    // Tampilkan tombol Tab Wali Kelas jika Guru adalah Wali Kelas ATAU Master Admin
-    const klsWali = WALI_KELAS_MAP[name];
-    if (klsWali || adminType === 'agus') { // Modifikasi di baris ini
-        document.getElementById('waliTab').classList.remove('hidden');
-        document.getElementById('waliKelasBadge').textContent = klsWali ? 'Kelas: ' + klsWali : 'Akses Pantauan Master';
-        document.getElementById('tglAbsensiSantri').value = getLocalDateString(new Date());
-    } else {
-        document.getElementById('waliTab').classList.add('hidden');
-    }
-};
-
-// Autocomplete Nama Santri Harian
-const searchAbsensiSantri = document.getElementById('searchAbsensiSantri');
-const dropdownAbsensiSantri = document.getElementById('dropdownAbsensiSantri');
-
-searchAbsensiSantri.addEventListener('input', function() {
-    let keyword = this.value.trim().toLowerCase();
-    dropdownAbsensiSantri.innerHTML = '';
-    let kls = WALI_KELAS_MAP[currentUser];
-    if (!keyword || !kls) { dropdownAbsensiSantri.classList.add('hidden'); return; }
-    
-    let matched = (DATA_SANTRI[kls] || []).filter(n => n.toLowerCase().includes(keyword));
-    if (matched.length > 0) {
-        dropdownAbsensiSantri.classList.remove('hidden');
-        matched.forEach(nama => {
-            let div = document.createElement('div');
-            div.className = 'dropdown-item'; div.textContent = nama;
-            div.onclick = () => { searchAbsensiSantri.value = nama; dropdownAbsensiSantri.classList.add('hidden'); };
-            dropdownAbsensiSantri.appendChild(div);
-        });
-    } else { dropdownAbsensiSantri.classList.add('hidden'); }
-});
-
-// Tombol Kirim Absensi Santri
-document.getElementById('btnKirimAbsensiSantri').addEventListener('click', async () => {
-    const tgl = document.getElementById('tglAbsensiSantri').value;
-    const nama = searchAbsensiSantri.value.trim();
-    const status = document.getElementById('statusAbsensiSantri').value;
-    const kls = WALI_KELAS_MAP[currentUser];
-
-    if (!kls) return showToast('Anda bukan wali kelas!', 'error');
-    if (!tgl || !nama) return showToast('Pilih tanggal dan nama santri!', 'error');
-
-    const btn = document.getElementById('btnKirimAbsensiSantri');
-    const oriText = btn.innerHTML;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Mengirim...';
-
-    try {
-        const payload = { api_action: 'addAbsensiSantriHarian', teacher: currentUser, class: kls, date: tgl, nama_santri: nama, status: status };
-        const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(payload) });
-        const j = await res.json();
-        if(j.success) {
-            showToast('Absensi santri berhasil dikirim ke server!', 'success');
-            searchAbsensiSantri.value = '';
-        } else { throw new Error(j.error); }
-    } catch(e) {
-        showToast('Gagal mengirim absensi santri.', 'error');
-    } finally { btn.innerHTML = oriText; }
-});
-
-// Render Rekap Pembiasaan Wali Kelas
-async function renderPembiasaanWali() {
-    const tbody = document.getElementById('bodyPembiasaanWali');
-    tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Menarik data...</td></tr>';
-    
-    try {
-        const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
-        const period = document.getElementById('filterPembiasaanPeriodeWali').value;
-        const now = new Date();
-        
-        let filtered = res.data.filter(d => d.teacher === currentUser && d.jp === 'Pembiasaan Pagi');
-        
-        // Logika Filter Tanggal
-        filtered = filtered.filter(d => {
-            let tglData = d.date.includes('T') ? d.date.split('T')[0] : d.date;
-            if (period === 'week') return tglData >= getLocalDateString(new Date(now.setDate(now.getDate() - now.getDay() + 1)));
-            if (period === 'month') return tglData >= getLocalDateString(new Date(now.getFullYear(), now.getMonth(), 1));
-            return true;
-        });
-
-        // Grouping Data Masuk Keluar
-        let mapPagi = {};
-        filtered.forEach(d => {
-            let tgl = d.date.includes('T') ? d.date.split('T')[0] : d.date;
-            if(!mapPagi[tgl]) mapPagi[tgl] = { in: '-', out: '-', status: 'Hadir' };
-            if(d.action === 'masuk') mapPagi[tgl].in = d.time ? d.time.substring(0,5) : '-';
-            if(d.action === 'keluar') mapPagi[tgl].out = d.time ? d.time.substring(0,5) : '-';
-        });
-
-        tbody.innerHTML = '';
-        Object.keys(mapPagi).sort().reverse().forEach(tgl => {
-            let r = mapPagi[tgl];
-            let telat = false;
-            let mMins = parseTimeToMins('07:15');
-            let wMins = parseTimeToMins(r.in);
-            if (wMins > (mMins + 3)) telat = true;
-            
-            let statusBadge = telat ? `<span class="badge bg-amber-100 text-amber-700 font-bold px-2 py-1 text-xs">Telat</span>` : `<span class="badge bg-emerald-100 text-emerald-700 font-bold px-2 py-1 text-xs">Tepat</span>`;
-            
-            tbody.innerHTML += `<tr><td class="font-bold text-xs">${tgl}</td><td>${r.in}</td><td>${r.out}</td><td>${statusBadge}</td></tr>`;
-        });
-        if(Object.keys(mapPagi).length === 0) tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">Belum ada data</td></tr>';
-    } catch(e) { tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger">Gagal terkoneksi.</td></tr>'; }
-}
-
-window.copyPembiasaanWaliWA = function() {
-    let textToCopy = `*REKAP PEMBIASAAN PAGI*\n👤 Wali Kelas: ${currentUser} (${WALI_KELAS_MAP[currentUser]})\n\n`;
-    const rows = document.getElementById('bodyPembiasaanWali').querySelectorAll('tr');
-    
-    if (rows.length === 0 || rows[0].innerText.includes('Belum ada')) {
-        textToCopy += "Belum ada riwayat pembiasaan pagi.";
-    } else {
-        rows.forEach(r => {
-            const c = r.querySelectorAll('td');
-            if (c.length >= 4) textToCopy += `📅 ${c[0].innerText} | In: ${c[1].innerText} | Out: ${c[2].innerText} | St: ${c[3].innerText}\n`;
-        });
-    }
-    navigator.clipboard.writeText(textToCopy).then(() => showToast('Berhasil dicopy ke WA', 'success'));
-}
 
 setInterval(updateNextClassTimer, 1000);
 
