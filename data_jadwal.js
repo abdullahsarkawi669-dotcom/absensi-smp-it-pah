@@ -133,8 +133,8 @@
 	jadwalPelajaran['sabtu']['JP 8']['7E'] = 'IPA Terpadu (L. Muh. Baidui, M. Pd.)';
 
 	// KELAS 8A
-	jadwalPelajaran['senin']['JP 2-3']['8A'] = 'Aqidah (Ahmad Arroiyan, Lc.)';
-	jadwalPelajaran['senin']['JP 4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 2']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
+	jadwalPelajaran['senin']['JP 3-4']['8A'] = 'Aqidah (Ahmad Arroiyan, Lc.)';
 	jadwalPelajaran['senin']['JP 5-6']['8A'] = 'Kitabah & Khat (Syamsul Bahri, Lc.)';
 	jadwalPelajaran['senin']['JP 7-8']['8A'] = 'Bahasa Arab (Zulfi Farid, Lc.)';
 	jadwalPelajaran['selasa']['JP 3-4']['8A'] = 'Matematika (Haqikahurrahman, S. Pd.)';
