@@ -208,7 +208,8 @@ tr:last-child td { border-bottom: none; }
 .sync-log .entry.info { color: #60a5fa; }
 
 .modal-overlay {
-    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px);
+    position: fixed; top: 0; right: 0; bottom: 0; left: 0; inset: 0;
+    background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(6px);
     display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px;
     animation: fadeIn 0.2s ease;
 }
@@ -564,3 +565,108 @@ transform: translateX(-50%) translateY(var(--scroll-offset, 0px));
 
 .shadow-lg { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
 .hover-scale:active { transform: scale(0.95); }
+
+/* =====================================================================
+   POLYFILL CSS UNTUK ANDROID LAWA (WebView Chrome 37 - 50 / Android 5 - 7)
+   - Tidak semua WebView lama mendukung: gap (flex), backdrop-filter,
+     position: sticky, inset shorthand, atau CSS Grid.
+   - Blok @supports not (...) di bawah hanya aktif bila fitur tidak didukung,
+     sehingga browser modern tetap memakai gaya asli.
+   ===================================================================== */
+
+/* ---------- Fallback untuk `gap` di flex (Chrome <84 / Android <10) ----------
+   Mengganti spasi antar anak flex dengan margin kiri pada anak ke-2 dst. */
+@supports not (gap: 1px) {
+    .gap-2 > * + * { margin-left: 8px; }
+    .gap-3 > * + * { margin-left: 12px; }
+    .gap-4 > * + * { margin-left: 16px; }
+
+    /* .btn ikon + teks */
+    .btn > * + * { margin-left: 8px; }
+
+    /* .topbar (user, gap:10px) */
+    .topbar .user > * + * { margin-left: 10px; }
+
+    /* .topbar (gap:12px) */
+    .topbar > * + * { margin-left: 12px; }
+    @media (max-width: 480px) {
+        .topbar { flex-direction: column; }
+        .topbar > * + * { margin-left: 0; margin-top: 8px; }
+    }
+
+    /* .tabs (gap:8px) */
+    .tabs > * + * { margin-left: 8px; }
+
+    /* .scan-result (flex-col gap:8px) */
+    .scan-result > * + * { margin-left: 0; margin-top: 8px; }
+
+    /* .scan-buttons-container (flex gap:2) */
+    .scan-buttons-container > * + * { margin-left: 8px; }
+
+    /* tombol tab (gap:6px) */
+    .tabs .tab > * + * { margin-left: 6px; }
+
+    /* toast (gap:8px) */
+    .toast > * + * { margin-left: 8px; }
+
+    /* login password buttons (flex-col gap:2) */
+    .flex.flex-col > * + * { margin-left: 0; margin-top: 8px; }
+}
+
+/* ---------- Fallback untuk `backdrop-filter` (Chrome <76 / Android <10) ----------
+   Browser lama akan mengabaikan blur; kita hanya pastikan bg tidak transparan. */
+@supports not ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+    #loginScreen .login-box        { background: #ffffff; }                 /* rgba(255,255,255,0.95) -> solid */
+    .topbar .user .mapel-label      { background: #1d4ed8; }                 /* rgba(255,255,255,0.2)  -> solid biru */
+    .modal-overlay                  { background: rgba(15, 23, 42, 0.85); }  /* lebih gelap krn tdk ada blur */
+    #userNameDisplay                { background-color: rgba(0, 0, 0, 0.55); }
+    .scanner-wrapper.is-scanning .btn-glass {
+        background: rgba(255, 255, 255, 0.92) !important;
+    }
+}
+
+/* ---------- Fallback untuk `position: sticky` (Chrome <56 / Android <8) ----------
+   Hanya dipakai di th — jika tidak didukung, header tetap terlihat (tidak sticky). */
+@supports not ((position: sticky) or (position: -webkit-sticky)) {
+    th { position: relative; }
+}
+
+/* ---------- Fallback untuk CSS Grid (Chrome <57 / Android <8) ----------
+   Mengubah grid 2-kolom jadi flex-wrap 2-kolom. */
+@supports not (display: grid) {
+    .grid-2,
+    .admin-special-grid,
+    .teacher-list {
+        display: flex; flex-wrap: wrap;
+    }
+    .grid-2 > *,
+    .admin-special-grid > * {
+        flex: 1 1 45%; margin: 0 4px 8px; min-width: 45%;
+    }
+    .teacher-list > * {
+        flex: 1 1 45%; margin: 0 4px 8px; min-width: 45%;
+    }
+    .report-summary {
+        display: flex; flex-wrap: wrap;
+    }
+    .report-summary .stat {
+        flex: 1 1 30%; margin: 0 4px 8px; min-width: 30%;
+    }
+}
+
+/* ---------- Fallback untuk `background-clip: text` (Chrome <85 unprefixed) ----------
+   Jika unprefixed tidak didukung, balik ke teks solid berwarna. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+    #userNameDisplay,
+    #loginScreen .login-box .logo,
+    #loginScreen .login-box h1 {
+        color: #2563eb !important;
+        -webkit-text-fill-color: initial !important;
+        background: none !important;
+    }
+}
+
+/* ---------- Pastikan vh/vw unit minimum selalu valid di HP lama ---------- */
+/* sebagian HP lama (Android 4.x) punya bug 100vh, sudah pakai min-height:100vh */
+
+/* ---------- touch-action: manipulation aman di semua WebView ---------- */

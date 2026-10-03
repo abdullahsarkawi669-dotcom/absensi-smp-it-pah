@@ -1,14 +1,399 @@
 <!DOCTYPE html>
-<!--versi36new-->
+<!--versi36new - android-lawas-compat (polyfill ES6+ & viewport ramah HP lama)-->
 <html lang="id">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+    <!-- Viewport: hapus maximum-scale/user-scalable=no agar lebih ramah WebView lama & mencegah zoom error -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=0.5" />
+    <meta name="format-detection" content="telephone=no" />
+    <meta name="HandheldFriendly" content="true" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="theme-color" content="#2563eb" />
     <title>Absensi Guru - SMP Islam Terpadu Putra Abu Hurairah Mataram</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         <link rel="stylesheet" href="style.css">
+
+    <!-- ============================================================
+         POLYFILL UNTUK ANDROID LAWA (WebView Chrome 37 - 50 / Android 5 - 6)
+         Wajib dimuat SEBELUM html5-qrcode, data_santri, data_jadwal, script.js
+         Polyfill berikut ringan & inline (tidak butuh internet tambahan).
+         ============================================================ -->
+    <script>
+    (function(){
+        'use strict';
+
+        // ---------- String.prototype.padStart (Chrome <57 / Android <8) ----------
+        if (!String.prototype.padStart) {
+            String.prototype.padStart = function padStart(targetLength, padString) {
+                targetLength = targetLength >> 0; // floor
+                if (this.length >= targetLength) return String(this);
+                padString = padString != null ? String(padString) : ' ';
+                if (padString.length === 0) padString = ' ';
+                var padded = '';
+                var needed = targetLength - this.length;
+                while (padded.length < needed) {
+                    padded += padString;
+                }
+                return padded.slice(0, needed) + String(this);
+            };
+        }
+        if (!String.prototype.padEnd) {
+            String.prototype.padEnd = function padEnd(targetLength, padString) {
+                targetLength = targetLength >> 0;
+                if (this.length >= targetLength) return String(this);
+                padString = padString != null ? String(padString) : ' ';
+                if (padString.length === 0) padString = ' ';
+                var padded = '';
+                var needed = targetLength - this.length;
+                while (padded.length < needed) {
+                    padded += padString;
+                }
+                return String(this) + padded.slice(0, needed);
+            };
+        }
+
+        // ---------- String.prototype.includes (Chrome <41) ----------
+        if (!String.prototype.includes) {
+            String.prototype.includes = function (search, start) {
+                if (typeof start !== 'number') start = 0;
+                if (start + search.length > this.length) return false;
+                return String(this).indexOf(search, start) !== -1;
+            };
+        }
+
+        // ---------- String.prototype.startsWith / endsWith ----------
+        if (!String.prototype.startsWith) {
+            String.prototype.startsWith = function (search, pos) {
+                pos = !pos || pos < 0 ? 0 : +pos;
+                return String(this).indexOf(search, pos) === pos;
+            };
+        }
+        if (!String.prototype.endsWith) {
+            String.prototype.endsWith = function (search, this_len) {
+                if (this_len === undefined) this_len = this.length;
+                var s = String(this);
+                return s.slice(this_len - search.length, this_len) === String(search);
+            };
+        }
+
+        // ---------- Array.prototype.includes (Chrome <47) ----------
+        if (!Array.prototype.includes) {
+            Array.prototype.includes = function (searchEl, fromIdx) {
+                var o = Object(this);
+                var len = parseInt(o.length, 10) || 0;
+                if (len === 0) return false;
+                var n = parseInt(fromIdx, 10) || 0;
+                if (n >= 0) {} else { n = len + n; if (n < 0) n = 0; }
+                var k;
+                for (k = n; k < len; k++) {
+                    var cur = o[k];
+                    if (searchEl === cur || (searchEl !== searchEl && cur !== cur)) return true; // NaN
+                }
+                return false;
+            };
+        }
+
+        // ---------- Array.prototype.find / findIndex (Chrome <45) ----------
+        if (!Array.prototype.find) {
+            Array.prototype.find = function (predicate) {
+                if (this == null) throw new TypeError('this is null');
+                var o = Object(this);
+                var len = o.length >>> 0;
+                var thisArg = arguments[1];
+                for (var k = 0; k < len; k++) {
+                    var kValue = o[k];
+                    if (predicate.call(thisArg, kValue, k, o)) return kValue;
+                }
+                return undefined;
+            };
+        }
+        if (!Array.prototype.findIndex) {
+            Array.prototype.findIndex = function (predicate) {
+                if (this == null) throw new TypeError('this is null');
+                var o = Object(this);
+                var len = o.length >>> 0;
+                var thisArg = arguments[1];
+                for (var k = 0; k < len; k++) {
+                    if (predicate.call(thisArg, o[k], k, o)) return k;
+                }
+                return -1;
+            };
+        }
+
+        // ---------- Array.from (Chrome <45) ----------
+        if (!Array.from) {
+            Array.from = function (arrayLike) {
+                var mapFn = arguments[1];
+                var thisArg = arguments[2];
+                var items = Object(arrayLike);
+                var len = parseInt(items.length, 10) || 0;
+                var result = [];
+                var i = 0;
+                var mapping = typeof mapFn === 'function';
+                while (i < len) {
+                    var val = items[i];
+                    if (mapping) val = mapFn.call(thisArg, val, i);
+                    result.push(val);
+                    i++;
+                }
+                return result;
+            };
+        }
+
+        // ---------- Array.of (Chrome <45) ----------
+        if (!Array.of) {
+            Array.of = function () {
+                return Array.prototype.slice.call(arguments);
+            };
+        }
+
+        // ---------- Object.values / entries / keys / assign ----------
+        if (!Object.values) {
+            Object.values = function (obj) {
+                if (obj == null) throw new TypeError('Cannot convert undefined or null to object');
+                var res = [];
+                for (var k in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, k)) res.push(obj[k]);
+                }
+                return res;
+            };
+        }
+        if (!Object.entries) {
+            Object.entries = function (obj) {
+                if (obj == null) throw new TypeError('Cannot convert undefined or null to object');
+                var res = [];
+                for (var k in obj) {
+                    if (Object.prototype.hasOwnProperty.call(obj, k)) res.push([k, obj[k]]);
+                }
+                return res;
+            };
+        }
+        if (!Object.assign) {
+            Object.assign = function (target) {
+                if (target == null) throw new TypeError('Cannot convert undefined or null to object');
+                for (var i = 1; i < arguments.length; i++) {
+                    var src = arguments[i];
+                    if (src != null) {
+                        for (var k in src) {
+                            if (Object.prototype.hasOwnProperty.call(src, k)) target[k] = src[k];
+                        }
+                    }
+                }
+                return target;
+            };
+        }
+
+        // ---------- NodeList.prototype.forEach (Chrome <51) ----------
+        if (window.NodeList && !NodeList.prototype.forEach) {
+            NodeList.prototype.forEach = function (cb, thisArg) {
+                thisArg = thisArg || window;
+                for (var i = 0; i < this.length; i++) {
+                    cb.call(thisArg, this[i], i, this);
+                }
+            };
+        }
+        if (window.HTMLCollection && !HTMLCollection.prototype.forEach) {
+            HTMLCollection.prototype.forEach = function (cb, thisArg) {
+                thisArg = thisArg || window;
+                for (var i = 0; i < this.length; i++) {
+                    cb.call(thisArg, this[i], i, this);
+                }
+            };
+        }
+
+        // ---------- Element.prototype.closest / matches (Chrome <41) ----------
+        if (window.Element && !Element.prototype.matches) {
+            var ep = Element.prototype;
+            ep.matches = ep.msMatchesSelector || ep.webkitMatchesSelector;
+        }
+        if (window.Element && !Element.prototype.closest) {
+            Element.prototype.closest = function (s) {
+                var el = this;
+                if (!document.documentElement.contains(el)) return null;
+                do {
+                    if (el.matches(s)) return el;
+                    el = el.parentElement || el.parentNode;
+                } while (el !== null && el.nodeType === 1);
+                return null;
+            };
+        }
+
+        // ---------- classList polyfill ringan untuk classList.replace/toggle(force) ----------
+        // Beberapa WebView lawas punya DOMTokenList.toggle(force) buggy & classList.replace tidak ada.
+        try {
+            var d = document.createElement('div');
+            d.classList.add('a');
+            d.classList.replace('a', 'b');
+            if (!d.classList.contains('b')) {
+                throw new Error('classList.replace unsupported');
+            }
+        } catch (e) {
+            // Patch DOMTokenList.replace & toggle(force) jika rusak
+            var _origToggle = window.DOMTokenList && DOMTokenList.prototype.toggle;
+            window.DOMTokenList && (DOMTokenList.prototype.replace = function (oldT, newT) {
+                if (this.contains(oldT)) { this.remove(oldT); this.add(newT); }
+                return true;
+            });
+            if (_origToggle && (function(){ try { var x=document.createElement('div'); x.classList.add('a'); _origToggle.call(x.classList,'a',false); return !x.classList.contains('a'); } catch(_) { return false; } })()) {
+                // toggle(force) native berfungsi, biarkan
+            } else if (window.DOMTokenList) {
+                DOMTokenList.prototype.toggle = function (token, force) {
+                    if (arguments.length > 1) {
+                        if (force) { if (!this.contains(token)) this.add(token); }
+                        else { this.remove(token); }
+                        return force;
+                    }
+                    if (this.contains(token)) { this.remove(token); return false; }
+                    this.add(token); return true;
+                };
+            }
+        }
+
+        // ---------- Math.trunc (Chrome <38) ----------
+        if (!Math.trunc) {
+            Math.trunc = function (v) {
+                v = +v;
+                if (!isFinite(v)) return v;
+                return (v > 0 ? Math.floor(v) : Math.ceil(v));
+            };
+        }
+
+        // ---------- Number.isInteger / isFinite / isNaN (Chrome <34/<31) ----------
+        if (!Number.isInteger) {
+            Number.isInteger = function (v) { return typeof v === 'number' && isFinite(v) && Math.floor(v) === v; };
+        }
+        if (!Number.isFinite) {
+            Number.isFinite = function (v) { return typeof v === 'number' && isFinite(v); };
+        }
+        if (!Number.isNaN) {
+            Number.isNaN = function (v) { return typeof v === 'number' && isNaN(v); };
+        }
+
+        // ---------- Promise polyfill (untuk fetch & async/await yang sangat lama) ----------
+        // Catatan: bawaan Chrome 32+ sudah ada Promise, polyfill ini hanya aktif bila kosong.
+        if (typeof window.Promise === 'undefined') {
+            window.Promise = function P(executor) {
+                var self = this;
+                self.state = 'pending';
+                self.value = undefined;
+                self.cbs = [];
+                function settle(state, val) {
+                    if (self.state !== 'pending') return;
+                    self.state = state; self.value = val;
+                    setTimeout(function () {
+                        for (var i = 0; i < self.cbs.length; i++) self.cbs[i]();
+                    }, 0);
+                }
+                self.resolve = function (v) { settle('fulfilled', v); };
+                self.reject = function (r) { settle('rejected', r); };
+                try { executor(self.resolve, self.reject); } catch (e) { self.reject(e); }
+            };
+            window.Promise.prototype.then = function (onF, onR) {
+                var self = this;
+                return new P(function (res, rej) {
+                    self.cbs.push(function () {
+                        try {
+                            if (self.state === 'fulfilled') {
+                                res(onF ? onF(self.value) : self.value);
+                            } else {
+                                if (onR) res(onR(self.value));
+                                else rej(self.value);
+                            }
+                        } catch (e) { rej(e); }
+                    });
+                });
+            };
+            window.Promise.prototype['catch'] = function (onR) { return this.then(null, onR); };
+            window.Promise.resolve = function (v) { return new P(function (r) { r(v); }); };
+            window.Promise.reject = function (r) { return new P(function (_, rej) { rej(r); }); };
+            window.Promise.all = function (arr) {
+                return new P(function (res, rej) {
+                    var results = []; var pending = arr.length;
+                    if (pending === 0) return res([]);
+                    arr.forEach(function (p, i) {
+                        P.resolve(p).then(function (v) {
+                            results[i] = v; if (--pending === 0) res(results);
+                        }, rej);
+                    });
+                });
+            };
+            window.Promise.race = function (arr) {
+                return new P(function (res, rej) {
+                    arr.forEach(function (p) { P.resolve(p).then(res, rej); });
+                });
+            };
+        }
+
+        // ---------- fetch polyfill ringan (XHR-based) bila fetch tidak ada ----------
+        if (typeof window.fetch !== 'function') {
+            window.fetch = function (url, opts) {
+                opts = opts || {};
+                return new Promise(function (resolve, reject) {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open(opts.method || 'GET', url, true);
+                    if (opts.headers) {
+                        Object.keys(opts.headers).forEach(function (k) {
+                            xhr.setRequestHeader(k, opts.headers[k]);
+                        });
+                    }
+                    xhr.onreadystatechange = function () {
+                        if (xhr.readyState !== 4) return;
+                        var body = xhr.responseText;
+                        var resp = {
+                            ok: xhr.status >= 200 && xhr.status < 300,
+                            status: xhr.status,
+                            statusText: xhr.statusText,
+                            text: function () { return Promise.resolve(body); },
+                            json: function () { return Promise.resolve(JSON.parse(body)); },
+                            blob: function () { return Promise.resolve(new Blob([body])); }
+                        };
+                        resolve(resp);
+                    };
+                    xhr.onerror = function () { reject(new TypeError('Network request failed')); };
+                    xhr.ontimeout = function () { reject(new TypeError('Network request timed out')); };
+                    xhr.send(opts.body || null);
+                });
+            };
+        }
+        if (typeof window.Request === 'undefined') {
+            window.Request = function (input, init) { this.url = input; this.init = init || {}; };
+        }
+        if (typeof window.Response === 'undefined') {
+            window.Response = function (body, init) { this.body = body; this.init = init || {}; };
+        }
+        if (typeof window.Headers === 'undefined') {
+            window.Headers = function (init) {
+                var h = this;
+                h._store = {};
+                if (init) {
+                    Object.keys(init).forEach(function (k) { h._store[k.toLowerCase()] = init[k]; });
+                }
+            };
+            window.Headers.prototype.get = function (k) { return this._store[k.toLowerCase()]; };
+            window.Headers.prototype.set = function (k, v) { this._store[k.toLowerCase()] = v; };
+        }
+
+        // ---------- console safety (beberapa WebView lawas punya console terbatas) ----------
+        if (!window.console) { window.console = {}; }
+        ['log','warn','error','info','debug'].forEach(function (m) {
+            if (typeof console[m] !== 'function') console[m] = function () {};
+        });
+
+        // ---------- JSON safety (sudah ada sejak Chrome 3, tetap pastikan) ----------
+        if (typeof window.JSON === 'undefined') {
+            // fallback minimal tidak realistis di sini — Chrome lama sudah punya JSON.
+        }
+
+        console.log('Polyfill ES6+ untuk Android lawas berhasil dimuat.');
+    })();
+    </script>
+    <!-- ============ AKHIR POLYFILL ============ -->
+
     <!-- Library QR dicache otomatis oleh sw.js setelah aplikasi pernah dibuka online. -->
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
         <!--<link rel="manifest" href="manifest.json">

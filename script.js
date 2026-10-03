@@ -611,7 +611,8 @@ function getLocalHistory(teacher, date) {
             };
             const response = await fetch(GAS_URL, {
                 method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: JSON.stringify({ api_action: 'addAttendance', ...payload })
+                // android-lawas: hindari object spread ({...payload}) yang butuh Chrome 60+; gunakan Object.assign
+                body: JSON.stringify(Object.assign({ api_action: 'addAttendance' }, payload))
             });
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const json = await response.json();
@@ -801,7 +802,9 @@ function getLocalHistory(teacher, date) {
             document.getElementById('passwordSection').dataset.selectedTeacher = teacher.name;
             document.getElementById('passwordSection').dataset.adminType = teacher.adminType || '';
             document.querySelectorAll('#teacherList .btn').forEach(b => b.classList.remove('selected'));
-            document.querySelector(`#teacherList .btn[data-name="${teacher.name}"]`)?.classList.add('selected');
+            // android-lawas: ganti optional chaining (?.) dengan null-check eksplisit
+            var _selBtn = document.querySelector('#teacherList .btn[data-name="' + teacher.name + '"]');
+            if (_selBtn) _selBtn.classList.add('selected');
         } else {
             document.getElementById('passwordSection').classList.add('hidden');
             doLogin(teacher.name, false, '');
@@ -1102,7 +1105,9 @@ function checkTomorrowSchedule() {
         const isMTahir = (name === 'M. Tahir, M. Pd.');
         if (document.getElementById('manualScanBtn')) { 
             document.getElementById('manualScanBtn').classList.toggle('hidden', !(isAgus || isMTahir)); 
-            if(!(isAgus || isMTahir)) document.getElementById('manualScanArea')?.classList.add('hidden'); 
+            // android-lawas: ganti optional chaining (?.) dengan null-check eksplisit
+            var _manualArea = document.getElementById('manualScanArea');
+            if(!(isAgus || isMTahir) && _manualArea) _manualArea.classList.add('hidden'); 
         }
 
         currentMode = null; updateScanModeUI(); stopScanner();
@@ -1794,7 +1799,9 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
 
                 const oldId = await saveAttendanceLocal(recordLupa);
                 recordLupa.id = oldId;
-                addHistoryRow({...recordLupa, id: oldId});
+                // android-lawas: hindari object spread; gunakan Object.assign
+                var _rowCopy = Object.assign({}, recordLupa, { id: oldId });
+                addHistoryRow(_rowCopy);
 
                 let oldSent = false;
                 if (navigator.onLine) {
@@ -1952,7 +1959,8 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
                 : `${action === 'masuk' ? '✅ In' : '🚪 Out'} ${formattedClass} (${subject})`,
             'success'
         );
-        addHistoryRow({...record, id});
+        // android-lawas: hindari object spread; gunakan Object.assign
+        addHistoryRow(Object.assign({}, record, { id: id }));
 
         if (navigator.onLine) {
             const res = await sendToGoogleSheet(record);
@@ -2583,7 +2591,8 @@ async function renderMySchedule() {
             const mergedMap = new Map();
             serverData.forEach(d => {
                 const key = `${d.class}_${d.subject}_${d.action}_${d.jp}`;
-                mergedMap.set(key, { ...d, timestamp: d.timestamp || d.date + 'T' + d.time }); 
+                // android-lawas: hindari object spread; gunakan Object.assign
+                mergedMap.set(key, Object.assign({}, d, { timestamp: d.timestamp || (d.date + 'T' + d.time) })); 
             });
             localData.forEach(d => {
                 const key = `${d.class}_${d.subject}_${d.action}_${d.jp}`;
@@ -2777,8 +2786,13 @@ document.querySelectorAll('#mainTabs .tab').forEach(tab => {
     let rekapFilter = 'day';
     document.querySelectorAll('.rekap-filter').forEach(btn => {
         btn.addEventListener('click', () => {
-            document.querySelectorAll('.rekap-filter').forEach(b => { b.classList.remove('active'); b.classList.replace('btn-primary', 'btn-outline'); });
-            btn.classList.add('active'); btn.classList.replace('btn-outline', 'btn-primary');
+            // android-lawas: classList.replace tidak ada di Chrome <49, gunakan remove+add
+            document.querySelectorAll('.rekap-filter').forEach(b => {
+                b.classList.remove('active');
+                if (b.classList.contains('btn-primary')) { b.classList.remove('btn-primary'); b.classList.add('btn-outline'); }
+            });
+            btn.classList.add('active');
+            if (btn.classList.contains('btn-outline')) { btn.classList.remove('btn-outline'); btn.classList.add('btn-primary'); }
             rekapFilter = btn.dataset.filter; document.getElementById('rekapPeriode').textContent = btn.textContent.trim();
             loadRekap();
         });
