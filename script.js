@@ -127,7 +127,7 @@ const rentangLibur = [
 const rentangKegiatan = [
     { mulai: '2026-09-14', selesai: '2026-09-23', nama: 'Sumatif Tengah Semester (STS)' },
     { mulai: '2026-09-30', selesai: '2026-09-30', nama: 'Audisi Festival 13 Abu Hurairah' },
-    { mulai: '2026-10-23', selesai: '2026-10-24', nama: "Itqan al-Qur'an & Hadits" },
+    { mulai: '2026-10-24', selesai: '2026-10-24', nama: "Outing Class Nipah 2026" },
     { mulai: '2026-11-09', selesai: '2026-11-13', nama: 'Final Festival Internal' },
     { mulai: '2026-11-30', selesai: '2026-12-12', nama: 'Sumatif Akhir Semester (SAS)' },
     { mulai: '2027-01-28', selesai: '2027-01-30', nama: 'Festival External Bali Nusa Tenggara' },
