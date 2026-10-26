@@ -311,9 +311,27 @@ function getMapelForScan(kelas, guruName, hari, jp, targetDate = new Date()) {
         if (jadwalRaw.includes('SBDP') || jadwalRaw.includes('Informatika')) {
             // DETEKSI GENAP/GANJIL MENGGUNAKAN TARGET DATE (TANGGAL PEKAN LALU/DLL)
             const genap = isEvenWeek(targetDate);
-            if (!genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
-            if (genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
-            return null; 
+
+            // ============================================================
+            // ATURAN KHUSUS USER AGUS SARKAWI, S. T.
+            // - Sebelum tanggal 14 September 2026  -> Agus ambil PEKAN GENAP
+            // - Setelah/sama dengan 14 September 2026 -> Agus ambil PEKAN GANJIL
+            // (Saifuddin Hidayat, S. Pd. selalu kebalikan dari Agus)
+            // ============================================================
+            const batasTanggalStr = '2026-09-14'; // Tanggal transisi aturan
+            const targetDateStr = getLocalDateString(targetDate);
+            const isSebelumBatas = targetDateStr < batasTanggalStr;
+
+            if (isSebelumBatas) {
+                // Sebelum 14 September 2026: Agus = pekan genap, Saifuddin = pekan ganjil
+                if (genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
+                if (!genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+            } else {
+                // Setelah 14 September 2026: Agus = pekan ganjil, Saifuddin = pekan genap
+                if (!genap && guruName === 'Agus Sarkawi, S. T.') return 'Informatika';
+                if (genap && guruName === 'Saifuddin Hidayat, S. Pd.') return 'SBDP';
+            }
+            return null;
         }
         if (jadwalRaw.includes(guruName)) return jadwalRaw.split('(')[0].trim();
     }
