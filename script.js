@@ -1534,8 +1534,12 @@ async function startScanner() {
         let myBlocks = [];
         let currentBlock = null;
 
-        for (let i = 1; i <= 8; i++) {
-            let jp = 'JP ' + i;
+        // FIX: iterasi seluruh JP termasuk 'Pembiasaan Pagi'.
+        // Sebelumnya hanya loop JP 1-8 sehingga wali kelas yang scan Pembiasaan
+        // Pagi tidak mendapat activeBlock yang valid → fallback ke tebakan
+        // getCurrentJPInfo() yang bisa salah klasifikasi.
+        const jpOrder = ['Pembiasaan Pagi', 'JP 1', 'JP 2', 'JP 3', 'JP 4', 'JP 5', 'JP 6', 'JP 7', 'JP 8'];
+        for (let jp of jpOrder) {
             if (!jadwal[jp]) continue; 
             
             let mapel = getMapelForScan(classCode, currentUser, day, jp);
@@ -1985,7 +1989,25 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
 
             if (res.success) {
                 await processSyncedItem(record);
-                await refreshServerCache();
+                // FIX: hapus refreshServerCache() di sini.
+                // Sebelumnya, setiap scan sukses langsung memanggil fetch GET
+                // ke Google Apps Script yang memakan 3-8 detik. Itu membuat scan
+                // terasa "nge-lag" setelah notifikasi sukses muncul.
+                // Update cache lokal secara optimis dengan record baru saja.
+                if (!serverDataCache.some(h => h.session_id === record.session_id)) {
+                    serverDataCache.push(Object.assign({}, record, { synced: true }));
+                }
+                // Pastikan filter tanggal pada cache tetap valid untuk hari ini.
+                const _todayStr = getLocalDateString(getCurrentWITA());
+                serverDataCache = serverDataCache.filter(d => d.date === _todayStr);
+
+                // FIX: juga update cache admin & invalidasi TTL-nya supaya Live
+                // Monitor admin langsung refleksikan scan baru tanpa harus menunggu
+                // fetch ulang 60 detik ke depan.
+                if (!currentServerDataCacheAdmin.some(h => h.session_id === record.session_id)) {
+                    currentServerDataCacheAdmin.push(Object.assign({}, record, { synced: true }));
+                }
+                adminDataLastFetchAt = 0; // paksa fetch segar saat admin buka tab
 
                 showScanResult('✅ Data terkirim ke Server dan tersimpan sekali.', 'success');
 
@@ -2553,7 +2575,10 @@ async function renderMySchedule() {
         updateTeachingTimer();
         updateNextClassInfo();
         checkTomorrowSchedule();
-                if (now.getSeconds() === 0) renderJadwalGrid(); // Auto refresh penyorot tiap berganti menit
+                // FIX: renderJadwalGrid() tidak didefinisikan di file ini → sebelumnya
+                // melempar ReferenceError diam-diam tiap menit (saat detik == 0).
+                // Panggilan dihapus sampai fungsi tsb benar-benar tersedia.
+                // if (now.getSeconds() === 0) renderJadwalGrid();
                 autoResolveLupaAbsen(); // Tambahkan pemanggilan ini            
     }
     setInterval(updateClock, 1000);
@@ -2581,7 +2606,8 @@ async function renderMySchedule() {
         
         let ketDisplay = record.keterangan || '-';
         let editBtn = '';
-        const todayStr = getLocalDateString(new Date());
+        // FIX: konsisten WITA
+        const todayStr = getLocalDateString(getCurrentWITA());
         
         if (isLate && record.date === todayStr) {
             const encodedRecord = encodeURIComponent(JSON.stringify(record));
@@ -2602,8 +2628,11 @@ async function renderMySchedule() {
 
     function loadHistory() {
         if (!currentUser) return;
-        getLocalHistory(currentUser, getLocalDateString(new Date())).then((localData) => {
-            const todayStr = getLocalDateString(new Date());
+        // FIX: konsisten WITA. Sebelumnya memformat `new Date()` yang untuk user
+        // di luar WITA bisa menghasilkan tanggal berbeda.
+        const witaNow = getCurrentWITA();
+        const todayStr = getLocalDateString(witaNow);
+        getLocalHistory(currentUser, todayStr).then((localData) => {
             const serverData = serverDataCache.filter(d => d.teacher === currentUser && d.date === todayStr);
 
             const mergedMap = new Map();
@@ -2621,8 +2650,9 @@ async function renderMySchedule() {
             
 // --- AWAL INJEKSI JADWAL TERLEWAT (HARI INI) ---
             const hari = getDayName();
-            const currentMins = new Date().getHours() * 60 + new Date().getMinutes();
-            let blocks = getGroupedSchedule(currentUser, hari, currentMins, new Date());
+            // FIX: konsisten WITA
+            const currentMins = witaNow.getHours() * 60 + witaNow.getMinutes();
+            let blocks = getGroupedSchedule(currentUser, hari, currentMins, witaNow);
             
             // Buat Set untuk melacak kopel yang sudah dicek agar tidak muncul berulang
             let processedKopel = new Set();
@@ -2689,8 +2719,11 @@ async function autoResolveLupaAbsen() {
     if (!activeStr) return;
     
     let activeData = JSON.parse(activeStr);
-    const todayStr = getLocalDateString(new Date());
-    const now = new Date();
+    // FIX: pakai getCurrentWITA() agar konsisten dengan seluruh app.
+    // Sebelumnya memakai `new Date()` yang bisa salah jam untuk user di luar WITA.
+    const witaNow = getCurrentWITA();
+    const todayStr = getLocalDateString(witaNow);
+    const now = witaNow;
     const currentMins = now.getHours() * 60 + now.getMinutes();
     
     let keluarMins = parseTimeToMins(activeData.keluar);
@@ -2738,7 +2771,10 @@ async function verifySheetStatus() {
     if (!activeStr) return; // Tidak ada kelas terkunci, tidak ada yang perlu diverifikasi
 
     await refreshServerCache();
-    const todayStr = getLocalDateString(new Date());
+    // FIX: konsisten menggunakan WITA. `getLocalDateString(new Date())`
+    // sebelumnya memformat tanggal dari `new Date()` (yang untuk user WITA
+    // masih menghasilkan tanggal WITA, tapi tidak untuk user di luar WITA).
+    const todayStr = getLocalDateString(getCurrentWITA());
     let activeData;
     try { activeData = JSON.parse(activeStr); } catch (e) { return; }
 
@@ -2852,22 +2888,26 @@ async function loadRekap() {
                 });
             });
 
-            const now = new Date(); 
-            const today = now.toISOString().split('T')[0];
+            // FIX TIMEZONE: gunakan getCurrentWITA() untuk semua perhitungan tanggal/jam.
+            // Sebelumnya memakai `now.toISOString().split('T')[0]` yang mengembalikan
+            // tanggal UTC. Untuk user WITA, sebelum jam 08:00 WITA tanggal UTC masih
+            // hari sebelumnya → rekap "Hari Ini" menampilkan data kemarin.
+            const now = getCurrentWITA(); 
+            const today = getLocalDateString(now);
             
             let filtered = res.data.filter(d => {
                 if (d.teacher !== currentUser) return false;
                 if (rekapFilter === 'day') return d.date === today;
                 
                 // Pastikan tidak merusak objek 'now' bawaan JS
-                let filterDate = new Date(); filterDate.setHours(0,0,0,0);
+                let filterDate = new Date(now); filterDate.setHours(0,0,0,0);
                 if (rekapFilter === 'week') {
                     filterDate.setDate(filterDate.getDate() - filterDate.getDay() + 1);
-                    return d.date >= filterDate.toISOString().split('T')[0];
+                    return d.date >= getLocalDateString(filterDate);
                 }
                 if (rekapFilter === 'month') {
                     filterDate.setDate(1);
-                    return d.date >= filterDate.toISOString().split('T')[0];
+                    return d.date >= getLocalDateString(filterDate);
                 }
                 return true; 
             });
@@ -2899,14 +2939,15 @@ async function loadRekap() {
             });
 
             // --- AWAL INJEKSI KELAS TERLEWAT PADA REKAP ---
-            let startDate = new Date(); startDate.setHours(0,0,0,0);
+            // FIX: pakai getCurrentWITA() agar konsisten dengan filter di atas.
+            let startDate = new Date(now); startDate.setHours(0,0,0,0);
             if (rekapFilter === 'week') startDate.setDate(startDate.getDate() - startDate.getDay() + 1);
             else if (rekapFilter === 'month') startDate.setDate(1);
             else if (rekapFilter === 'all') startDate = new Date(startDate.getFullYear(), 6, 1); // Batas limit all = 1 Juli (Tahun Ajaran Baru)
             
             let tempDate = new Date(startDate);
-            const todayStrLocal = getLocalDateString(new Date());
-            const nowMins = new Date().getHours() * 60 + new Date().getMinutes();
+            const todayStrLocal = getLocalDateString(now);
+            const nowMins = now.getHours() * 60 + now.getMinutes();
             
             while (getLocalDateString(tempDate) <= todayStrLocal) {
                 if (tempDate.getDay() !== 0 && !isLiburSekolah(tempDate)) {
@@ -3124,9 +3165,88 @@ function buildAdminMissedClasses(allData) {
 
     let liveMonitorMode = 'ongoing';
     let currentServerDataCacheAdmin = [];
+    // === Tambahan: cache + auto-refresh Live Monitor ===
+    // Tanpa ini, tab Admin membeku menunggu fetch Google Apps Script (~5-15 dtk).
+    // Sekarang: render pakai cache lama dulu -> fetch di background -> render ulang.
+    let adminDataLastFetchAt = 0;       // timestamp fetch terakhir (ms)
+    let adminDataFetching = false;      // guard agar tidak dobel fetch
+    let liveMonitorIntervalId = null;   // interval auto-refresh live monitor
+
+    // Ambil data absensi admin dengan caching 60 detik.
+    // - Jika cache masih segar (< 60 dtk), langsung return cache, TIDAK fetch ulang.
+    // - Jika cache stale/empty, fetch baru. Saat fetch berjalan, pakai cache lama dulu.
+    async function fetchAdminDataIfNeeded(forceRefresh) {
+        const now = Date.now();
+        const cacheAge = now - adminDataLastFetchAt;
+        const CACHE_TTL = 60 * 1000; // 60 detik
+
+        if (!forceRefresh && currentServerDataCacheAdmin.length > 0 && cacheAge < CACHE_TTL) {
+            return currentServerDataCacheAdmin;
+        }
+
+        if (adminDataFetching) {
+            // Sudah ada fetch berjalan; tunggu sambil pakai cache lama.
+            return currentServerDataCacheAdmin;
+        }
+
+        adminDataFetching = true;
+        try {
+            const response = await fetch(GAS_URL + '?action=getAbsensi');
+            const res = await response.json();
+            if (!res.success) throw new Error(res.error || 'Gagal fetch');
+
+            // Normalisasi zona waktu (sama seperti loadAdminData/loadAgusData)
+            res.data.forEach(d => {
+                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+                    let dt = new Date(d.date);
+                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+                }
+                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+                    if (d[k] && typeof d[k] === 'string') {
+                        if (d[k].includes('T')) {
+                            let dt = new Date(d[k]);
+                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                        } else {
+                            d[k] = d[k].replace(/\./g, ':');
+                        }
+                    }
+                });
+            });
+
+            currentServerDataCacheAdmin = res.data;
+            adminDataLastFetchAt = Date.now();
+            return res.data;
+        } finally {
+            adminDataFetching = false;
+        }
+    }
+
+    // Auto-refresh live monitor saja (ringan, tanpa reload tabel rekap besar).
+    // Dipanggil setiap 30 detik ketika tab Admin/Master sedang aktif.
+    function startLiveMonitorAutoRefresh() {
+        if (liveMonitorIntervalId) return; // sudah jalan
+        liveMonitorIntervalId = setInterval(async () => {
+            // Hanya refresh jika tab admin atau agus sedang tampil (tidak hidden)
+            const tabAdmin = document.getElementById('tabAdmin');
+            const tabAgus  = document.getElementById('tabAgus');
+            const isAdminTabVisible = tabAdmin && !tabAdmin.classList.contains('hidden');
+            const isAgusTabVisible  = tabAgus  && !tabAgus.classList.contains('hidden');
+            if (!isAdminTabVisible && !isAgusTabVisible) return;
+
+            // Refresh ringan: hanya update live monitor dari cache yang ada.
+            // Data fetch sebenarnya diatur oleh loadAdminData/loadAgusData.
+            try {
+                // Hanya re-render live monitor (bukan tabel rekap yang berat)
+                renderLiveMonitor();
+                if (typeof renderMasterAdminMonitor === 'function') renderMasterAdminMonitor();
+            } catch(e) { /* silent */ }
+        }, 30000); // 30 detik
+    }
 
     function getOngoingAndNextJP() {
-        const now = new Date();
+        // FIX: gunakan WITA, bukan jam lokal browser. Sebelumnya `new Date()`
+        // membuat Live Monitor menampilkan JP yang salah untuk user di luar WITA.
+        const now = getCurrentWITA();
         const totalMins = now.getHours() * 60 + now.getMinutes();
         const day = getDayName();
         const jadwal = (day === 'jumat') ? JADWAL_WAKTU.jumat : JADWAL_WAKTU.reguler;
@@ -3185,7 +3305,15 @@ function renderLiveMonitor() {
     }
     
     if (currentServerDataCacheAdmin.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center">Belum ada data dari server...</td></tr>'; return;
+        // FIX: jangan tampilkan "Belum ada data dari server..." yang menyesatkan.
+        // Bisa terjadi karena: (a) belum ada absen masuk sama sekali hari ini,
+        // (b) cache masih kosong saat baru buka tab. Bedakan kedua kasus ini.
+        const _todayStr = getLocalDateString(getCurrentWITA());
+        const _hasAnyToday = currentServerDataCacheAdmin.some(d => d.date === _todayStr);
+        tbody.innerHTML = _hasAnyToday
+            ? '<tr><td colspan="4" class="text-center text-muted">Belum ada absen MASUK pada JP ini.</td></tr>'
+            : '<tr><td colspan="4" class="text-center text-muted"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menunggu data dari server...</td></tr>';
+        return;
     }
 
     const todayStr = getLocalDateString(getCurrentWITA());
@@ -3537,40 +3665,46 @@ function renderLiveMonitor() {
         // Catatan: card 'Rekap Guru Tidak Scan Masuk Hari Ini' (#adminMissedClassesCard)
         // sudah dihapus dari DOM. Fungsi buildAdminMissedClasses() & copyRekapWA()
         // tetap dipertahankan sebagai no-op agar tidak mematahkan referensi global.
-        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
-        
+
+        const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
+        const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
+        const filterTeacher = document.getElementById('adminTeacherFilter').value;
+        const filterPeriod = document.getElementById('adminPeriodFilter').value;
+
+        // === FIX LIVE MONITOR LAMBAT ===
+        // 1. Segera render Live Monitor pakai cache lama (jika ada) supaya admin
+        //    tidak melihat layar kosong/menunggu saat baru buka tab.
+        if (currentServerDataCacheAdmin.length > 0) {
+            try {
+                renderLiveMonitor();
+                renderPembiasaanPagiAdminTable();
+            } catch(e) { /* silent */ }
+        } else {
+            // Belum pernah fetch: tampilkan placeholder ramah
+            tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Memuat data dari Google Sheets...</td></tr>';
+            try { renderLiveMonitor(); } catch(e) {}
+        }
+
+        // 2. Fetch data di background. Jika cache masih segar (<60 dtk), pakai cache.
+        let res;
         try {
-            const res = await (await fetch(GAS_URL + '?action=getAbsensi')).json();
-            if (!res.success) throw new Error(res.error);
-            const tolMasuk = parseInt(localStorage.getItem('tolMasuk')) || 3;
-            const tolKeluar = parseInt(localStorage.getItem('tolKeluar')) || 3;
-            
-            res.data.forEach(d => {
-                if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
-                    let dt = new Date(d.date);
-                    if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-                }
-                ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
-                    if (d[k] && typeof d[k] === 'string') {
-                        if (d[k].includes('T')) {
-                            let dt = new Date(d[k]);
-                            if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
-                        } else {
-                            d[k] = d[k].replace(/\./g, ':'); 
-                        }
-                    }
-                });
-            });
+            const data = await fetchAdminDataIfNeeded(false);
+            if (!data) throw new Error('Data kosong');
+            // Bungkus ke format {success, data} agar blok di bawah tetap kompatibel
+            res = { success: true, data: data };
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal: ${e.message}</td></tr>`;
+            return;
+        }
             
             currentServerDataCacheAdmin = res.data;
+            // Render live monitor SEGERA setelah data segar tersedia (tidak menunggu
+            // buildAllScheduleRows yang berat).
             renderLiveMonitor(); 
             // Render tabel Rekap Pembiasaan Pagi (Khusus Wali Kelas) di section admin
             renderPembiasaanPagiAdminTable();
             // buildAdminMissedClasses() tidak dipanggil lagi: card rekap missed
             // classes telah dihapus dari dashboard ADMIN sesuai permintaan user.
-            
-            const filterTeacher = document.getElementById('adminTeacherFilter').value;
-            const filterPeriod = document.getElementById('adminPeriodFilter').value;
 
             // Susun seluruh baris jadwal setiap guru (kecuali Budiman, S. Pd.)
             // untuk periode & filter guru yang dipilih. Setiap baris jadwal TANPA
@@ -3604,7 +3738,9 @@ function renderLiveMonitor() {
             document.getElementById('adminStatLate').textContent  = tLate  + ' Mnt';
             document.getElementById('adminStatEarly').textContent = tEarly + ' Mnt';
             document.getElementById('adminStatLupa').textContent   = tMissed + ' Kali';
-        } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Gagal: ${e.message}</td></tr>`; }
+
+            // Aktifkan auto-refresh Live Monitor (hanya sekali per session).
+            startLiveMonitorAutoRefresh();
     }
 
     function exportTableToExcel(tableId, filename = 'Data_Absensi.xls') {
@@ -3666,29 +3802,29 @@ function renderLiveMonitor() {
     // agregat per guru seperti versi sebelumnya. Header sudah didefinisikan
     // langsung di index.html: Tgl, Guru, Mapel, Kls, JP, In, Out, Telat,
     // Cepat, Tidak Scan Masuk (10 kolom).
-    tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
 
+    // === FIX LIVE MONITOR LAMBAT (Master) ===
+    // Sama seperti loadAdminData: render pakai cache lama dulu, fetch di background.
+    if (currentServerDataCacheAdmin.length > 0) {
+        try {
+            renderLiveMonitor();
+            renderMasterAdminMonitor();
+            renderPembiasaanPagiAdminTable();
+        } catch(e) { /* silent */ }
+    } else {
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data dari Google Sheet...</td></tr>';
+        try { renderLiveMonitor(); renderMasterAdminMonitor(); } catch(e) {}
+    }
+
+    let res;
     try {
-        const response = await fetch(GAS_URL + '?action=getAbsensi');
-        const res = await response.json();
-        if (!res.success) throw new Error(res.error);
-
-        res.data.forEach(d => {
-            if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
-                let dt = new Date(d.date);
-                if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
-            }
-            ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
-                if (d[k] && typeof d[k] === 'string') {
-                    if (d[k].includes('T')) {
-                        let dt = new Date(d[k]);
-                        if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
-                    } else {
-                        d[k] = d[k].replace(/\./g, ':');
-                    }
-                }
-            });
-        });
+        const data = await fetchAdminDataIfNeeded(false);
+        if (!data) throw new Error('Data kosong');
+        res = { success: true, data: data };
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`;
+        return;
+    }
 
         currentServerDataCacheAdmin = res.data;
         renderLiveMonitor();
@@ -3723,7 +3859,9 @@ function renderLiveMonitor() {
             true,
             periodText
         );
-    } catch (e) { tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger py-4">Error: ${e.message}</td></tr>`; }
+
+        // Aktifkan auto-refresh Live Monitor (hanya sekali per session).
+        startLiveMonitorAutoRefresh();
 }
 
     document.getElementById('agusEditLink').addEventListener('click', () => {
@@ -4316,6 +4454,12 @@ function renderMasterAdminMonitor() {
     totalBadge.textContent = `${sortedTeachers.length} Guru`;
     let rowsHTML = '';
 
+    // FIX: <style> sebelumnya ada di dalam loop forEach → ter-duplikat untuk
+    // setiap baris guru. Hoist ke luar agar CSS hanya disisipkan sekali.
+    rowsHTML += `<style>
+        .tr-monitor:hover { background-color: #f9fafb; }
+    </style>`;
+
     // 3. Iterasi setiap guru untuk dicari posisi terakhirnya
     sortedTeachers.forEach(t => {
         // Cari urutan log aktivitas paling terakhir milik guru tersebut (paling atas/terbaru)
@@ -4351,9 +4495,6 @@ function renderMasterAdminMonitor() {
         }
 
         rowsHTML += `
-            <style>
-                .tr-monitor:hover { background-color: #f9fafb; }
-            </style>
             <tr class="tr-monitor" style="border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 10px; font-size: 12px; font-weight: 600; color: #111827;">${t.name}</td>
                 <td style="padding: 10px; font-size: 12px;">${statusDisplay}</td>
