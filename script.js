@@ -2009,6 +2009,11 @@ async function executeFinalScanRecord(classCode, ket, subject, jpFinal, jMasuk, 
                 }
                 adminDataLastFetchAt = 0; // paksa fetch segar saat admin buka tab
 
+                // FIX: invalidate cache riwayat pekanan & nilai juga, supaya tab
+                // Riwayat & Nilai langsung refleksikan scan baru.
+                cachedFullRiwayatAt = 0;
+                nilaiDataLastFetchAt = 0;
+
                 showScanResult('✅ Data terkirim ke Server dan tersimpan sekali.', 'success');
 
                 //if (action === 'keluar') {
@@ -2920,7 +2925,15 @@ async function loadRekap() {
             const grouped = {};
             filtered.forEach(d => {
                 if (!d.date || !d.class || !d.jp) return;
-                const key = d.date + '_' + d.class + '_' + d.jp;
+                // FIX KRITIS: normalisasi key agar 1 sesi kelas kopel tidak ter-split.
+                // Sebelumnya `key = d.date + '_' + d.class + '_' + d.jp` — untuk kelas
+                // kopel Tahfizh/PJOK, `d.class` di server bisa "(7A),7B,7C" / "7A,(7B),7C"
+                // / "7A,7B,(7C)" tergantung kelas mana yang di-scan. Scan masuk dari 7B
+                // dan scan keluar dari 7C menghasilkan key berbeda → 1 sesi ter-split jadi
+                // 2 baris "Incomplete". Sekarang key pakai class yang sudah dibersihkan
+                // dari tanda kurung, supaya masuk & keluar tergabung jadi 1 baris.
+                const classClean = String(d.class).replace(/[()]/g, '').trim();
+                const key = d.date + '_' + classClean + '_' + d.jp;
                 if (!grouped[key]) grouped[key] = {
                     date: d.date, class: d.class, subject: d.subject, jp: d.jp,
                     jadwal_masuk: d.jadwal_masuk || '-', jadwal_keluar: d.jadwal_keluar || '-',
@@ -2994,7 +3007,20 @@ async function loadRekap() {
             }
             // --- AKHIR INJEKSI ---
 
-            const finalData = Object.values(grouped).sort((a,b) => b.date.localeCompare(a.date) || b.waktu_masuk.localeCompare(a.waktu_masuk));
+            // FIX SORT: entry isMissed punya waktu_masuk='-'. Sebelumnya sort pakai
+            // `b.waktu_masuk.localeCompare(a.waktu_masuk)` saja, yang menyebabkan
+            // entry '-' sort inkonsisten (tergantung sisi localeCompare).
+            // Sekarang: pakai jadwal_masuk sebagai fallback untuk entry isMissed
+            // supaya urutan tetap kronologis sesuai jam pelajaran.
+            const sortKey = (r) => {
+                const t = (r.waktu_masuk && r.waktu_masuk !== '-') ? r.waktu_masuk
+                        : (r.jadwal_masuk && r.jadwal_masuk !== '-') ? r.jadwal_masuk
+                        : '00:00';
+                return t;
+            };
+            const finalData = Object.values(grouped).sort((a,b) =>
+                b.date.localeCompare(a.date) || sortKey(b).localeCompare(sortKey(a))
+            );
 
             tbody.innerHTML = '';
             if (finalData.length === 0) {
@@ -3975,8 +4001,11 @@ function renderJadwalPekanIni() {
 // ==========================================
 // FUNGSI RIWAYAT PEKANAN (NEW)
 // ==========================================
+// FIX: gunakan WITA, bukan `new Date()`. Sebelumnya `getWeekDateRange` memakai
+// jam lokal browser. Untuk user di luar WITA (atau server di UTC), range pekan
+// bisa geser 1 hari di sekitar tengah malam UTC.
 function getWeekDateRange(offsetWeeks = 0) {
-    const now = new Date();
+    const now = getCurrentWITA();
     const dayOfWeek = now.getDay() || 7; 
     now.setDate(now.getDate() - dayOfWeek + 1); // Mundur ke Hari Senin
     now.setHours(0,0,0,0);
@@ -4027,7 +4056,39 @@ function populateRiwayatWeeks() {
     select.addEventListener('change', loadRiwayatPekanan);
 }
 
+// FIX: tambah TTL 60 detik untuk cachedFullRiwayat. Sebelumnya cache permanen —
+// jika user scan absen baru lalu buka tab Riwayat, data stale (tidak refleksikan
+// scan terbaru). Sekarang cache otomatis invalid setelah 60 detik, dan di-reset
+// saat scan baru (lihat executeFinalScanRecord).
 let cachedFullRiwayat = null;
+let cachedFullRiwayatAt = 0;
+const RIWAYAT_CACHE_TTL = 60 * 1000; // 60 detik
+
+// Helper: normalisasi zona waktu untuk data riwayat (sama seperti loadRekap/loadAdminData).
+// Sebelumnya cachedFullRiwayat menyimpan data mentah dari server tanpa normalisasi,
+// sehingga `d.time` bisa berupa ISO string "2026-10-29T07:35:00" → substring(0,5) =
+// "2026-" (salah) di renderRiwayatData.
+function _normalizeRiwayatData(data) {
+    if (!Array.isArray(data)) return [];
+    data.forEach(d => {
+        if (d.date && typeof d.date === 'string' && d.date.includes('T')) {
+            let dt = new Date(d.date);
+            if (!isNaN(dt.getTime())) d.date = dt.getFullYear() + '-' + String(dt.getMonth()+1).padStart(2, '0') + '-' + String(dt.getDate()).padStart(2, '0');
+        }
+        ['time', 'jadwal_masuk', 'jadwal_keluar'].forEach(k => {
+            if (d[k] && typeof d[k] === 'string') {
+                if (d[k].includes('T')) {
+                    let dt = new Date(d[k]);
+                    if (!isNaN(dt.getTime())) d[k] = dt.getHours().toString().padStart(2,'0') + ':' + dt.getMinutes().toString().padStart(2,'0');
+                } else {
+                    d[k] = d[k].replace(/\./g, ':');
+                }
+            }
+        });
+    });
+    return data;
+}
+
 async function loadRiwayatPekanan() {
     if (!currentUser) return;
     const container = document.getElementById('riwayatPekanContainer');
@@ -4052,14 +4113,26 @@ async function loadRiwayatPekanan() {
     }
     document.getElementById('riwayatNotice').innerHTML = `<div class="${noticeBg} border p-2 rounded-lg text-xs mb-3 text-center"><i class="fa-solid fa-calendar-days"></i> ${noticeLabel} &mdash; Periode: <b>${formatTgl(range.start)} - ${formatTgl(range.end)}</b></div>`;
     
+    // FIX: untuk pekan mendatang (jadwal), tidak perlu fetch data server (cukup
+    // jadwal dari getGroupedSchedule). Skip fetch supaya lebih cepat.
+    if (isFuture) {
+        renderRiwayatData([], range, isFuture);
+        return;
+    }
+
     container.innerHTML = '<div class="text-center py-6 font-bold text-gray-500"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Menarik data server...</div>';
     
     try {
-        if (!cachedFullRiwayat) {
+        const cacheAge = Date.now() - cachedFullRiwayatAt;
+        if (!cachedFullRiwayat || cacheAge >= RIWAYAT_CACHE_TTL) {
             const response = await fetch(GAS_URL + '?action=getAbsensi');
             const res = await response.json();
-            if (res.success) cachedFullRiwayat = res.data;
-            else throw new Error("Gagal load data");
+            if (res.success) {
+                cachedFullRiwayat = _normalizeRiwayatData(res.data || []);
+                cachedFullRiwayatAt = Date.now();
+            } else {
+                throw new Error("Gagal load data");
+            }
         }
         renderRiwayatData(cachedFullRiwayat, range, isFuture);
     } catch(e) {
@@ -5004,11 +5077,21 @@ document.getElementById('kirimNilaiBtn').addEventListener('click', async () => {
 });
 
 // Fitur Load Rekap Nilai
-document.getElementById('refreshRekapNilaiBtn').addEventListener('click', loadRekapNilai);
+document.getElementById('refreshRekapNilaiBtn').addEventListener('click', () => {
+    // FIX: tombol refresh harus paksa fetch baru, tidak pakai cache.
+    nilaiDataLastFetchAt = 0;
+    loadRekapNilai();
+});
 document.getElementById('filterRekapNilaiKelas').addEventListener('change', loadRekapNilai);
 document.getElementById('filterRekapNilaiJenis').addEventListener('change', loadRekapNilai);
 
 let serverDataNilai = [];
+// FIX: tambah cache 60 detik untuk data nilai. Sebelumnya `loadRekapNilai`
+// memakai `&t=' + new Date().getTime()` yang memaksa fetch baru tiap klik
+// tombol refresh / ganti filter. Untuk spreadsheet besar, ini bisa 3-8 detik
+// per panggilan.
+let nilaiDataLastFetchAt = 0;
+let nilaiDataFetching = false;
 
 async function loadRekapNilai() {
     if (!currentUser) return;
@@ -5016,11 +5099,24 @@ async function loadRekapNilai() {
     tbody.innerHTML = '<tr><td colspan="3" class="text-center py-6 text-muted"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil rekap nilai...</td></tr>';
     
     try {
-        const response = await fetch(GAS_URL + '?action=getNilai&t=' + new Date().getTime());
-        const res = await response.json();
-        if (!res.success) throw new Error(res.error);
-        
-        serverDataNilai = res.data;
+        const CACHE_TTL = 60 * 1000; // 60 detik
+        const cacheAge = Date.now() - nilaiDataLastFetchAt;
+
+        // Pakai cache jika masih segar DAN bukan refresh eksplisit
+        if (serverDataNilai.length === 0 || cacheAge >= CACHE_TTL) {
+            if (!nilaiDataFetching) {
+                nilaiDataFetching = true;
+                try {
+                    const response = await fetch(GAS_URL + '?action=getNilai&t=' + Date.now());
+                    const res = await response.json();
+                    if (!res.success) throw new Error(res.error);
+                    serverDataNilai = res.data || [];
+                    nilaiDataLastFetchAt = Date.now();
+                } finally {
+                    nilaiDataFetching = false;
+                }
+            }
+        }
         renderRekapNilaiTable();
     } catch (e) {
         tbody.innerHTML = `<tr><td colspan="3" class="text-center text-danger">Gagal: ${e.message}</td></tr>`;
